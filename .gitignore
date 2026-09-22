@@ -1,0 +1,15 @@
+node_modules/
+dist/
+out/
+BAN-GIAO/
+test-results/
+playwright-report/
+.env*
+!.env.example
+*.log
+*.exe
+*.rar
+.local/
+supabase/.temp/
+MoKhoaApp.ps1
+guilde.txt
