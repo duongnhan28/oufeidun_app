@@ -37,7 +37,7 @@ begin
  'me',jsonb_build_object('id',u.id,'display_name',u.display_name,'role',u.role,'active',u.active),
  'products',coalesce((select jsonb_agg(to_jsonb(x)) from (select p.id,p.sku,p.name,p.glass_type,p.models,p.brand,p.glass_brand_id,p.image_path,p.sale_price::text,p.active,p.version,p.price_version,b.on_hand,b.version stock_version,
  case when u.role='admin' then c.fixed_cost::text else null end fixed_cost from app_private.products p join app_private.inventory_balances b on b.product_id=p.id join app_private.product_costs c on c.product_id=p.id where p.deleted_at is null order by p.sku limit 5000) x),'[]'),
- 'orders',coalesce((select jsonb_agg(to_jsonb(x)) from (select o.id,'DH-'||lpad(o.order_no::text,5,'0') order_no,o.status,o.created_by,a.display_name creator_name,o.customer_name,o.customer_phone,o.note,o.payment_method,o.total_amount::text,o.created_at,o.confirmed_at,o.cancelled_at,o.version,o.exchange_return_id,
+ 'orders',coalesce((select jsonb_agg(to_jsonb(x)) from (select o.id,coalesce(o.order_code,'DH-'||lpad(o.order_no::text,5,'0')) order_no,o.status,o.created_by,a.display_name creator_name,o.customer_name,o.customer_phone,o.note,o.payment_method,o.total_amount::text,o.created_at,o.confirmed_at,o.cancelled_at,o.version,o.exchange_return_id,
  (select coalesce(jsonb_agg(jsonb_build_object('id',i.id,'product_id',i.product_id,'quantity',i.quantity,'custom_name',i.custom_name,'unit_sale_price',i.unit_sale_price::text,'quoted_price_version',i.quoted_price_version,'sku_snapshot',i.sku_snapshot,'product_name_snapshot',i.product_name_snapshot,'returned_quantity',(select coalesce(sum(ri.quantity),0) from app_private.sales_return_items ri where ri.order_item_id=i.id)) order by i.id),'[]') from app_private.sales_order_items i where i.order_id=o.id) items,
  (select coalesce(jsonb_agg(jsonb_build_object('id',r.id,'return_no','TH-'||r.return_no,'posted_at',r.posted_at,'refund_amount',r.refund_amount::text,'reason',r.reason,'items',(select jsonb_agg(jsonb_build_object('order_item_id',ri.order_item_id,'quantity',ri.quantity,'restock_quantity',ri.restock_quantity)) from app_private.sales_return_items ri where ri.return_id=r.id))),'[]') from app_private.sales_returns r where r.order_id=o.id) returns
  from app_private.sales_orders o join app_private.app_users a on a.id=o.created_by where o.status<>'deleted' and (u.role='admin' or o.created_by=u.id) order by o.updated_at desc limit 500) x),'[]'),
@@ -63,10 +63,11 @@ begin
  if oldreq.result is not null then return oldreq.result; end if;
  if act not in ('save_draft','confirm_order','delete_draft') and u.role<>'admin' then raise exception 'FORBIDDEN'; end if;
  if act='save_draft' then
-  perform app_private.only_keys(payload,array['action','key','id','version','items','customer_name','customer_phone','note']);
+  perform app_private.only_keys(payload,array['action','key','id','version','items','customer_name','customer_phone','note','order_code']);
+  if length(trim(coalesce(payload->>'order_code',''))) > 50 then raise exception 'VALIDATION_ERROR'; end if;
   if jsonb_typeof(payload->'items')<>'array' or coalesce(jsonb_array_length(payload->'items'),0) not between 1 and 100 then raise exception 'VALIDATION_ERROR: items'; end if;
   oid:=(payload->>'id')::uuid;
-  if oid is null then insert into app_private.sales_orders(created_by) values(u.id) returning * into o; oid:=o.id;
+  if oid is null then insert into app_private.sales_orders(created_by,order_code) values(u.id,coalesce(nullif(trim(payload->>'order_code'),''),'AUTO-'||substr(gen_random_uuid()::text,1,8))) returning * into o; oid:=o.id;
   else
    select * into o from app_private.sales_orders where id=oid for update;
    if o.id is null or (o.created_by<>u.id and u.role<>'admin') then raise exception 'FORBIDDEN'; end if;
@@ -87,7 +88,7 @@ begin
   end loop;
   if (select count(*) from jsonb_array_elements(payload->'items'))<>(select count(distinct value->>'product_id') from jsonb_array_elements(payload->'items')) then raise exception 'VALIDATION_ERROR: duplicate product'; end if;
   delete from app_private.sales_order_items where order_id=oid and product_id not in(select (value->>'product_id')::uuid from jsonb_array_elements(payload->'items'));
-  update app_private.sales_orders set customer_name=coalesce(payload->>'customer_name',''),customer_phone=coalesce(payload->>'customer_phone',''),note=coalesce(payload->>'note',''),total_amount=(select sum(quantity*unit_sale_price) from app_private.sales_order_items where order_id=oid),version=version+1,updated_at=now() where id=oid;
+  update app_private.sales_orders set order_code=coalesce(nullif(trim(payload->>'order_code'),''),order_code),customer_name=coalesce(payload->>'customer_name',''),customer_phone=coalesce(payload->>'customer_phone',''),note=coalesce(payload->>'note',''),total_amount=(select sum(quantity*unit_sale_price) from app_private.sales_order_items where order_id=oid),version=version+1,updated_at=now() where id=oid;
   result:=jsonb_build_object('id',oid); detail:=oid::text;
  elsif act in ('confirm_order','delete_draft','cancel_order','return_order') then
   perform app_private.only_keys(payload,array['action','key','id','version','payment_method','reason','refund_method','items']);

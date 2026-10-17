@@ -1,0 +1,94 @@
+import { test, expect } from '@playwright/test';
+import ExcelJS from 'exceljs';
+
+test('phone brand supports Android and saves a new reusable brand', async ({page}) => {
+  await page.goto('/');
+  await page.getByRole('button', {name:/Chủ cửa hàng/}).click();
+  await page.getByRole('button', {name:'Kho hàng',exact:true}).click();
+  await page.getByRole('button', {name:'Sửa IP15-TR',exact:true}).click();
+  const brand=page.getByRole('combobox',{name:'Hãng điện thoại'});
+  const glassType=page.locator('.product-form select[name="glass_type"]');
+  const styles=await page.locator('.product-form select[name="glass_type"], .product-form input[name="brand"]').evaluateAll(elements=>elements.map(element=>{
+    const style=getComputedStyle(element);
+    return {height:element.getBoundingClientRect().height,background:style.backgroundColor,border:style.border,borderRadius:style.borderRadius,padding:style.padding,font:style.font,arrow:style.backgroundImage};
+  }));
+  expect(styles).toHaveLength(2);
+  expect(styles[0]).toEqual(styles[1]);
+  await glassType.focus();
+  await expect(glassType).toBeFocused();
+  await brand.focus();
+  await expect(brand).toBeFocused();
+  await page.screenshot({path:'test-results/phone-brand-selector-style.png',fullPage:true});
+  await brand.fill('Tecno');
+  await page.getByRole('button',{name:'Lưu sản phẩm',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu sản phẩm');
+  await page.reload();
+  await page.getByRole('button', {name:/Chủ cửa hàng/}).click();
+  await page.getByRole('button', {name:'Kho hàng',exact:true}).click();
+  await page.getByRole('button', {name:'Sửa IP15-TR',exact:true}).click();
+  await expect(brand).toHaveValue('Tecno');
+  await expect(page.locator('#phone-brand-options option[value="Tecno"]')).toHaveCount(1);
+  await expect(page.locator('#phone-brand-options option[value="Samsung"]')).toHaveCount(1);
+});
+
+test('Excel import writes stock; invalid rows do not write partial stock', async ({page}) => {
+  await page.goto('/');
+  await page.getByRole('button', {name:/Chủ cửa hàng/}).click();
+  await page.getByRole('button', {name:'Kho hàng',exact:true}).click();
+  const stockRow=page.locator('tbody tr').filter({hasText:'IP15-TR'});
+  const before=(await stockRow.textContent())!;
+  const upload=async (invalid:boolean) => {
+    await page.getByRole('button',{name:'Nhập hàng',exact:true}).click();
+    await page.getByRole('button',{name:'Nhập bằng Excel',exact:true}).click();
+    const workbook=new ExcelJS.Workbook();
+    workbook.addWorksheet('Hướng dẫn').addRow(['Chỉ là hướng dẫn']);
+    const sheet=workbook.addWorksheet('Nhập kho');
+    sheet.addRow(['Giá nhập','Mã kính','Số lượng']);
+    sheet.addRow(['12.000','IP15-TR',{formula:'1+1',result:2}]);
+    if(invalid) sheet.addRow(['bad price','IP15-CNT',3]);
+    await page.getByLabel('Chọn file Excel đã điền').setInputFiles({name:'nhap-kho.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(await workbook.xlsx.writeBuffer())});
+    await page.getByRole('button',{name:'Nhập file Excel',exact:true}).click();
+  };
+  await upload(true);
+  await expect(page.getByRole('alert')).toContainText('Dòng 3: Giá nhập');
+  await expect(stockRow).toHaveText(before);
+  await page.getByRole('button',{name:'Đóng',exact:true}).click();
+  await upload(false);
+  await expect(page.getByRole('status')).toContainText('Đã cập nhật kho');
+  await expect(stockRow).toContainText('50');
+  await page.reload();
+  await page.getByRole('button', {name:/Chủ cửa hàng/}).click();
+  await page.getByRole('button', {name:'Kho hàng',exact:true}).click();
+  await expect(stockRow).toContainText('50');
+});
+
+test('manual missing goods survive confirmation, reload and Excel export',async ({page}) => {
+  await page.goto('/');
+  await page.getByRole('button', {name:/Chủ cửa hàng/}).click();
+  await page.getByLabel('Mã đơn hàng').fill('A12');
+  await page.getByLabel('Tên khách hàng').fill('An');
+  await page.getByLabel('Số điện thoại').fill('1234567890');
+  await page.getByRole('button',{name:'Chọn IP15-TR',exact:true}).click();
+  await page.getByLabel('Tình trạng hàng').selectOption('short');
+  await page.getByLabel('Sản phẩm còn thiếu',{exact:true}).fill('sam a21 thiếu 100 tấm / sam 71 thiếu 1000 tấm');
+  await page.getByRole('button',{name:'Xác nhận bán',exact:true}).click();
+  await page.getByRole('button',{name:'Xác nhận và trừ kho',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Đã xác nhận');
+  await page.reload();
+  await page.getByRole('button', {name:/Chủ cửa hàng/}).click();
+  await page.getByRole('button',{name:'Đơn hàng',exact:true}).click();
+  const row=page.locator('tbody tr').filter({hasText:'A12'});
+  await expect(row).toContainText('Còn thiếu');
+  const downloaded=page.waitForEvent('download');
+  await row.getByRole('button',{name:'Tải Excel A12',exact:true}).click();
+  const workbook=new ExcelJS.Workbook();
+  await workbook.xlsx.readFile((await (await downloaded).path())!);
+  expect(workbook.worksheets[0].getCell('A5').text).toContain('Còn thiếu hàng');
+  expect(workbook.worksheets[0].getCell('F5').text).toContain('sam a21');
+  await row.getByRole('button',{name:'Chi tiết',exact:true}).click();
+  await expect(page.getByRole('dialog')).toContainText('sam a21 thiếu 100 tấm');
+  await expect(page.getByRole('button',{name:'Giao bổ sung',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Hoàn tất phần còn thiếu'}).click();
+  await page.getByRole('button',{name:'Đã xử lý, chuyển Đủ hàng'}).click();
+  await expect(row).toContainText('Đủ hàng');
+});

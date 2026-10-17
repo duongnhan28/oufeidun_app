@@ -1,0 +1,69 @@
+OUFEIDUN LOCAL 0.2.14 - CAP NHAT CUA HANG DANG SU DUNG
+
+BAN NAY CO GI MOI
+- Ban cap nhat 08/10/2026: bo ten san pham/ten rieng tren don, hien thi ma kinh.
+- Excel tu tao ma chua co va nhap kho cung mot giao dich. Ma moi: chua phan loai,
+  gia von ban dau = gia nhap; gia le/si = 0, can thiet lap truoc khi ban.
+  Ma da co giu nguyen gia/thong tin. File sai thi khong luu mot phan.
+- Chon/nhap hang dien thoai, ho tro Android; giao dien hai o chon dong bo.
+- Sua nhap kho Excel: nhan dung tieu de, thu tu cot, sheet du lieu,
+  gia dang 12.000 va ket qua cong thuc da luu. Bao loi ro dong/cot.
+- Giu trang thai Con thieu hang va ghi chu khi xac nhan don.
+  Khi cac dong da giao du, co nut xac nhan hoan tat phan ghi chu.
+
+CAP NHAT MAY CHU TRUOC
+1. Dong app tren cac may; tam ngung ban hang trong luc cap nhat.
+2. Giai nen bo moi vao mot folder rieng, ngoai folder du lieu dang chay.
+   Khong xoa folder du lieu cu, khong ghi de thu cong vao app dang chay.
+3. Chay 01-MAY-CHU/CAP-NHAT.bat va chap nhan quyen Administrator.
+   Neu duoc hoi, chon folder du lieu CU (folder co config/server.env va app).
+4. Chuong trinh kiem tra DB, backup DB/anh/config truoc khi thay API,
+   chay migration can thiet va khoi dong lai. Cho thong bao thanh cong.
+5. Chay KIEM-TRA-LOI.bat. Neu bao loi thi dung, giu backup/log de ho tro;
+   chua cap nhat may nhan vien va khong chay CLEAN-DATA-GIU-ACCOUNT.bat.
+6. Chay TAO-BO-MAY-NHAN-VIEN.bat de tao public profile rieng cua cua hang
+   trong 02-MAY-CLIENT cung cap voi bo nay.
+
+CAP NHAT MAY NHAN VIEN (VA MAY CHU NEU CUNG BAN HANG)
+1. Copy TOAN BO 02-MAY-CLIENT da xuat o buoc 6 sang moi may.
+2. Dong app cu. Neu dung app portable, chay MO-APP.bat trong folder MOI;
+   shortcut cu tro vao folder cu thi can doi sang MO-APP.bat moi.
+3. Neu dung app da cai/shortcut Desktop, chay CAP-NHAT.bat de cai ban moi.
+   Cau hinh ket noi trong AppData duoc giu lai.
+4. Kiem tra dang nhap, kho, 1 don cu, anh va nhap kho Excel truoc khi ban.
+   Dung mau MOI 9 cot tai tu app (.xlsx, <=100 ma, <=10 MB):
+   Ma kinh / Loai kinh / Hang dien thoai / Hang kinh / Gia ban / Gia si mac dinh /
+   Gia von co dinh / Ma-dong may dung chung (cach nhau bang dau phay).
+   Ma moi tu tao, ma cu cap nhat loai/hang/dong may va CA BA GIA theo file.
+   So luong la LUONG NHAP THEM (0..1.000.000), KHONG phai ton cuoi.
+   Nhap 0 neu chi sua danh muc/gia; khong bo trong. Tu tao phieu va lich su kho.
+   Moi lan nhap file MOI se CONG TIEP, khong nhap lai file da hoan tat.
+   Mua hang khong co gia mua trong mau nay; gia von co dinh luu rieng.
+   File 8 cot CU khong co So luong van chi cap nhat danh muc, khong cong ton.
+   Kho kinh hien So luong ton ngay canh Ma kinh. Giu anh/trang thai/lich su.
+   Nhap so luong bang Nhap mot ma hoac file CU 3 cot Ma kinh/So luong/Gia nhap.
+
+KHONG CAN CAI LAI MYSQL / NHAP LAI DB, IP HAY MAT KHAU
+- Cap nhat ca API may chu va app cac may. Chi thay EXE thi chua du ban sua
+  trang thai don thieu va nhap Excel danh muc va so luong 9 cot. Ban nay van la 0.2.14, khong them
+  bang/cot MySQL; phai chay CAP-NHAT.bat du may dang hien thi 0.2.14.
+- Giu nguyen database, anh, tai khoan, config, CA va nhan dien may chu.
+- Khong copy config/server.env hoac discovery-identity.json sang may con.
+- Bo moi khong chua IP, mat khau, CA hay private key cua may phat trien.
+- Ghi chu don cu da bi ban cu xoa khong the tu khoi phuc.
+
+SAU KHI TAT MAY / MAT DIEN
+Bat may chu: MySQL/API/HTTPS tu khoi dong cung Windows theo cau hinh cu.
+Neu loi, chay CHAY-MAY-CHU.bat hoac KHOI-DONG-LAI.bat, roi KIEM-TRA-LOI.bat.
+Windows+L van ket noi; Sleep/tat may chu thi may con khong ban duoc.
+
+KET NOI LAN / WI-FI
+Hai may phai lien lac duoc trong mang noi bo. Public profile cua cua hang
+cho phep tu tim IP qua UDP 47631 co chu ky, du lieu qua HTTPS TCP 443.
+Thu ket noi cu truoc; khong can nhap MAC, khong sua hosts o che do moi.
+Wi-Fi Guest/Client Isolation/firewall chan thi can sua mang.
+Man Ma dung chung van can Internet de doc API tra cuu website.
+
+GIOI HAN
+Installer chua co chu ky so Authenticode thuong mai.
+Da kiem thu tren may phat trien; can kiem tra ket noi may that tai cua hang.

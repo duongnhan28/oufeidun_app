@@ -1,0 +1,31 @@
+OUFEIDUN - CAP NHAT APP CLIENT 0.2.16
+
+Ban nay danh cho cua hang dang dung bo LOCAL 0.2.15.
+Chi doi nguon tra cuu Ma dung chung va anh sang:
+https://oufeidun.vn/api/glass-lookup
+
+CAP NHAT MAY DA CAI APP
+1. Giai nen toan bo ZIP vao thu muc moi.
+2. Dong app Oufeidun, chay CAP-NHAT.bat.
+3. Mo app bang shortcut cu, kiem tra version 0.2.16.
+4. Mo Ma dung chung, tim iPhone 15 / Samsung A12, bam xem anh.
+Cap nhat tung may dang chay app, ke ca may chu neu may chu cung ban hang.
+
+CHAY PORTABLE
+Mo MO-APP.bat trong bo moi; khong chi copy rieng Oufeidun.exe.
+Giu nguyen cau hinh ket noi trong AppData/Oufeidun.
+Neu bo portable cu co server-profile.json cua cua hang, copy file nay
+vao cung thu muc voi MO-APP.bat trong bo moi. Khong dung profile cua
+cua hang khac. May moi chua co cau hinh can bo client xuat tu may chu
+cu (public profile/chung chi); bo cap nhat nay khong tu cai may chu.
+
+KHONG CAN CAP NHAT MAY CHU/API HOAC DATABASE
+Giu Local API 0.2.15, MySQL, tai khoan, kho, don hang, anh va backup.
+Khong chay lai cai MySQL, migration, clean-data hoac xoa AppData.
+Tra cuu Ma dung chung can Internet; ban hang van dung may chu LAN cu.
+Khong tat xac minh SSL/TLS de khac phuc loi mang.
+
+Bo 0.2.15 cu duoc giu nguyen. Neu can quay lai, dong app va cai lai
+installer cu; khong khoi phuc/xoa database cho lan doi URL nay.
+Installer chua ky Authenticode thuong mai. Chua nghiem thu cap nhat
+tren hai may vat ly/router thuc te cua khach.

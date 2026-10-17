@@ -1,0 +1,38 @@
+OUFEIDUN LOCAL 0.2.13 - TU TIM MAY CHU QUA WI-FI / LAN
+
+MAY CHU DA CAI
+1. Giai nen bo nay vao folder bat ky, ngoai folder du lieu dang chay.
+2. Chay 01-MAY-CHU/CAP-NHAT.bat. Nhap folder du lieu CU neu chuong trinh chua tim thay.
+3. Khong cai lai MySQL, khong tao DB hay tai khoan moi. Cap nhat backup truoc migration.
+4. Chay KIEM-TRA-LOI.bat, sau do TAO-BO-MAY-NHAN-VIEN.bat.
+5. Buoc 4 tao server-profile.json RIENG cua cua hang trong 02-MAY-CLIENT.
+
+MAY NHAN VIEN (CA MAY CHU NEU CUNG BAN HANG)
+1. Copy TOAN BO 02-MAY-CLIENT da tao tu may chu cua hang.
+2. Dong app cu. Chay MO-APP.bat: app portable tu ket noi, khong can nhap IP,
+   khong can cai MySQL/Node, khong can sua hosts hay quyen Admin.
+3. Khong tach rieng Oufeidun.exe; giu ca folder App va server-profile.json.
+4. Muon cap nhat shortcut app da cai: CAP-NHAT.bat. Cau hinh cu van duoc giu;
+   neu co server-profile.json thi ban moi su dung nhan dien nay.
+5. Neu can tim lai: nut Tim may chu trong Wi-Fi / LAN o man dang nhap.
+6. Chua co server-profile.json: app giu cach ket noi cu; khong tu chon may chu la.
+
+SAU KHI TAT MAY / MAT DIEN
+Bat may chu: MySQL/API/HTTPS tu khoi dong cung Windows. Neu loi, CHAY-MAY-CHU.bat
+hoac KHOI-DONG-LAI.bat, sau do KIEM-TRA-LOI.bat va gui file trong logs.
+Windows+L van ket noi; Sleep/tat may thi khong.
+
+DIEU KIEN MANG
+Wi-Fi va mang day deu duoc. Hai may phai lien lac duoc tren mang noi bo.
+Tu tim IP dung broadcast IPv4 UDP 47631; du lieu dung HTTPS TCP 443.
+Client Isolation/Guest Wi-Fi/firewall chan thi khong tu ket noi duoc.
+Tu tim khong tu tao dinh tuyen giua hai mang khac nhau. Cau hinh IP cu con
+truy cap duoc van duoc thu truoc. Khong can nhap MAC tren may nhan vien.
+
+DU LIEU / BAO MAT
+Giu database, anh, tai khoan va CA cu. Khong copy config/server.env hay
+discovery-identity.json (khoa rieng) sang may nhan vien.
+Bo client chi chua public key va chung chi CA cong khai cua cua hang.
+Khong tu gui lai giao dich ban/thu tien neu mat ket noi.
+Neu migration loi, giu ban ma cu/backup va lien he ho tro.
+Installer chua co chu ky so Authenticode thuong mai.

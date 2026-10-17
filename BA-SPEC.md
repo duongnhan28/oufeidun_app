@@ -1,4 +1,77 @@
-# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
+﻿# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
+
+## Quyền LOCAL chốt ngày 17/10/2026 — ưu tiên hơn các mục phân quyền cũ
+
+- Yêu cầu bản final: giữ bộ 0.2.17 theo folder đang bàn giao, build lại cả API/client và ZIP sau kiểm thử. Ba nhóm quyền cần có cho staff: giá chung cho mọi máy/đơn sau; trả/đổi/hủy đơn bán; khách hàng/báo cáo/nhân viên/lịch sử. Chi tiết lịch sử trả có Tạo đơn đổi, mở lại đơn liên kết nếu đã tạo; giỏ chưa lưu vẫn qua xác nhận lưu/bỏ thay đổi trước khi mở.
+
+- Giữ các chức năng hiện có. Nhân viên thao tác như Admin: quản lý sản phẩm/thương hiệu/khách hàng/giá chung, xử lý đơn và nháp của mọi người, giao/thu/trả/đổi/hủy, xem báo cáo và lịch sử, quản lý tài khoản nhân viên.
+- Hai ngoại lệ đã xác nhận: nhân viên không nhập hàng (gồm nhập Excel danh mục có số lượng và tồn đầu kỳ), không xem hoặc sửa giá vốn/giá nhập. Chặn tại cả UI và API, giữ role thật là staff. Phiếu xuất, lỗi, điều chỉnh tồn và trả hàng giữ nghiệp vụ hiện có.
+- Sửa sản phẩm/giá hàng loạt từ staff giữ nguyên giá vốn đã lưu. Mã mới do staff tạo có tồn 0, giá vốn nội bộ 0 để Admin bổ sung trước khi nhập/bán; không có ô nhập giá vốn hoặc số lượng ban đầu trên form staff.
+- Báo cáo và Excel staff loại giá vốn, lợi nhuận, giá trị tồn theo vốn và giá trị thiệt hại tính theo vốn, tránh suy ngược giá vốn. Các chứng từ bán hàng và chi phí khác vẫn hiển thị đầy đủ.
+- Quản lý nhân viên không cho staff đổi mật khẩu/khóa/xóa tài khoản Admin hoặc nâng vai trò, nhằm bảo toàn ngoại lệ giá vốn. Giữ các kiểm tra phiên, trạng thái, version, transaction, idempotency và tồn kho.
+- Áp dụng LOCAL API và demo; không áp dụng thay đổi vào RPC/DB Supabase online hoặc dữ liệu khách. Không thêm migration/schema MySQL; cần cập nhật API và client cùng nhau. Bản final 0.2.17 đã đóng gói ngày 17/10 sau verify, kiểm tra EXE hai vai trò và installer; bộ cũ được sao lưu trước khi thay folder/ZIP.
+
+## Thứ tự bán–tặng–mẫu chốt lại 16/10/2026 — ưu tiên hơn quy tắc ngày 15/10
+
+- Giữ thứ tự chọn giữa các dòng hàng bán; không sắp theo mã. Ngay dưới mỗi dòng bán là hàng tặng cùng product ID/mã tương ứng. Hàng tặng không có dòng bán tương ứng đưa xuống sau toàn bộ nhóm bán–tặng; mọi hàng mẫu luôn ở cuối, kể cả có mã bán trong đơn. Giữ thứ tự tương đối giữa các hàng tặng riêng và giữa các hàng mẫu.
+- Dùng chung quy tắc trong giỏ, chi tiết đơn/nháp, giao/đổi trả, PDF, ảnh PNG và Excel. Bỏ dòng bán thì hàng tặng trở thành hàng tặng riêng; thêm lại dòng bán thì hàng tặng trở về ngay dưới dòng bán. Lưu/mở lại vẫn cùng thứ tự hiển thị.
+- Chỉ sắp xếp bản sao hiển thị/xuất; giữ mảng gốc, line_position, ID dòng, giá/số lượng và phân bổ tồn hiện có. Không đổi schema/API/config hoặc viết lại đơn cũ. Quy tắc này thay yêu cầu giữ nguyên vị trí mọi loại ngày 15/10.
+
+## Giá chung theo nhóm từ đơn đang soạn — 15/10/2026
+
+- Người dùng đã chốt lưu giá danh mục dùng cho các đơn sau và mọi máy. Trong Giá bán và loại hàng, Admin chọn Lưu giá lẻ chung hoặc Lưu giá sỉ chung cho cả nhóm; chỉ cập nhật một mức giá đã chọn, không đổi vốn/mức giá còn lại/giá riêng theo khách. Giá riêng khách sỉ tiếp tục ưu tiên trên đơn mới. Nhân viên vẫn chỉ sửa giá trong đơn theo quyền hiện có.
+- Áp dụng giá nhập cho các dòng hàng bán cùng nhóm trên chính giỏ đang thao tác; hàng tặng/mẫu giữ 0. Các mã cùng nhóm chưa thêm dùng giá danh mục mới theo loại khách. clear/full_border là cùng một nhóm. Chỉ mã đang kinh doanh/chưa xóa được cập nhật; không hồi tố đơn đã bán hoặc thay giá giỏ/nháp khác.
+- Danh mục trên màn Bán hàng/Kho tự tải lại mỗi 10 giây khi visible, không busy/modal; giữ nguyên giỏ đang nhập. Tải lại khi focus như trước. API kiểm tra Admin, nhóm và số nguyên 0–15 chữ số, cập nhật transaction + audit; tăng price_version chỉ khi giá thực sự đổi. LOCAL không thêm cột/bảng; Supabase 034 thay RPC, kiểm thử cô lập, không áp dụng online.
+- Giữ version 0.2.17, cần cập nhật API máy chủ và app mọi máy; không đổi config hoặc dữ liệu đơn/kho/tài khoản, chưa tạo ZIP mới.
+
+## Giữ thứ tự chọn sản phẩm — 15/10/2026 (ưu tiên hơn cách gom/sắp trước đó)
+
+- Người dùng đã chốt làm trước xác nhận nháp trực tiếp và giữ nguyên thứ tự chọn từng dòng, gồm bán/tặng/mẫu. Không sắp theo mã hoặc tự gom tặng/mẫu; thêm trùng dòng chỉ tăng số lượng tại chỗ, sửa dòng không đổi vị trí, xóa rồi chọn lại đưa xuống cuối. Giỏ, mở lại nháp, đơn bán, lịch sử giao và PNG/Excel/PDF thống nhất theo thứ tự đó.
+- MySQL 008 thêm line_position, server lấy vị trí từ mảng items trong cùng transaction lưu nháp; workspace/lịch sử giao đọc theo line_position,id. Demo và Supabase 033 tương đương, kiểm thử cô lập, chưa áp dụng Supabase online. Giữ nguyên ID/dữ liệu đơn cũ, số lượng, giá, tồn và account. Đơn cũ chưa ghi vị trí giữ thứ tự đọc ID hiện có; vị trí được ghi từ lần lưu tiếp theo, không tự suy đoán lịch sử thao tác.
+- Cần cập nhật API/migration máy chủ và app mọi máy dù vẫn version 0.2.17; backup trước cập nhật, giữ config/DB/ảnh/chứng chỉ. Chỉ cập nhật folder, chưa tạo ZIP mới. Phần giá cùng loại bên trái hoãn theo yêu cầu, không sửa bảng giá hoặc giá tạm trong lần này.
+
+## Xác nhận trực tiếp bản nháp — 15/10/2026
+
+- Chi tiết nháp có nút Xác nhận bán cho chủ đơn/Admin. Tải lại bản nháp và tồn mới nhất trước khi mở bước thanh toán/giao thiếu; dùng dữ liệu của chính đơn được chọn, không lấy tình trạng hàng từ giỏ đang nhập.
+- Xác nhận hoặc đóng hộp thoại của đơn cũ không lưu, thay thế hay xóa giỏ của đơn khác. Khi xác nhận nháp đang mở trong giỏ, yêu cầu lưu nếu còn thay đổi; sau xác nhận thành công nháp đó thì dọn giỏ để tránh thao tác tiếp trên đơn đã bán. Giữ guard quyền/version/idempotency hiện có, không thêm migration.
+- Phản hồi thứ tự đã chốt theo mục trên; phần giá cùng loại bên trái hoãn để người dùng thống nhất với khách.
+
+## Sắp xếp dòng bán/tặng/mẫu 15/10/2026 — 0.2.17
+
+- Giỏ hàng, chi tiết đơn, bảng giao/trả và PNG/Excel/PDF dùng cùng thứ tự: nhóm hàng bán theo mã, ngay dưới mỗi dòng bán là hàng tặng cùng mã. Hàng tặng không có mã bán nằm sau toàn bộ nhóm bán; tất cả hàng mẫu luôn ở cuối, kể cả mẫu cùng mã bán. Các mã trong mỗi nhóm sắp xếp tự nhiên (IP 2 trước IP 12), ổn định khi tải lại đơn cũ/mới.
+- Chỉ sắp xếp bản sao phục vụ hiển thị/xuất. Không đổi mảng dùng để phân bổ tồn, ID dòng, số lượng, giá, lịch sử giao hoặc dữ liệu lưu. Không migration/API mới. Giữ version và cập nhật folder 0.2.17; chưa tạo ZIP cho thay đổi này.
+
+## Cập nhật xem chung đơn hàng 15/10/2026 — ưu tiên hơn baseline
+
+- Admin và nhân viên cùng xem danh sách/chi tiết đơn của cửa hàng, gồm nháp và đơn đã bán; không phân biệt máy tạo hoặc Sales phụ trách. Nhân viên chỉ sửa/xóa/xác nhận/giao/thu tiền/sửa ngày đơn do mình tạo, Admin giữ quyền toàn bộ. Đơn người khác chỉ xem/in/xuất PNG/Excel/PDF; không đọc giá vốn, báo cáo quản trị hay danh sách tài khoản.
+- Danh sách tải lại khi mở màn và mỗi 10 giây khi đang hiển thị, không ghi giao dịch, không thay giỏ chưa lưu hoặc modal đang thao tác. Giữ giới hạn đọc hiện có 500 đơn gần nhất. LOCAL sửa API đọc, không thay schema/migrate dữ liệu. Demo/Supabase 032 kiểm thử cô lập, không áp dụng online. Cập nhật folder 0.2.17, chưa tạo ZIP.
+
+## Cập nhật kính/phụ kiện 14/10/2026 — ưu tiên hơn baseline
+
+- Phản hồi đơn vị mới: kính cường lực tính theo tấm, phụ kiện (other) theo sản phẩm; không quy đổi hoặc sửa số lượng/tồn trong DB. Tổng hỗn hợp hiển thị riêng từng đơn vị, chứng từ PNG/Excel/PDF theo đơn vị từng dòng. Bỏ matte/Full viền cao cấp khỏi bộ lọc tìm kiếm Bán hàng/Kho; vẫn giữ danh mục/form/import và sản phẩm cũ, xem trong Tất cả. Giữ 0.2.17, chỉ cập nhật folder, không tạo ZIP mới.
+
+- Điều chỉnh sau phản hồi: bộ lọc kho chỉ có một lựa chọn Full viền, tìm chung clear/full_border; danh sách chọn khách chỉ hiển thị tối đa 3 kết quả sau khi tìm trên toàn bộ khách đang hoạt động.
+- Kho hàng quản lý chung kính (tấm) và phụ kiện (sản phẩm); không quy đổi hộp. Nhóm Kính/Phụ kiện, số mã đang bán/tổng tồn/tồn kính/tồn phụ kiện/sắp hết cập nhật theo bộ lọc. Thương hiệu thay tên Hãng kính trên UI; dữ liệu và lịch sử cũ giữ nguyên.
+- Nhãn clear=Full viền, matte=Full viền cao cấp, privacy=Chống nhìn trộm, other=Phụ kiện khác; premium_borderless giữ Không viền cao cấp. full_border cũ được nhận diện cùng nhóm clear, cả lọc/search và giá hàng loạt. Nhận cả nhãn Excel cũ/new, không thay tồn khi chỉ đổi phân loại.
+- Cùng SKU có thể có ba dòng sale/gift/sample độc lập; mỗi SKU/loại tối đa một dòng, số lượng do người bán tự nhập. Không có khuyến mại mặc định 10+1. Hàng tặng/mẫu giá 0 vẫn trừ kho/vốn; tổng tồn tính chung các dòng, giao và trả theo ID từng dòng. Index MySQL 007/Postgres 031 mở khóa SKU riêng theo loại. Gửi lại cùng key không tạo/trừ kho lặp.
+- Nhân viên chọn mọi Sales đang hoạt động qua danh sách tối thiểu id/tên/role/active, không đọc cấu hình tài khoản, mật khẩu hoặc giá vốn.
+- Chọn khách bằng tìm tên/SĐT, gợi ý tối đa 3, hỗ trợ bàn phím và Khách mới. Khách/giá sỉ/thông tin đơn/dòng hàng lưu cùng transaction save_draft (sale_details), tránh nháp lưu dở dang khi bước sau lỗi. Giá sỉ danh mục lưu cùng product mutation; không giả lập thành công trong demo.
+- LOCAL 0.2.17 cần cập nhật API/migration máy chủ và app mọi máy; giữ config/DB/ảnh/account/CA/discovery. Endpoint tra cứu vẫn oufeidun.vn. Migration Supabase chỉ chuẩn bị/kiểm thử cô lập, không tự áp dụng online.
+
+## Cập nhật client gửi khách 13/10/2026
+
+- Theo yêu cầu, chỉ client LOCAL 0.2.16 chuyển Mã dùng chung và ảnh tra cứu sang `https://oufeidun.vn/api/glass-lookup`; giữ API nghiệp vụ LAN/MySQL và backend máy chủ 0.2.15.
+- Không sửa profile TEST/Supabase hoặc PRODUCTION hosting, không migration/xóa/sửa dữ liệu cửa hàng, không đổi account/CA/discovery. Client cài mới cần cấu hình kết nối cửa hàng; máy đã cài giữ cấu hình cũ. Không làm yếu xác minh HTTPS của endpoint mới.
+
+## Phản hồi đơn hàng đã chốt 10/10/2026 (ưu tiên hơn baseline bên dưới)
+
+- Thiết kế PNG xác nhận: tách thông tin khách và đơn thành hai khối, tình trạng hàng có vùng riêng; mã kính in đậm, model/ghi chú nằm dưới mã. Ghi chú đơn và nội dung phí nằm bên trái, số lượng/tiền sản phẩm/chi phí khác/tổng tiền căn hàng bên phải. Tự xuống dòng và tăng chiều cao cho tên khách, địa chỉ, SKU, model và ghi chú dài; không cắt nội dung thiếu hàng. Giữ nguyên tính tiền và dữ liệu xuất.
+
+- Ngày giờ đặt đơn tự nhập theo giờ Việt Nam, trường `ordered_at`; lưu nháp/xác nhận giữ ngày đã chọn. Đơn đã bán/đã trả có thao tác sửa riêng ngày đặt với quyền chủ đơn/Admin, version và audit. Danh sách/lọc đơn/chi tiết/PNG/Excel/PDF dùng ngày đặt. `created_at`, `confirmed_at`, lịch sử giao/thu/hoàn và kỳ báo cáo giữ thời gian thực tế, không hồi tố chứng từ kho.
+- Ghi chú từng dòng và đơn xuất trên PNG/Excel/PDF. Máy dùng chung dùng snapshot chụp khi xác nhận, đơn cũ chưa có snapshot dùng danh mục hiện có. PNG xuống dòng theo nội dung, Excel wrapText/chiều cao dòng; không chỉ hiện SKU mà bỏ ghi chú.
+- `extra_cost` là khoản thu thêm nguyên đồng 0–999.999.999.999.999, có `extra_cost_note` tùy chọn. Nháp: tiền hàng đặt + phí; xác nhận: tiền sản phẩm giao thực tế + phí một lần. Giao bổ sung chỉ tăng tiền sản phẩm, không cộng phí lại; công nợ và thu tiền gồm phí. Phí đã chốt không chỉnh trực tiếp sau bán. Trả hàng hoàn tiền sản phẩm theo quy tắc hiện có, không tự hoàn khoản phí; hủy toàn bộ đơn loại cả đơn/phí khỏi thống kê. Báo cáo tách khoản thu chi phí khác, không coi VAT/in ấn là lãi sản phẩm; kỳ báo cáo theo thời gian xác nhận thực tế.
+- Chi tiết bản nháp có xem/tải PNG xác nhận như đơn bán; không xác nhận bán hoặc trừ kho khi xuất/xem. PDF hiển thị số lượng thực giao của đơn đã bán, số lượng đặt của bản nháp; tổng tiền khớp cùng chứng từ.
+- Migration MySQL 006 và Postgres/Supabase 030 thêm trường, giữ dữ liệu/tổng tiền cũ; phí mặc định 0. Kiểm thử ở DB cô lập; chưa triển khai migration lên dịch vụ/DB cửa hàng trong bước phát triển.
 
 | Thuộc tính | Nội dung |
 |---|---|
@@ -24,14 +97,36 @@
 | D02 | Ứng dụng desktop dùng Electron. |
 | D03 | Hai vai trò: `admin` toàn quyền nghiệp vụ và `staff` nhân viên. Hai nhân viên không phải hai vai trò khác nhau. |
 | D04 | Nhân viên không được xem giá gốc/giá vốn hoặc lợi nhuận. |
-| D05 | Nhân viên không được sửa giá bán hoặc giảm giá. |
+| D05 | Nhân viên được sửa giá bán thực tế trên đơn nháp, riêng từng SKU hoặc đồng loạt theo loại kính trong chính đơn đó; không được sửa bảng giá danh mục. |
 | D06 | Có đơn nháp để sửa lựa chọn trước khi chốt bán; có thao tác lưu bản nháp. |
 | D07 | Giá vốn mặc định cố định theo mã kính; nhập thêm không tự thay đổi giá vốn, không bình quân, không FIFO. |
-| D08 | Nhân viên được đổi **tên hiển thị của sản phẩm trên riêng đơn nháp thuộc quyền xử lý**. Không sửa tên trong danh mục; mã kính, giá và tồn kho không đổi. |
+| D08 | Theo yêu cầu 08/10/2026, bỏ nhập/hiển thị tên sản phẩm và tên riêng trên đơn, dùng mã kính; giữ dữ liệu tên lịch sử trong DB để đối chiếu. |
 | D09 | UI bám hai ảnh đã tạo; ưu tiên đơn giản, không mở rộng thành hệ thống ERP. |
 | D10 | Lưu dữ liệu tập trung bằng PostgreSQL/Supabase để nhiều máy dùng chung là hướng kiến trúc đã trao đổi. Không tự tạo tài nguyên dịch vụ trong giai đoạn phân tích. |
+| D11 | Mã đơn hàng do người bán tự nhập, bắt buộc, tối đa 50 ký tự và không trùng không phân biệt chữ hoa/thường. Số thứ tự nội bộ của database vẫn được giữ để liên kết dữ liệu. |
+| D12 | Tại màn Bán hàng, tài liệu gửi khách kiểm tra trước khi xác nhận có thể tải dưới dạng ảnh PNG hoặc Excel. Xuất Excel tại màn Đơn hàng và Báo cáo vẫn được giữ. |
+| D13 | Khi sửa giá một dòng trên đơn nháp, người bán được chọn chỉ áp dụng dòng đó hoặc áp dụng cùng giá cho toàn bộ sản phẩm cùng loại kính trong đơn hiện tại. Không sửa danh mục hoặc đơn cũ. |
+| D14 | Khi tạo mã kính mới, Admin có thể nhập `Số lượng nhập ban đầu` ngay trên form. Giá trị mặc định là 0, chỉ nhận số nguyên từ 0 đến 1.000.000. Nếu lớn hơn 0, ứng dụng tự tạo phiếu `Tồn đầu kỳ` sau khi lưu sản phẩm; khi sửa sản phẩm cũ không cho nhập lại số lượng này. |
+| D15 | Giao bổ sung cho đơn thiếu cho phép ghi nhận tiền thực thu và phương thức thanh toán trong cùng một giao dịch với trừ kho, lịch sử giao và tăng tiền hàng. Mặc định tiền thu là 0; không tự coi giao hàng là đã thanh toán. Chặn thu vượt số còn phải thu và chống lặp cả giao hàng lẫn thu tiền. |
+| D16 | Danh sách đơn đã bán hiển thị/lọc theo ngày xác nhận bán; đơn nháp theo ngày tạo. Khoảng ngày tính đủ ngày theo múi giờ Việt Nam, so sánh thời gian thực thay vì chuỗi timestamp. |
+| D17 | Màn Lịch sử thao tác chỉ hiển thị xác nhận bán hàng, giao bổ sung và nhập hàng (gồm tồn nhập ban đầu). Các log hệ thống khác vẫn lưu để đối chiếu nội bộ. Bộ lọc nhân viên/ngày và số kết quả dựa trên những lần bán/nhập được hiển thị. |
+| D18 | Ô sản phẩm còn thiếu tự tổng hợp SKU và số miếng thiếu từ lượng đặt trừ tồn kho, cập nhật khi đổi/xóa dòng hàng. Khi kho đủ nhưng người bán dự kiến giao ít hơn, vẫn cho ghi chi tiết phần giao sau. Ảnh trong giỏ/chi tiết đơn được phóng lớn bằng nút xem ảnh; giao bổ sung có bố cục riêng cho từng mặt hàng, tiền hàng và thu tiền. |
 
 ### 1.2. Phạm vi chức năng phiên bản đầu
+
+- Cập nhật 08/10/2026 theo yêu cầu khách: bỏ nhập/hiển thị tên sản phẩm và tên riêng trên đơn, dùng mã kính trên UI/chứng từ; giữ các cột tên cũ để đối chiếu, không xóa lịch sử. Excel nhập kho tự tạo mã chưa có cùng transaction nhập hàng, chỉ Admin. Mã mới có tên nội bộ bằng SKU, loại/hãng chưa phân loại, không ảnh/model, giá vốn khởi tạo bằng giá nhập và giá lẻ/sỉ 0 cần thiết lập; mã đã có không thay giá. Giữ version 0.2.14 và cập nhật cả server/client trong bộ bàn giao.
+
+- Công cụ bổ sung `GOM-THU-MUC.bat`: trên máy chủ Windows, copy thư mục dữ liệu và bộ bàn giao vào một gốc mới; giữ nguyên MySQL/datadir, IP, hostname, CA và account. Dừng API/HTTPS/backup, backup bắt buộc, kiểm tra checksum, chuyển env/launcher/metadata/task và kiểm tra API/HTTPS/ảnh/backup ở vị trí mới. Giữ hai nguồn cũ, khôi phục task khi lỗi; có BAT phục hồi lần chuyển bị ngắt. Không tự xóa nguồn hoặc nâng cấp app.
+
+- Công cụ máy chủ `CLEAN-DATA-GIU-ACCOUNT.bat` dọn dữ liệu thử để nhập production: backup bắt buộc, xác nhận tên DB, dừng API, DELETE transaction các bảng nghiệp vụ, giữ nguyên app_users/schema_migrations/cấu hình/chứng chỉ. Ảnh cũ được chuyển vào backup; không dọn dữ liệu website Mã dùng chung. Không tự chạy khi cập nhật app.
+
+- LOCAL 0.2.13: bộ client xuất riêng từ máy chủ chứa public key/CA, tự tìm lại IP bằng UDP có chữ ký trên LAN hoặc Wi-Fi. Thử kết nối cũ trước; không sửa hosts ở chế độ mới; không tự gửi lại giao dịch ghi khi mất mạng. Máy con chạy portable từ bộ client, không cần cài MySQL/Node. Chế độ chưa có nhận diện vẫn giữ kết nối cũ.
+
+- Bộ cập nhật LOCAL nhận lại cấu hình bản cài trước từ server-info hoặc Scheduled Task; đường dẫn lấy theo folder/config hiện tại. Menu BAT hỗ trợ chạy lại, kiểm tra, sửa cấu hình và cập nhật. Máy client đọc địa chỉ HTTPS ngoài tại thư mục AppData/Oufeidun/connection.json; profile Supabase không dùng cấu hình LOCAL này. Cập nhật không tạo lại database hoặc tài khoản; backup trước migration.
+
+- Cập nhật 07/10/2026: cửa hàng bán thêm kính Android. Hãng điện thoại là combobox cho chọn gợi ý hoặc nhập tên mới, tối đa 100 ký tự; lưu cùng sản phẩm và dùng lại tên hãng đã có khi mở form. Không ép hãng cũ về Apple. Hãng kính vẫn là danh mục riêng.
+- Excel nhập kho nhận `.xlsx` có ba cột Mã kính, Số lượng, Giá nhập (tìm theo tiêu đề, không phụ thuộc sheet đầu hoặc thứ tự cột). Nhận số nguyên, số dạng text có phân nhóm nghìn và kết quả công thức đã lưu; chặn dữ liệu sai/trùng SKU, quá 100 dòng hoặc file quá 10 MB trước khi ghi kho. Lỗi phải chỉ đúng dòng/cột.
+- Đơn được đánh dấu thiếu kèm ghi chú không tự chuyển Đủ hàng khi xác nhận dù các dòng trong đơn đã giao đủ. Chi tiết hiển thị ghi chú. Khi không còn dòng chờ giao, người xử lý có thể xác nhận hoàn tất phần ghi chú (kiểm tra quyền/version/idempotency); thao tác không tạo doanh thu, thanh toán hay sổ kho. Thiếu số lượng thực tế vẫn giao bổ sung và tự hoàn tất sau giao đủ. Ghi chú không tự sinh SKU/số lượng; hàng ngoài đơn muốn giao/thu tiền phải được lập dòng hàng/đơn tương ứng.
 
 1. Đăng nhập, đăng xuất; admin quản lý tài khoản nhân viên.
 2. Danh mục kính: mã, tên, loại kính, máy tương thích, ảnh, giá bán, giá vốn cố định, trạng thái kinh doanh.
@@ -68,7 +163,7 @@ Các lựa chọn này giúp đặc tả có thể triển khai nhất quán; th
 - Tích điểm, khuyến mãi, giá sỉ theo bậc, giảm giá, nhiều chi nhánh/kho.
 - Quản lý lô, serial, hạn sử dụng, kế toán giá vốn theo lô/FIFO/bình quân.
 - Ứng dụng Android/iOS, thương mại điện tử, đồng bộ sàn, hóa đơn điện tử.
-- Quét mã vạch, in tem, máy in hóa đơn và xuất Excel nếu chưa có yêu cầu xác nhận.
+- Quét mã vạch, in tem và máy in hóa đơn.
 - Tự động cập nhật bộ cài, website công khai, tên miền riêng.
 - Tự động lấy dữ liệu hoặc đồng bộ với website tra cứu cũ/Oufeidun. Đây là ứng dụng riêng, không được tự dùng database hay tài khoản của dự án khác.
 
@@ -99,6 +194,8 @@ Các lựa chọn này giúp đặc tả có thể triển khai nhất quán; th
 - Sản phẩm ngừng bán không được thêm/xác nhận đơn mới. Admin vẫn được xử lý tồn và trả hàng liên quan.
 
 ### 2.2. Đổi tên sản phẩm trên riêng đơn hàng — quy tắc quan trọng
+
+> Chức năng UI này đã được bỏ theo D08 cập nhật 08/10/2026. Các quy tắc dưới đây mô tả dữ liệu/API cũ còn giữ để tương thích, không phải thao tác của bản bàn giao mới. Chứng từ hiển thị SKU snapshot thay tên.
 
 1. Staff chọn nút bút **Đổi tên trên đơn** tại dòng hàng trong giỏ/đơn nháp của mình; admin làm được trên mọi nháp.
 2. Hộp thoại ghi rõ: “Tên mới chỉ áp dụng cho dòng hàng trên đơn này. Tên trong danh mục, mã kính, giá và tồn kho không đổi.”
@@ -159,7 +256,7 @@ Các thay đổi cần áp dụng lên mockup:
 | ID | Màn hình | Nội dung và hành động |
 |---|---|---|
 | UI01 | Đăng nhập | Tên đăng nhập, mật khẩu, hiện/ẩn mật khẩu, ghi nhớ tên đăng nhập và lỗi đăng nhập; không tự đăng ký tài khoản. |
-| UI02 | Bán hàng | Tra cứu, lọc loại/hãng; thẻ kính; giỏ; đổi tên riêng dòng nháp; số lượng; khách tùy chọn; ghi chú; lưu nháp/xác nhận. |
+| UI02 | Bán hàng | Tra cứu, lọc loại/hãng; thẻ kính; giỏ; đổi tên riêng dòng nháp; số lượng; khách; mã đơn tự nhập; ghi chú; tải ảnh PNG để khách kiểm tra; lưu nháp/xác nhận. |
 | UI03 | Danh sách nháp | Mã nháp, khách, số lượng, tổng dự kiến, người tạo, cập nhật; mở/xóa nháp. |
 | UI04 | Đơn đã bán | Lọc thời gian/mã/trạng thái; staff chỉ thấy đơn mình; chi tiết giữ thông tin tại lúc bán. |
 | UI05 | Kho/Tra cứu kính | Bảng hoặc thẻ hàng. Admin thấy giá vốn và nút quản lý; staff chỉ xem thông tin bán, không sửa danh mục. |
@@ -866,3 +963,18 @@ Phần còn cần hoàn tất trước nghiệm thu production: kiểm thử d�
 - `app_ban_hang.active_sessions` chỉ giữ user ID, Auth session ID, device ID và thời gian hoạt động; không lưu access token hoặc mật khẩu.
 - RPC `app_ban_hang_claim_session`, `app_ban_hang_touch_session`, `app_ban_hang_release_session` chỉ cấp cho role authenticated. `current_actor` và policy ảnh đều kiểm tra session đang được giữ.
 - Đã kiểm thử local và Supabase thật với hai client: chặn client thứ hai, giải phóng khi logout, nhận phiên sau giải phóng và khôi phục phiên trên cùng máy.
+
+## 22. Bổ sung ngày 03/10/2026 — lưu khách cũ và xuất file desktop
+
+- Lưu đơn, tải PNG/Excel và xác nhận bán phải dùng lại cùng ID khách hàng khi số điện thoại đã tồn tại; việc lưu lại khách có ID UUID không được dùng hàm MySQL dành cho ID số.
+- Bản Electron dùng hộp thoại lưu file của Windows cho PNG/Excel, gồm ảnh trong màn xem trước. Chỉ báo tải thành công sau khi ghi file xong; hủy hộp thoại không được báo thành công.
+- Kiểm thử desktop LOCAL phải thực hiện đủ bốn nút liên tiếp trên cùng đơn và khách đã tồn tại, cho cả Admin/Nhân viên. Phải đọc lại PNG/Excel và đối chiếu trạng thái đơn, tổng tiền, tồn kho trong MySQL; chỉ đăng nhập và tải workspace chưa đủ để nghiệm thu bán hàng.
+
+### Cập nhật mẫu Excel 08/10/2026
+
+Excel tám cột theo mẫu khách 08/10/2026: Mã kính, Loại kính, Hãng điện thoại, Hãng kính, Giá bán (đ), Giá sỉ mặc định (đ), Giá vốn cố định (đ), Mã/dòng máy dùng chung. Dòng máy tách dấu phẩy hoặc xuống dòng, giữ dấu /. Thêm mã chưa có hoặc cập nhật loại/hãng/model và ba giá của mã cũ trong một transaction; không thay tồn, ảnh, trạng thái hay lịch sử. Mã mới tồn 0. File ba cột Mã kính/Số lượng/Giá nhập cũ vẫn nhập kho như trước. Chỉ Admin, chống gửi lặp, chặn file lỗi/trùng mã trước khi ghi; tối đa 100 mã và 10 MB.
+
+### Bổ sung số lượng theo phản hồi mới 08/10/2026
+
+Mẫu Excel hiện tại có chín cột, bổ sung Số lượng ở cuối. Đây là lượng nhập thêm, nguyên từ 0 đến 1.000.000; 0 chỉ cập nhật danh mục/giá, cột có mặt nhưng ô trống bị chặn. Tự tạo phiếu receipt, dòng phiếu, sổ kho và audit trong cùng transaction với thêm/cập nhật danh mục. Không có giá mua trong mẫu nên unit_purchase_price để NULL; giá vốn cố định lưu snapshot riêng. Retry cùng key không cộng hai lần; một lần nhập mới với key mới sẽ cộng tiếp, không tự nhận diện file đã nhập. Mẫu tám cột cũ vẫn không cộng kho; mẫu ba cột cũ giữ nghiệp vụ cũ. Kho kính đưa Số lượng tồn ngay cạnh mã kính, cỡ chữ rõ. Giữ version 0.2.14 và cập nhật cả API lẫn app.
+

@@ -1,0 +1,33 @@
+import { test, expect } from '@playwright/test';
+
+test('checkout derives missing SKUs and quantities and offers larger product photos', async ({ page }) => {
+  await page.setViewportSize({ width: 1667, height: 1034 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Chủ cửa hàng/ }).click();
+  await page.getByLabel('Mã đơn hàng').fill('AUTO-THIEU');
+  await page.getByLabel('Tên khách hàng').fill('Khách thiếu tự động');
+  await page.getByLabel('Số điện thoại').fill('0909123123');
+  await page.getByLabel('Tình trạng hàng').selectOption('short');
+  await page.getByRole('button', { name: 'Chọn IP15-TR', exact: true }).click();
+  await page.getByRole('button', { name: 'Chọn IP15-CNT', exact: true }).click();
+  await page.getByLabel('Số lượng IP15-TR').fill('50');
+  await page.getByLabel('Số lượng IP15-CNT').fill('26');
+  const missing = page.getByLabel('Sản phẩm còn thiếu', { exact: true });
+  await expect(missing).toHaveValue('IP15-TR: thiếu 2 tấm (đặt 50, tồn 48)\nIP15-CNT: thiếu 2 tấm (đặt 26, tồn 24)');
+  await expect(missing).toHaveAttribute('readonly', '');
+  await page.getByLabel('Số lượng IP15-CNT').fill('24');
+  await expect(missing).toHaveValue('IP15-TR: thiếu 2 tấm (đặt 50, tồn 48)');
+  const photo = page.getByRole('button', { name: 'Xem ảnh IP15-TR', exact: true });
+  await expect(photo).toBeVisible();
+  expect((await photo.boundingBox())!.width).toBeGreaterThanOrEqual(80);
+  await photo.click();
+  await expect(page.getByRole('dialog')).toContainText('Ảnh sản phẩm · IP15-TR');
+  expect((await page.locator('.product-photo-preview .product-art').boundingBox())!.height).toBeGreaterThan(300);
+  await page.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await page.getByRole('button', { name: 'Lưu bản nháp', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu');
+  await page.screenshot({path:'test-results/checkout-shortage-redesign.png', fullPage:true});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({width:1000,height:700});
+  expect(await page.locator('.cart-line').evaluateAll((lines) => lines.every((line) => line.scrollWidth <= line.clientWidth + 1))).toBe(true);
+});

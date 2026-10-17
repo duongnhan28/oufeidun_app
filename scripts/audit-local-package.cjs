@@ -1,0 +1,12 @@
+const asar=require('@electron/asar');
+const assert=require('node:assert/strict');
+const archive='out/Oufeidun-win32-x64/resources/app.asar';
+const files=asar.listPackage(archive).map(file=>file.replaceAll('\\','/'));
+const bad=files.filter(file=>/^\/(server|deployment|tests|scripts|\.local)(\/|$)/.test(file)||/\.env|server-profile\.json|discovery-identity\.json/.test(file)||(/\.md$/.test(file)&&!file.startsWith('/node_modules/')));
+assert.deepEqual(bad,[]);
+const config=JSON.parse(asar.extractFile(archive,'dist/server-config.json'));
+assert.equal(config.environment,'local');assert.equal(config.backend,'api');
+assert.equal(config.lookupApiUrl,'https://oufeidun.vn/api/glass-lookup');
+assert.equal(JSON.parse(asar.extractFile(archive,'package.json')).version,require('../package.json').version);
+assert.ok(files.includes('/electron/lan-connection.cjs'));
+console.log('PASS: package LOCAL, correct version, discovery module, no private config/source/tests');

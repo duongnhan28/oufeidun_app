@@ -1,0 +1,13 @@
+BO TRIEN KHAI OUFEIDUN LOCAL 0.2.11
+
+NẾU CỬA HÀNG ĐÃ CÀI BẢN LOCAL TRƯỚC ĐÓ:
+- Đọc file HUONG-DAN-CAP-NHAT-0.2.11.txt ở thư mục ngoài cùng.
+- Không chạy lại CAI-MAY-CHU.cmd và không xóa thư mục dữ liệu cũ.
+
+1. Chép cả hai thư mục 01-MAY-CHU và 02-MAY-CLIENT vào máy được chọn làm máy chủ.
+2. Mở 01-MAY-CHU\HUONG-DAN-MAY-CHU.txt và thực hiện theo thứ tự.
+3. Sau khi cài máy chủ, script tự điền IP và chứng chỉ thật vào 02-MAY-CLIENT.
+4. Chép toàn bộ 02-MAY-CLIENT đã được tạo sang từng máy nhân viên rồi đọc HUONG-DAN-MAY-CLIENT.txt.
+
+Không dùng root.crt hoặc server-config.txt của một máy chủ khác.
+Máy chủ dùng LAN và máy nhân viên dùng Wi-Fi được, miễn là cùng mạng nội bộ và Wi-Fi không bật Guest/AP Isolation.

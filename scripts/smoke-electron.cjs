@@ -26,6 +26,18 @@ const path = require('node:path');
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
 
+    const lookup = await page.evaluate(() => window.oufeidun?.lookupGlass('A12'));
+    if (!lookup?.items?.length) throw new Error('Electron shared-product lookup returned no results.');
+    const lookupImage = lookup.items.find((item) => item.images?.length)?.images?.[0];
+    if (!lookupImage) throw new Error('Electron shared-product lookup returned no image.');
+    const imageLoaded = await page.evaluate((path) => new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve(image.naturalWidth > 0 && image.naturalHeight > 0);
+      image.onerror = () => resolve(false);
+      image.src = `lookup-image://app${path.startsWith('/') ? path : `/${path}`}`;
+    }), lookupImage);
+    if (!imageLoaded) throw new Error('Electron shared-product image could not be loaded.');
+
     if (packaged || production) {
       await page.locator('input[name="username"]').waitFor({ timeout: 60000 });
       await page.locator('input[name="password"]').waitFor();
@@ -35,15 +47,16 @@ const path = require('node:path');
       await page.locator('input[name="username"]').waitFor({ timeout: 60000 });
       const oldSession = await page.evaluate(() => localStorage.getItem('app-ban-hang-auth'));
       if (oldSession !== null) throw new Error('The previous authentication session was not cleared.');
-      if (packaged) await page.screenshot({ path: '.local/electron-packaged-smoke.png' });
       console.log(`${packaged ? 'Packaged' : 'Production'} Electron smoke passed: production login screen is ready.`);
     } else {
       await page.getByRole('button', { name: /Nguyễn An/ }).click();
       await page.getByRole('heading', { name: 'Bán hàng', exact: true }).waitFor({ timeout: 60000 });
       await page.getByRole('button', { name: 'Chọn IP15-TR', exact: true }).click();
+      await page.getByLabel('Tên khách hàng', { exact: true }).fill('Khách kiểm thử');
+      await page.getByLabel('Số điện thoại', { exact: true }).fill('0900000000');
+      await page.getByLabel('Mã đơn hàng', { exact: true }).fill(`SMOKE-${Date.now()}`);
       await page.getByRole('button', { name: 'Lưu bản nháp', exact: true }).click();
       await page.getByRole('status').filter({ hasText: 'Đã lưu' }).waitFor();
-      await page.screenshot({ path: '.local/electron-smoke.png' });
       console.log('Electron smoke passed: secure custom protocol, demo database, draft persisted.');
     }
 

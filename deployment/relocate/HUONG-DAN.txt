@@ -1,0 +1,45 @@
+GOM THU MUC OUFEIDUN LOCAL - BO SUNG CHO 0.2.14
+
+1. Copy/giai nen TOAN BO bo nay vao folder rieng tren MAY CHU.
+2. Dong app tren tat ca may, tam ngung ban hang.
+3. Chay GOM-THU-MUC.bat, chap nhan Administrator.
+4. Mac dinh neu Windows o C: thi nguon la:
+   C:\OufeidunServerData va C:\Oufeidun-Local-0.2.14
+   Dich la C:\Oufeidun. Co the nhap duong dan khac, co khoang trang.
+5. Xem lai 3 duong dan, nhap GOM THU MUC de xac nhan.
+6. Cho THÀNH CÔNG. Thu dang nhap, kho, anh, don hang, PNG/Excel tren may con.
+
+KET QUA
+<folder moi>\OufeidunServerData
+<folder moi>\Oufeidun-Local-0.2.14
+<folder moi>\.relocation (XML task cu, trang thai; chi Admin/SYSTEM doc)
+
+Cong cu dung API/HTTPS/backup, backup DB/anh/config, copy kiem tra checksum,
+sua env/launcher/Caddy/server-info va cac duong dan Scheduled Tasks.
+Giu nguyen trigger/settings/SYSTEM, IP, hostname, CA/public key va MySQL DB.
+Kiem tra API/HTTPS, anh local neu co va tao backup thu trong folder moi.
+Khong cai lai MySQL; khong di chuyen datadir cua MySQL; khong doi hosts/firewall.
+Khong tu tao tai khoan, xoa du lieu, chay migration hay nang cap app.
+API dang chay va bo ban giao phai cung version; cap nhat xong roi moi gom.
+
+SHORTCUT / MAY NHAN VIEN
+- App da cai: giu shortcut va cau hinh ket noi cu.
+- App portable tren may chu: doi shortcut sang 02-MAY-CLIENT\MO-APP.bat
+  trong folder moi. Neu mo shortcut cu thi van mo ban portable trong folder cu.
+- May con van dung IP/hostname/CA cu; khong can copy DB/config rieng sang may con.
+
+GIU BAN CU
+Hai folder nguon khong bi xoa. Neu chuyen that bai, cong cu thu dung ban moi,
+giu anh moi (neu co), tra task cu va chay lai ban cu. MySQL van la cung database,
+khong restore DB tu backup va khong lam mat don da ghi.
+Folder dich da ton tai thi cong cu dung, khong ghi de. Neu lan truoc loi, giu
+ca hai ban va .relocation de ho tro; khong xoa folder dich hay chay lai tuy tien.
+Neu mat dien/dong cua so giua luc chuyen, chay KHOI-PHUC-NEU-BI-NGAT.bat
+tren may chu, nhap folder goc moi va KHOI PHUC. File nay chi dung cho lan
+chuyen chua hoan tat; tu choi quay lai sau khi da bao thanh cong.
+Chi xoa hai folder nguon thu cong sau khi may chu/may con va backup chay on,
+shortcut da doi. Khong xoa folder moi hoac thu muc du lieu MySQL.
+
+GIOI HAN KIEM THU
+Co kiem thu co lap voi task/DB gia lap va file copy that. Khong tu di chuyen
+du lieu/dich vu tren may phat trien; can kiem tra may nhan vien that tai cua hang.

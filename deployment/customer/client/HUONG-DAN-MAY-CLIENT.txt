@@ -1,0 +1,43 @@
+OUFEIDUN LOCAL 0.2.11 - HUONG DAN MAY NHAN VIEN
+
+A. MAY CLIENT CAN GI?
+
+1. Windows 10/11 64-bit và quyền Administrator trong lần cài đầu.
+2. Kết nối LAN hoặc Wi-Fi tới cùng mạng nội bộ với máy chủ.
+3. Không cần cài MySQL, Node.js, Caddy hoặc chia sẻ thư mục Windows.
+
+B. TRUOC KHI CHEP SANG MAY CLIENT
+
+Trên máy chủ phải chạy CAI-MAY-CHU.cmd hoặc TAO-BO-CAI-MAY-CLIENT.cmd trước. Thư mục client hợp lệ phải có:
+- Oufeidun-Setup.exe
+- CAI-MAY-CLIENT.cmd
+- install-client.ps1
+- root.crt do đúng máy chủ khách sinh ra
+- server-config.txt chứa đúng IP máy chủ khách
+
+C. CAI DAT
+
+1. Chép nguyên thư mục 02-MAY-CLIENT sang máy nhân viên.
+2. Đóng hoàn toàn Oufeidun cũ nếu đang chạy.
+3. Nhấp phải CAI-MAY-CLIENT.cmd > Run as administrator và bấm Yes.
+4. Script kiểm tra cổng 443, cài chứng chỉ HTTPS nội bộ, cấu hình hostname và mở installer.
+5. Cài xong, mở Oufeidun và đăng nhập bằng tài khoản nhân viên riêng.
+
+D. KIEM TRA MANG
+
+Mở PowerShell trên máy nhân viên:
+  Test-NetConnection <IP_MAY_CHU> -Port 443
+
+Nếu TcpTestSucceeded là True thì mạng đã thông.
+Nếu False:
+- Kiểm tra máy chủ đang bật và không Sleep.
+- Kiểm tra Wi-Fi không phải mạng Guest.
+- Tắt AP Isolation/Client Isolation trên router hoặc access point.
+- Kiểm tra LAN và Wi-Fi có được router cho phép liên lạc với nhau.
+- Kiểm tra IP máy chủ có đúng server-config.txt không.
+
+E. LUU Y
+
+- Một tài khoản chỉ đăng nhập hoạt động tại một máy ở cùng thời điểm.
+- Mất Internet nhưng còn LAN/Wi-Fi nội bộ: bán hàng/kho/đơn vẫn dùng được; riêng Mã dùng chung cần Internet.
+- Không lấy root.crt hoặc server-config.txt từ bộ của cửa hàng khác.

@@ -6,10 +6,27 @@ test-results/
 playwright-report/
 .env*
 !.env.example
+!.env.*.example
 *.log
 *.exe
+*.pfx
+*.p12
 *.rar
 .local/
 supabase/.temp/
 MoKhoaApp.ps1
 guilde.txt
+
+# Runtime credentials, store identities, backups and generated packages.
+server.env
+server-info.json
+server-profile.json
+discovery-identity.json
+connection.json
+*.pem
+*.key
+*.crt
+*.sqlite
+*.sqlite3
+*.db
+*.zip

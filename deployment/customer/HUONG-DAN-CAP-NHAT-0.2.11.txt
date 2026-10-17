@@ -1,0 +1,23 @@
+CẬP NHẬT OUFEIDUN LOCAL 0.2.11
+
+TÍNH NĂNG VÀ SỬA LỖI
+- Khi thêm mã kính có thể nhập ngay Số lượng nhập ban đầu.
+- Số lượng lớn hơn 0 tự tạo phiếu Tồn đầu kỳ và lưu lịch sử kho.
+- Form sửa mã kính không cho nhập lại tồn ban đầu, tránh cộng tồn hai lần.
+- Cập nhật các sửa lỗi tải PNG/Excel, lưu khách cũ và thao tác bán hàng của bản source mới nhất.
+- Bộ cài không còn gắn cứng ổ C/E; script chạy từ 01-MAY-CHU và dùng server-info.json để nhớ đúng thư mục dữ liệu.
+- Đơn `Còn thiếu hàng` bắt buộc ghi chi tiết thiếu, được lưu nháp/tải ảnh/Excel nhưng chỉ được xác nhận và trừ kho sau khi chuyển sang `Đủ hàng`.
+
+CỬA HÀNG ĐÃ CÀI LOCAL TRƯỚC ĐÓ
+1. Sao lưu database bằng công cụ sao lưu hiện có trên máy chủ.
+2. Đóng Oufeidun trên máy chủ và tất cả máy nhân viên.
+3. Trên máy chủ, chạy 01-MAY-CHU\CAP-NHAT-MAY-CHU.cmd bằng quyền Administrator một lần.
+4. Trên máy chủ nếu có dùng ứng dụng bán hàng, chạy 02-MAY-CLIENT\Oufeidun-Setup.exe.
+5. Chép Oufeidun-Setup.exe mới sang từng máy nhân viên và chạy để cập nhật ứng dụng.
+6. Không xóa database, thư mục OufeidunServerData, uploads, root.crt, server-config.txt hoặc file hosts.
+7. Không cần cài lại MySQL, Node.js, Caddy hoặc chứng chỉ nếu máy chủ/IP/tên nội bộ không đổi.
+
+Không chép thủ công file vào thư mục Program Files. Chạy Oufeidun-Setup.exe để Windows cập nhật đúng phiên bản.
+
+CỬA HÀNG CÀI MỚI
+- Làm theo BAT-DAU-O-DAY.txt và hai thư mục 01-MAY-CHU, 02-MAY-CLIENT.

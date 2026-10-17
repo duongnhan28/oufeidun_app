@@ -1,0 +1,33 @@
+import { expect, test } from '@playwright/test';
+import ExcelJS from 'exceljs';
+
+test('Excel creates new glass codes, survives reload and displays SKU instead of names',async({page})=>{
+ await page.goto('/'); await page.getByRole('button',{name:/Chủ cửa hàng/}).click();
+ const oldCard=page.locator('.product-card').filter({hasText:'IP15-TR'});
+ await expect(oldCard).toBeVisible({timeout:45000});
+ await expect(oldCard).not.toContainText('Kính trong iPhone 15');
+ await page.getByRole('button',{name:'Kho hàng',exact:true}).click();
+ await page.getByRole('button',{name:'Thêm sản phẩm',exact:true}).click();
+ await expect(page.getByRole('dialog').getByLabel('Tên sản phẩm',{exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Đóng',exact:true}).click();
+ await page.getByRole('button',{name:'Nhập hàng',exact:true}).click();
+ await page.getByRole('button',{name:'Nhập bằng Excel',exact:true}).click();
+ const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('Nhập kho');
+ sheet.addRow(['Mã kính','Số lượng','Giá nhập']);sheet.addRow([' excel-new-ui ',4,12000]);sheet.addRow(['IP15-TR',2,15000]);
+ await page.getByLabel('Chọn file Excel đã điền').setInputFiles({name:'new-skus.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(await workbook.xlsx.writeBuffer())});
+ await page.getByRole('button',{name:'Nhập file Excel',exact:true}).click();
+ await expect(page.getByRole('status')).toContainText('Đã cập nhật kho');
+ const row=page.locator('tbody tr').filter({hasText:'EXCEL-NEW-UI'});
+ await expect(row).toContainText('4 sản phẩm');await expect(row).toContainText('12.000đ');
+ await page.reload();await page.getByRole('button',{name:/Chủ cửa hàng/}).click();
+ await page.getByRole('button',{name:'Kho hàng',exact:true}).click();await expect(row).toContainText('4 sản phẩm');
+ await page.getByRole('button',{name:'Sửa EXCEL-NEW-UI',exact:true}).click();
+ await expect(page.getByLabel('Giá vốn cố định (đ)',{exact:true})).toHaveValue('12000');
+ await expect(page.getByLabel('Giá bán (đ)',{exact:true})).toHaveValue('0');
+ await expect(page.getByLabel('Loại kính',{exact:true})).toHaveValue('other');
+ await page.getByRole('button',{name:'Đóng',exact:true}).click();
+ await page.getByRole('button',{name:'Bán hàng',exact:true}).click();
+ await page.getByRole('button',{name:'Chọn IP15-TR',exact:true}).click();
+ await expect(page.locator('.cart-line .line-name')).toHaveText('IP15-TR');
+ await page.screenshot({path:'test-results/sku-only-sales.png',fullPage:true});
+});

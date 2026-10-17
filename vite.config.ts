@@ -35,7 +35,7 @@ export default defineConfig(({ mode, command }) => ({
         return html
           .replace("script-src 'self'", "script-src 'self'" + extra)
           .replace("__DATA_ORIGINS__", dataOrigins)
-          .replace("__LOOKUP_ORIGIN__", lookupOrigin);
+          .replaceAll("__LOOKUP_ORIGIN__", lookupOrigin);
       },
     },
   ],

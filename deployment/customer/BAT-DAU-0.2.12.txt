@@ -1,0 +1,29 @@
+OUFEIDUN LOCAL 0.2.12 - MAY DA CAI
+
+MAY CHU
+1. Giai nen ca folder vao vi tri bat ky. Khong de bo cap nhat trong thu muc du lieu app dang chay.
+2. Mo 01-MAY-CHU/MO-MENU.bat, chon Cap nhat phien ban.
+3. Chuong trinh tim cau hinh cu tu server-info.json/tac vu Windows. Neu chua thay, nhap thu muc du lieu CU co config/server.env.
+4. Khong nhap lai root MySQL; khong tao database moi; khong chay Cai lan dau tren may da cai.
+5. Sau cap nhat, chon Kiem tra loi. MySQL, API, HTTPS phai OK.
+6. Neu may chu cung ban hang, cap nhat app nhu may nhan vien.
+
+MAY NHAN VIEN DA CAI
+1. Copy 02-MAY-CLIENT, chay CAP-NHAT.bat. Giu nguyen ket noi dang dung.
+2. Neu IP/hostname thay doi: may chu chay TAO-BO-MAY-NHAN-VIEN.bat; copy 02-MAY-CLIENT moi va chay SUA-KET-NOI.bat.
+3. Khong can cai MySQL/Node tren may nhan vien.
+
+SAU KHI TAT MAY/MAT DIEN
+Bat may chu: cac tac vu API/HTTPS va MySQL duoc cau hinh khoi dong cung Windows.
+Neu chua ban duoc: CHAY-MAY-CHU.bat; neu van loi: KIEM-TRA-LOI.bat va gui file trong logs.
+Windows+L van cho ket noi; Sleep/tat may thi khong.
+
+SUA CAU HINH
+SUA-CAU-HINH.bat: Enter giu gia tri cu. Thu ket noi DB truoc khi luu. Giu hostname/chung chi cu.
+Doi IP thi can IP da gan tren may chu va mang nhan vien truy cap duoc.
+Script khong tu tao dinh tuyen giua hai mang, khong sua router.
+
+DU LIEU
+Database, anh, tai khoan, chung chi duoc giu. Backup DB/anh truoc cap nhat.
+Neu migration that bai, giu ban ma cu va backup; lien he ho tro, khong tu chay go/cai lai.
+Bo cai chua co chu ky so Authenticode thuong mai.

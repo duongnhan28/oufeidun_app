@@ -1,0 +1,57 @@
+OUFEIDUN LOCAL 0.2.15 — CẬP NHẬT CỬA HÀNG ĐANG SỬ DỤNG
+
+BẢN NÀY CÓ GÌ MỚI
+- Tự chọn/sửa ngày giờ đặt đơn theo giờ Việt Nam; ngày lọc và chứng từ thống nhất.
+- Chi phí khác và nội dung chi phí; tổng đơn gồm tiền sản phẩm + chi phí khác.
+  Giao bổ sung không cộng chi phí lần nữa. Trả hàng không tự hoàn chi phí khác.
+- Ảnh PNG/Excel/PDF có máy dùng chung, ghi chú dòng và ghi chú đơn hàng.
+- Chi tiết bản nháp có Xem ảnh xác nhận và Tải ảnh PNG, không trừ kho.
+- Thiết kế PNG mới: khách/đơn riêng, mã kính rõ, ghi chú và bảng tiền dễ đọc.
+- Giữ các chức năng nhập Excel chín cột có Số lượng và tạo mã kính chưa có.
+
+CỬA HÀNG ĐÃ CÀI BẢN 0.2.13 / 0.2.14: LÀM THEO THỨ TỰ
+1. Lưu các đơn đang nhập và đóng app trên tất cả máy, tạm ngừng bán khi cập nhật.
+2. Giải nén bộ 0.2.15 vào folder mới, ngoài folder dữ liệu đang chạy.
+   Giữ nguyên folder dữ liệu cũ; không xóa, không chép đè thủ công vào app đang chạy.
+3. Trên MÁY CHỦ: chạy 01-MAY-CHU\CAP-NHAT.bat, chấp nhận quyền Administrator.
+   Nếu được hỏi, chọn folder dữ liệu CŨ có config\server.env và app.
+   Công cụ kiểm tra DB, sao lưu DB/ảnh/cấu hình, thay API, chạy migration 006
+   và khởi động lại. Chờ thông báo thành công. Không chạy file cài máy chủ lại.
+4. Chạy 01-MAY-CHU\KIEM-TRA-LOI.bat. Nếu có lỗi, giữ backup/log và liên hệ hỗ trợ;
+   chưa cập nhật máy nhân viên, không chạy CLEAN-DATA-GIU-ACCOUNT.bat.
+5. Chạy 01-MAY-CHU\TAO-BO-MAY-NHAN-VIEN.bat để xuất public profile cửa hàng
+   vào 02-MAY-CLIENT của bộ mới. Chép TOÀN BỘ folder 02-MAY-CLIENT đó sang các máy.
+6. Trên MÁY NHÂN VIÊN và máy chủ nếu cũng dùng app bán hàng:
+   - Bản đã cài/shortcut Desktop: đóng app, chạy 02-MAY-CLIENT\CAP-NHAT.bat
+     để cài Oufeidun-Setup.exe mới; cấu hình kết nối trong AppData được giữ.
+   - Bản portable: chạy MO-APP.bat trong folder MỚI; đổi shortcut trỏ về folder mới.
+   Không chép riêng Oufeidun.exe của App: app portable cần toàn bộ các file đi kèm.
+
+CẤU HÌNH NÀO CẦN THAY?
+- Cần thay Local API, file migration và app bằng bộ 0.2.15; chỉ gửi EXE chưa đủ.
+- KHÔNG cần đổi tên DB, user/mật khẩu MySQL, IP/MAC, hostname, firewall,
+  config\server.env, CA/private key hoặc discovery-identity.json khi mạng giữ nguyên.
+- Máy chủ tự bổ sung ordered_at, extra_cost, extra_cost_note, models_snapshot;
+  đơn cũ giữ tổng tiền, chi phí khác mặc định 0. Không tạo lại DB/tài khoản.
+- Public profile máy con được xuất từ chính máy chủ của khách. Không chép
+  server.env hoặc discovery-identity.json sang máy con, không dùng config máy phát triển.
+- Giữ dữ liệu/ảnh/backups/config cũ. Không clean data và không xóa folder dữ liệu.
+- Bộ mới không chứa mật khẩu, dữ liệu cửa hàng hay chứng chỉ riêng của máy phát triển.
+
+KIỂM TRA TRƯỚC KHI BÁN TIẾP
+- Đăng nhập, mở Kho kính và một đơn cũ, xem ảnh sản phẩm.
+- Tạo nháp thử với ngày tự chọn, mã dùng chung, ghi chú và chi phí khác.
+- Lưu/mở lại nháp; xem/tải PNG, tải Excel và đối chiếu tiền hàng + phí = tổng.
+- Kiểm tra máy nhân viên kết nối được sau cập nhật; kiểm tra backup máy chủ.
+  Không xác nhận bán đơn thử nếu không muốn phát sinh kho/doanh thu.
+
+KHỞI ĐỘNG SAU KHI TẮT MÁY / MẤT ĐIỆN
+MySQL/API/HTTPS dùng chế độ tự chạy Windows đã cài. Nếu lỗi, chạy
+CHAY-MAY-CHU.bat hoặc KHOI-DONG-LAI.bat rồi KIEM-TRA-LOI.bat.
+Windows+L vẫn kết nối; Sleep hoặc tắt máy chủ thì máy con không bán được.
+LAN/Wi-Fi cần liên lạc được: HTTPS TCP 443 và discovery UDP 47631.
+Màn Mã dùng chung vẫn cần Internet. Không cần cài MySQL/Node trên máy nhân viên.
+
+GIỚI HẠN
+Installer chưa có chữ ký số Authenticode thương mại. Kiểm thử trên máy phát triển;
+kết nối hai máy vật lý, UAC và khởi động lại tại cửa hàng cần kiểm tra sau cập nhật.

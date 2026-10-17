@@ -1,11 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Report, User, Workspace } from "../types";
+import { InputError } from "../lib/input-error";
+import type { Customer, Item, Order, Report, User, Workspace } from "../types";
+
+// Remove the token key used by early local builds. Current sessions are kept
+// in memory so a stale renderer token can never be reused.
+localStorage.removeItem("app-ban-hang-auth");
 
 export const demo = import.meta.env.VITE_DEMO_MODE === "true";
 const backend = String(
   import.meta.env.VITE_DATA_BACKEND || "supabase",
 ).toLowerCase();
-const apiBase = String(import.meta.env.VITE_API_BASE_URL || "").replace(
+// The operational permission update is implemented by LOCAL API and demo.
+// Preserve the deployed Supabase permissions until its RPCs are upgraded separately.
+export const sharedOperations = demo || backend === "api";
+const apiBase = String(window.oufeidun?.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || "").replace(
   /\/+$/,
   "",
 );
@@ -145,6 +153,12 @@ export async function releaseOnlineSession() {
   }
 }
 
+export async function forgetOnlineSession() {
+  accessToken = "";
+  if (backend === "supabase" && supabase)
+    await supabase.auth.signOut({ scope: "local" });
+}
+
 export async function rpc<T>(
   name: "shop_read" | "shop_write",
   payload: Record<string, unknown> = {},
@@ -180,6 +194,8 @@ export async function workspace() {
   if (demo) {
     const { demoOrderExtras } = await import("./demo");
     mergeOrderExtras(data, await demoOrderExtras<OrderExtra[]>(actor));
+    const {demoRpc}=await import('./demo');
+    mergeBusinessExtras(data,await demoRpc<BusinessExtras>(actor,'shop_business_extras',{}));
   }
   if (!demo && backend === "supabase" && data.me.role === "admin") {
     const { data: users, error } = await supabase!.rpc(
@@ -194,22 +210,58 @@ export async function workspace() {
     );
     if (error) throw error;
     mergeOrderExtras(data, extras as OrderExtra[]);
+    const { data: business, error: businessError } = await supabase!.rpc(
+      "app_ban_hang_business_extras",
+    );
+    if (businessError) throw businessError;
+    mergeBusinessExtras(data, business as BusinessExtras);
   }
+  data.customers ||= [];
+  data.customer_prices ||= [];
+  data.salespeople ||= [data.me];
   return data;
+}
+
+type BusinessExtras = {
+  products: { id: string; wholesale_price: string }[];
+  customers: Customer[];
+  customer_prices: Workspace["customer_prices"];
+  salespeople: User[];
+  orders: { id: string; order_no?: string; customer_id: string | null; fulfillment_status: "complete" | "short"; missing_summary: string; sales_user_id: string | null; sales_name: string }[];
+};
+function mergeBusinessExtras(data: Workspace, extras: BusinessExtras) {
+  data.customers = extras.customers || [];
+  data.customer_prices = extras.customer_prices || [];
+  data.salespeople = extras.salespeople || [data.me];
+  const productMap = new Map((extras.products || []).map((row) => [row.id, row]));
+  data.products.forEach((product) => Object.assign(product, productMap.get(product.id)));
+  const orderMap = new Map((extras.orders || []).map((row) => [row.id, row]));
+  data.orders.forEach((order) => Object.assign(order, orderMap.get(order.id)));
 }
 
 type OrderExtra = {
   order_id: string;
+  ordered_at?: string;
+  extra_cost?: string;
+  extra_cost_note?: string;
   customer_address: string;
   customer_type: "retail" | "wholesale";
   paid_amount: string;
   payment_status: "unpaid" | "partial" | "paid";
+  fulfillment_status?: "complete" | "short";
+  missing_summary?: string;
+  deliveries?: Order["deliveries"];
   payments: Workspace["orders"][number]["payments"];
   items: {
+    id?: string;
     product_id: string;
     unit_sale_price: string;
     item_kind: "sale" | "gift" | "sample";
     item_note: string;
+    delivered_quantity?: number;
+    missing_quantity?: number;
+    price_overridden?: boolean;
+    price_source?: Item["price_source"];
   }[];
 };
 function mergeOrderExtras(data: Workspace, extras: OrderExtra[]) {
@@ -218,18 +270,24 @@ function mergeOrderExtras(data: Workspace, extras: OrderExtra[]) {
     const extra = byOrder.get(order.id);
     if (!extra) continue;
     order.customer_address = extra.customer_address;
+    order.ordered_at = extra.ordered_at;
+    order.extra_cost = extra.extra_cost;
+    order.extra_cost_note = extra.extra_cost_note;
     order.customer_type = extra.customer_type;
     order.paid_amount = extra.paid_amount;
     order.outstanding_amount = (
       BigInt(order.total_amount) - BigInt(extra.paid_amount)
     ).toString();
     order.payment_status = extra.payment_status;
+    if (extra.fulfillment_status) order.fulfillment_status = extra.fulfillment_status;
+    if (extra.missing_summary !== undefined) order.missing_summary = extra.missing_summary;
+    if (extra.deliveries) order.deliveries = extra.deliveries;
     order.payments = extra.payments || [];
     const itemExtras = new Map(
-      extra.items.map((item) => [item.product_id, item]),
+      extra.items.map((item) => [item.id || `${item.product_id}:${item.item_kind}`, item]),
     );
     for (const item of order.items)
-      Object.assign(item, itemExtras.get(item.product_id));
+      Object.assign(item, itemExtras.get(item.id||"") || itemExtras.get(`${item.product_id}:${item.item_kind||"sale"}`));
   }
 }
 
@@ -287,6 +345,10 @@ export type SharedLookupItem = {
 export async function lookupSharedProducts(
   query: string,
 ): Promise<SharedLookupItem[]> {
+  if (window.oufeidun?.lookupGlass) {
+    const body = await window.oufeidun.lookupGlass(query.trim());
+    return body.items || [];
+  }
   const base = String(import.meta.env.VITE_GLASS_LOOKUP_API_URL || "").trim();
   if (!base || query.trim().length < 2) return [];
   const url = new URL(base);
@@ -300,6 +362,14 @@ export async function lookupSharedProducts(
   return body.items || [];
 }
 
+export function lookupImageSrc(path: string) {
+  if (!path) return "";
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (window.oufeidun) return `lookup-image://app${normalized}`;
+  const base = String(import.meta.env.VITE_GLASS_LOOKUP_API_URL || "").trim();
+  return base ? new URL(normalized, base).toString() : normalized;
+}
+
 export async function loadReport(
   from: string,
   to: string,
@@ -308,11 +378,15 @@ export async function loadReport(
   if (demo)
     return rpc<Report>("shop_read", { action: "report", from, to, brand });
   if (backend === "supabase") {
-    const { data, error } = await supabase!.rpc("app_ban_hang_report", {
+    const [{ data, error }, { data: detailed, error: detailedError }] = await Promise.all([
+      supabase!.rpc("app_ban_hang_report", {
       payload: { from, to, brand },
-    });
+      }),
+      supabase!.rpc("app_ban_hang_detailed_report", { payload: { from, to, brand } }),
+    ]);
     if (error) throw error;
-    return data as Report;
+    if (detailedError) throw detailedError;
+    return Object.assign(data as Report, detailed || {});
   }
   return request<Report>("/reports", {
     method: "POST",
@@ -320,8 +394,69 @@ export async function loadReport(
   });
 }
 
-export const mutate = (payload: Record<string, unknown>) =>
-  rpc<{ id: string; return_id?: string }>("shop_write", payload);
+export async function saveCustomer(payload: Record<string, unknown>) {
+  if (demo) return import('./demo').then(({demoRpc})=>demoRpc<{id:string}>(actor,'shop_customer',payload));
+  if (backend === "supabase") {
+    const { data, error } = await supabase!.rpc("app_ban_hang_customer", { payload });
+    if (error) throw error;
+    return data as { id: string };
+  }
+  return request<{ id: string }>("/customers", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function saveOrderBusiness(payload: Record<string, unknown>) {
+  if (demo) {
+    const { demoOrderBusiness } = await import("./demo");
+    return demoOrderBusiness<{ id: string }>(actor, payload);
+  }
+  if (backend === "supabase") {
+    const { data, error } = await supabase!.rpc("app_ban_hang_order_business", { payload });
+    if (error) throw error;
+    return data as { id: string };
+  }
+  return request<{ id: string }>("/orders/business", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function setWholesalePrice(payload: Record<string, unknown>) {
+  if (demo) return import('./demo').then(({demoRpc})=>demoRpc<{id:string}>(actor,'shop_set_wholesale_price',payload));
+  if (backend === "supabase") {
+    const { data, error } = await supabase!.rpc("app_ban_hang_set_wholesale_price", { payload });
+    if (error) throw error;
+    return data as { id: string };
+  }
+  return request<{ id: string }>("/products/wholesale-price", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function setBulkPrice(payload: Record<string, unknown>) {
+  if (demo) return import('./demo').then(({demoRpc})=>demoRpc<{updated:number}>(actor,'shop_bulk_price',payload));
+  if (backend === "supabase") {
+    const { data, error } = await supabase!.rpc("app_ban_hang_bulk_price", { payload });
+    if (error) throw error;
+    return data as { updated: number };
+  }
+  return request<{ updated: number }>("/products/bulk-price", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export const mutate = (payload: Record<string, unknown>) => {
+  if (demo && ["confirm_order", "deliver_order", "resolve_shortage"].includes(String(payload.action))) {
+    return import("./demo").then(({ demoRpc }) => demoRpc<{ id: string; return_id?: string }>(actor, "shop_partial_fulfillment", payload));
+  }
+  if (!demo && backend === "supabase" && ["confirm_order", "deliver_order", "resolve_shortage"].includes(String(payload.action))) {
+    if (!supabase) return Promise.reject(new Error("CONFIG_REQUIRED"));
+    return supabase.rpc("app_ban_hang_partial_fulfillment", { payload }).then(({ data, error }) => {
+      if (error) throw error;
+      return data as { id: string; return_id?: string };
+    });
+  }
+  if (!demo && backend === "supabase" && payload.action === "save_draft") {
+    // Supabase lưu mã tự nhập qua app_ban_hang_order_business sau khi RPC nền
+    // tạo/cập nhật draft. Giữ payload shop_write tương thích với schema cũ.
+    const compatible = { ...payload };
+    // Migration 031 accepts manual codes and atomic sale_details.
+    return rpc<{ id: string; return_id?: string }>("shop_write", compatible);
+  }
+  return rpc<{ id: string; return_id?: string }>("shop_write", payload);
+};
 export const command = (action: string, data: Record<string, unknown>) => ({
   action,
   key: crypto.randomUUID(),
@@ -428,17 +563,28 @@ export async function removeImage(path: string) {
 }
 
 const errors: Record<string, string> = {
+  INVALID_ORDER_DATE: "Ngày giờ đặt đơn không hợp lệ. Vui lòng chọn ngày từ năm 2000 đến 2100 theo giờ Việt Nam.",
+  CUSTOMER_NAME_REQUIRED: "Vui lòng nhập tên khách hàng trước khi lưu đơn.",
+  CUSTOMER_PHONE_REQUIRED:
+    "Vui lòng nhập số điện thoại khách hàng trước khi lưu đơn.",
+  ZERO_PRICE_CONFIRM_REQUIRED:
+    "Giá bán bằng 0đ. Vui lòng xác nhận rõ trước khi áp dụng.",
+  CUSTOMER_PRICE_REQUIRES_WHOLESALE:
+    "Chỉ có thể lưu giá riêng khi đã chọn một khách sỉ.",
   UNAUTHENTICATED: "Vui lòng đăng nhập.",
   INVALID_CREDENTIALS: "Tên đăng nhập hoặc mật khẩu không đúng.",
   ACCOUNT_DISABLED: "Tài khoản đã bị khóa.",
   ACCOUNT_EXISTS: "Tên đăng nhập này đã được sử dụng.",
   ACCOUNT_NOT_FOUND: "Không tìm thấy tài khoản nhân viên.",
-  SESSION_ALREADY_ACTIVE: "Tài khoản này đang được sử dụng trên một máy khác.",
+  PASSWORD_CONFIRM_MISMATCH: "Mật khẩu nhập lại không khớp.",
+  SESSION_ALREADY_ACTIVE:
+    "Tài khoản đang được sử dụng ở phiên khác. Hãy đăng xuất trên máy đang mở hoặc đóng ứng dụng và chờ tối đa 90 giây rồi đăng nhập lại.",
   SESSION_REPLACED:
     "Phiên đăng nhập đã được chuyển sang máy khác. Vui lòng đăng nhập lại.",
   SESSION_REQUIRED:
     "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại.",
   FORBIDDEN: "Bạn không có quyền thực hiện thao tác này.",
+  COST_ACCESS_DENIED: "Chỉ Admin được cập nhật giá vốn và giá nhập.",
   VERSION_CONFLICT: "Dữ liệu vừa thay đổi. Tải lại và kiểm tra trước khi lưu.",
   PRICE_CHANGED:
     "Giá bán đã thay đổi. Lưu lại nháp để xem giá mới trước khi xác nhận.",
@@ -455,14 +601,22 @@ const errors: Record<string, string> = {
   PAYMENT_EXCEEDS_DUE: "Số tiền thu vượt quá số tiền còn phải thanh toán.",
   CONFIG_REQUIRED:
     "Chưa cấu hình backend. Hãy kiểm tra biến môi trường Supabase hoặc API rồi chạy lại ứng dụng.",
+  SERVER_UNAVAILABLE: "Không kết nối được máy chủ. Kiểm tra máy chủ đã bật và mạng Wi-Fi/LAN, rồi thử lại.",
   PRODUCT_NOT_FOUND: "Không tìm thấy mã kính.",
   PRODUCT_HAS_STOCK:
     "Mã kính vẫn còn tồn kho. Hãy điều chỉnh tồn về 0 trước khi xóa.",
   PRODUCT_IN_USE:
     "Mã kính đang có trong bản nháp. Hãy xóa bản nháp hoặc bỏ sản phẩm khỏi đơn trước.",
+  ORDER_CODE_REQUIRED: "Vui lòng nhập mã đơn hàng.",
+  ORDER_CODE_EXISTS: "Mã đơn hàng này đã được sử dụng. Vui lòng nhập mã khác.",
+  MISSING_SUMMARY_REQUIRED: "Vui lòng nhập mã kính và số lượng còn thiếu trước khi lưu đơn.",
+  DELIVERY_EXCEEDS_ORDERED: "Số lượng giao vượt quá số khách đã đặt.",
+  DELIVERY_INCOMPLETE: "Đơn vẫn còn số lượng chưa giao. Vui lòng giao bổ sung trước khi hoàn tất.",
+  DUPLICATE_VALUE: "Mã đơn hàng hoặc dữ liệu này đã tồn tại.",
 };
 
 export function friendly(e: unknown) {
+  if (e instanceof InputError) return e.message;
   const msg =
     (e as { message?: string })?.message ||
     "Không thực hiện được. Vui lòng thử lại.";

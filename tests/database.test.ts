@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 const migration=readFileSync('supabase/migrations/001_shop.sql','utf8');
 const admin='10000000-0000-4000-8000-000000000001',staff='10000000-0000-4000-8000-000000000002',other='10000000-0000-4000-8000-000000000003';
+let orderSequence=0;
 async function setup(){const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('app.user_id',true),'')::uuid$$;`);await db.exec(migration);for(const [id,role]of[[admin,'admin'],[staff,'staff'],[other,'staff']]){await db.query('insert into auth.users values($1)',[id]);await db.query('insert into app_private.app_users(id,display_name,role) values($1,$2,$3)',[id,role,role]);}return db;}
-async function rpc(db:PGlite,who:string,payload:Record<string,unknown>,fn='shop_write'):Promise<any>{await db.query("select set_config('app.user_id',$1,false)",[who]);const r=await db.query<{r:any}>(`select public.${fn}($1::jsonb) r`,[JSON.stringify(fn==='shop_write'?{key:crypto.randomUUID(),...payload}:payload)]);return r.rows[0].r;}
+async function rpc(db:PGlite,who:string,payload:Record<string,unknown>,fn='shop_write'):Promise<any>{await db.query("select set_config('app.user_id',$1,false)",[who]);const values=fn==='shop_write'&&payload.action==='save_draft'&&!payload.order_code?{...payload,order_code:`TEST-${++orderSequence}`} : payload;const r=await db.query<{r:any}>(`select public.${fn}($1::jsonb) r`,[JSON.stringify(fn==='shop_write'?{key:crypto.randomUUID(),...values}:values)]);return r.rows[0].r;}
 async function product(db:PGlite,qty=10,sku='A'){const r=await rpc(db,admin,{action:'product',sku,name:'Kính A',glass_type:'clear',models:['iPhone 15'],brand:'Apple',sale_price:'25000',fixed_cost:'10000',active:true});if(qty)await rpc(db,admin,{action:'inventory',type:'opening',reason:'Test',items:[{product_id:r.id,quantity:qty}]});return r.id as string;}
 async function ws(db:PGlite,who=admin){return rpc(db,who,{},'shop_read');}
 async function orderFeatures(db:PGlite,who:string,payload:Record<string,unknown>){await db.query("select set_config('app.user_id',$1,false)",[who]);const r=await db.query<{r:any}>(`select public.shop_order_features($1::jsonb) r`,[JSON.stringify(payload)]);return r.rows[0].r;}
@@ -24,20 +25,21 @@ test('database: security, drafts, snapshots, stock, idempotency and returns',asy
  await t.test('stock ledger reconciles and locked user rejected',async()=>{const rows=await db.query('select b.product_id from app_private.inventory_balances b left join app_private.inventory_movements m on m.product_id=b.product_id group by b.product_id,b.on_hand having b.on_hand<>coalesce(sum(m.quantity_delta),0)');assert.equal(rows.rows.length,0);await rpc(db,admin,{action:'staff_state',id:staff,active:false});await assert.rejects(ws(db,staff),/ACCOUNT_DISABLED/);});
 }finally{await db.close();}});
 
-test('database: wholesale pricing, gifts, address and installment payments',async()=>{const db=await setup();try{
+test('database: server-controlled pricing, gifts, address and installment payments',async()=>{const db=await setup();try{
  const sale=await product(db,5,'WHOLESALE'),gift=await product(db,3,'GIFT');
  const saved=await rpc(db,staff,{action:'save_draft',customer_name:'Đại lý Minh An',customer_phone:'0900000000',items:[{product_id:sale,quantity:2,custom_name:'Tên bán sỉ'},{product_id:gift,quantity:1,custom_name:null}]});
  let order=(await ws(db,staff)).orders.find((x:any)=>x.id===saved.id);
  await orderFeatures(db,staff,{action:'save',order_id:order.id,customer_address:'12 Nguyễn Huệ, TP.HCM',customer_type:'wholesale',items:[{product_id:sale,unit_sale_price:'20000',item_kind:'sale',item_note:'Dùng chung iPhone 15 / 16'},{product_id:gift,unit_sale_price:'0',item_kind:'gift',item_note:'Tặng đại lý'}]});
  order=(await ws(db,staff)).orders.find((x:any)=>x.id===saved.id);
- assert.equal(order.total_amount,'40000');
+ assert.equal(order.total_amount,'50000');
+ assert.equal(order.items.find((x:any)=>x.product_id===sale).unit_sale_price,'25000');
  assert.equal(order.items.find((x:any)=>x.product_id===gift).unit_sale_price,'0');
  let extras=await orderExtras(db,staff),extra=extras.find((x:any)=>x.order_id===order.id);
  assert.equal(extra.customer_type,'wholesale');assert.equal(extra.customer_address,'12 Nguyễn Huệ, TP.HCM');assert.equal(extra.items.find((x:any)=>x.product_id===sale).item_note,'Dùng chung iPhone 15 / 16');
  await rpc(db,staff,{action:'confirm_order',id:order.id,version:order.version,payment_method:'cash_transfer'});
  await orderFeatures(db,staff,{action:'payment',order_id:order.id,amount:'15000',method:'cod_transfer',note:'Đợt 1'});
  extras=await orderExtras(db,staff);extra=extras.find((x:any)=>x.order_id===order.id);assert.equal(extra.payment_status,'partial');assert.equal(extra.paid_amount,'15000');
- await orderFeatures(db,staff,{action:'payment',order_id:order.id,amount:'25000',method:'cash_transfer',note:'Đợt cuối'});
- extras=await orderExtras(db,staff);extra=extras.find((x:any)=>x.order_id===order.id);assert.equal(extra.payment_status,'paid');assert.equal(extra.paid_amount,'40000');assert.equal(extra.payments.length,2);
+ await orderFeatures(db,staff,{action:'payment',order_id:order.id,amount:'35000',method:'cash_transfer',note:'Đợt cuối'});
+ extras=await orderExtras(db,staff);extra=extras.find((x:any)=>x.order_id===order.id);assert.equal(extra.payment_status,'paid');assert.equal(extra.paid_amount,'50000');assert.equal(extra.payments.length,2);
  await assert.rejects(orderFeatures(db,staff,{action:'payment',order_id:order.id,amount:'1',method:'cash',note:''}),/VALIDATION_ERROR/);
 }finally{await db.close();}});

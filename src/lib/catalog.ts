@@ -1,0 +1,13 @@
+import type {Item,Product,Customer} from '../types';
+export const categoryKey=(value:string)=>value==='full_border'?'clear':value;
+export const categoryLabels:Record<string,string>={clear:'Full viền',privacy:'Chống nhìn trộm',matte:'Full viền cao cấp',premium_borderless:'Không viền cao cấp',other:'Phụ kiện khác'};
+export const isAccessory=(p:Product)=>categoryKey(p.glass_type)==='other';
+export const searchCategoryLabels=Object.fromEntries(Object.entries(categoryLabels).filter(([key])=>key!=='matte'));
+export const productUnit=(product?:Pick<Product,'glass_type'>):'tấm'|'sản phẩm'=>product?.glass_type==='other'?'sản phẩm':'tấm';
+export function quantitySummary(rows:{quantity:number;unit?:string}[]){const totals=new Map<string,number>();for(const row of rows){const unit=row.unit||'tấm';totals.set(unit,(totals.get(unit)||0)+row.quantity);}return [...totals].filter(([,count])=>count!==0).sort(([a],[b])=>a===b?0:a==='tấm'?-1:1).map(([unit,count])=>`${new Intl.NumberFormat('vi-VN').format(count)} ${unit}`).join(' · ')||`0 ${totals.size===1?[...totals.keys()][0]:'tấm'}`;}
+export const itemQuantitySummary=(items:{product_id:string;quantity:number}[],products:Product[])=>quantitySummary(items.map(item=>({quantity:item.quantity,unit:productUnit(products.find(p=>p.id===item.product_id))})));
+export const lineKey=(i:Item)=>`${i.product_id}:${i.item_kind||'sale'}`;
+export const reservedQuantity=(items:Item[],productId:string)=>items.filter(i=>i.product_id===productId).reduce((sum,i)=>sum+i.quantity,0);
+export function availableForLine(items:Item[],item:Item,stock:number){let remaining=stock;for(const row of items){if(lineKey(row)===lineKey(item))return Math.max(0,remaining);if(row.product_id===item.product_id)remaining-=row.quantity;}return 0;}
+export function allocateDelivery(items:Item[],products:Product[],supplemental=false){const stock=new Map(products.map(p=>[p.id,p.on_hand]));return Object.fromEntries(items.map(item=>{const amount=Math.max(0,Math.min(item.quantity-(supplemental?(item.delivered_quantity||0):0),stock.get(item.product_id)||0));stock.set(item.product_id,(stock.get(item.product_id)||0)-amount);return [item.id!,amount];}));}
+export function matchingCustomers(customers:Customer[],query:string){const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase();const text=normalize(query.trim());const digits=/^[\d+\s().-]+$/.test(text)?text.replace(/\D/g,''):'';return customers.filter(c=>c.active&&(normalize(`${c.name} ${c.phone}`).includes(text)||(digits&&c.phone.replace(/\D/g,'').includes(digits)))).slice(0,3);}

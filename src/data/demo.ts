@@ -1,6 +1,15 @@
 import { PGlite } from "@electric-sql/pglite";
 import schema from "../../supabase/migrations/001_shop.sql?raw";
 import brandsMigration from "../../supabase/migrations/003_glass_brands.sql?raw";
+import partialFulfillmentMigration from "./demo-partial-fulfillment.sql?raw";
+import excelCreateSkuMigration from "./demo-excel-create-sku.sql?raw";
+import productImportMigration from "./demo-product-import.sql?raw";
+import orderDetailsMigration from "./demo-order-details.sql?raw";
+import catalogSalesMigration from "./demo-catalog-sales.sql?raw";
+import sharedOrdersMigration from "./demo-shared-orders.sql?raw";
+import orderLinePositionMigration from "./demo-order-line-position.sql?raw";
+import sharedCategoryPriceMigration from "./demo-shared-category-price.sql?raw";
+import sharedOperationsMigration from "./demo-shared-operations.sql?raw";
 export const demoUsers = [
   {
     id: "10000000-0000-4000-8000-000000000001",
@@ -69,6 +78,16 @@ export async function seed(db: Pick<PGlite, "query">) {
       18,
     ],
     [
+      "SAM-A12",
+      "Kính trong Samsung A12",
+      "clear",
+      "Samsung",
+      ["Samsung A12", "Samsung A13", "Samsung A14", "Samsung A15"],
+      25000,
+      10000,
+      20,
+    ],
+    [
       "OP-A78",
       "Kính trong OPPO A78",
       "clear",
@@ -135,7 +154,7 @@ let queue: Promise<unknown> = Promise.resolve();
 async function getDb() {
   if (!dbPromise)
     dbPromise = (async () => {
-  const db = new PGlite("idb://kinh-demo-v7");
+  const db = new PGlite("idb://kinh-demo-v9");
       await db.waitReady;
       const r = await db.query<{ exists: boolean }>(
         "select exists(select 1 from pg_namespace where nspname='app_private')",
@@ -154,13 +173,25 @@ async function getDb() {
         await db.transaction(async (tx) => {
           await tx.exec(brandsMigration);
         });
+      // Refresh the idempotent functions for existing demo databases too.
+      await db.transaction(async (tx) => {
+        await tx.exec(partialFulfillmentMigration);
+        await tx.exec(excelCreateSkuMigration);
+        await tx.exec(productImportMigration);
+        await tx.exec(orderDetailsMigration);
+        await tx.exec(catalogSalesMigration);
+        await tx.exec(sharedOrdersMigration);
+        await tx.exec(orderLinePositionMigration);
+        await tx.exec(sharedCategoryPriceMigration);
+        await tx.exec(sharedOperationsMigration);
+      });
       return db;
     })();
   return dbPromise;
 }
 export function demoRpc<T>(
   actor: string,
-  fn: "shop_read" | "shop_write",
+  fn: "shop_read" | "shop_write" | "shop_partial_fulfillment" | "shop_customer" | "shop_set_wholesale_price" | "shop_business_extras" | "shop_bulk_price",
   payload: unknown,
 ): Promise<T> {
   const call = queue.then(async () => {
@@ -168,14 +199,24 @@ export function demoRpc<T>(
     return db.transaction(async (tx) => {
       await tx.query("select set_config('app.user_id',$1,true)", [actor]);
       const r = await tx.query<{ result: T }>(
-        `select public.${fn}($1::jsonb) result`,
-        [JSON.stringify(payload)],
+        fn==='shop_business_extras' ? `select public.${fn}() result` : `select public.${fn}($1::jsonb) result`,
+        fn==='shop_business_extras' ? [] : [JSON.stringify(payload)],
       );
       return r.rows[0].result;
     });
   });
   queue = call.catch(() => {});
   return call;
+}
+
+export async function demoOrderBusiness<T>(actor: string, payload: unknown): Promise<T> {
+  const db = await getDb();
+  await db.query("select set_config('app.user_id',$1,false)", [actor]);
+  const result = await db.query<{ result: T }>(
+    "select public.shop_order_business($1::jsonb) result",
+    [JSON.stringify(payload)],
+  );
+  return result.rows[0].result;
 }
 
 export async function demoOrderExtras<T>(actor: string): Promise<T> {

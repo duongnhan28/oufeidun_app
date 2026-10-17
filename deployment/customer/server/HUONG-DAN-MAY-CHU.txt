@@ -1,0 +1,92 @@
+OUFEIDUN LOCAL 0.2.11 - HUONG DAN MAY CHU
+
+CẬP NHẬT MÁY CHỦ ĐÃ CÀI TRƯỚC ĐÓ
+- Không chạy lại CAI-MAY-CHU.cmd.
+- Chạy CAP-NHAT-MAY-CHU.cmd bằng quyền Administrator.
+- Script chỉ thay Local API, tự sao lưu source cũ và giữ nguyên MySQL, ảnh, tài khoản và cấu hình mạng.
+
+A. MAY CHU CAN CAI GI?
+
+1. Windows 10/11 64-bit, có quyền Administrator.
+2. MySQL Community Server 8.0 hoặc 8.4:
+   - Có thể tải/cài gói chính thức bằng: winget install --id Oracle.MySQL --exact
+   - Sau khi cài, mở MySQL Configurator nếu trình cấu hình chưa tự chạy.
+   - Chọn kiểu Standalone MySQL Server.
+   - TCP/IP port 3306.
+   - Tạo mật khẩu root và giữ lại để nhập lúc cài Oufeidun.
+   - Cài dưới dạng Windows Service, tự khởi động cùng Windows.
+   - Không cần tự tạo database; CAI-MAY-CHU.cmd sẽ tạo database oufeidun_local và tài khoản ứng dụng riêng.
+3. Node.js LTS 64-bit và npm:
+   - Có thể cài bằng lệnh: winget install --id OpenJS.NodeJS.LTS --exact
+4. Card LAN nối router/switch. Nên dùng dây LAN cho máy chủ.
+5. Không cần cài Caddy: caddy.exe đã nằm sẵn trong bộ này.
+
+B. CHUAN BI MANG
+
+1. Máy khách sẽ có IP và MAC khác máy phát triển, điều này hoàn toàn bình thường.
+2. Chưa cần sửa file cấu hình bằng tay. CAI-MAY-CHU.cmd tự phát hiện IP/card mạng và cho nhập lại IP đúng.
+3. Sau khi cài, mở server-info.json để xem IP, MAC và hostname thực tế.
+4. Vào router đặt DHCP Reservation: ghim đúng IP trong server-info.json cho đúng MAC trong file đó.
+5. Không mở port 3306 ra LAN/Internet. Máy client chỉ dùng HTTPS port 443.
+6. Wi-Fi nhân viên không được là Guest và router không được bật AP Isolation/Client Isolation.
+7. Nếu LAN và Wi-Fi khác dải/VLAN, router phải cho phép định tuyến giữa hai dải. Khi cài, nhập các dải máy nhân viên được phép, ví dụ 192.168.1.0/24,192.168.2.0/24. Nếu cùng một mạng, giữ LocalSubnet.
+
+C. THU TU CAI DAT
+
+1. Cài MySQL và Node.js như mục A, sau đó khởi động lại Windows nếu trình cài yêu cầu.
+2. Chép cả 01-MAY-CHU và 02-MAY-CLIENT vào cùng một thư mục cha.
+3. Chạy KIEM-TRA-MAY-CHU.cmd. Chỉ tiếp tục khi Node, mysql.exe, MySQL Service và IPv4 đều được nhận diện.
+4. Nhấp phải CAI-MAY-CHU.cmd > Run as administrator.
+5. Xác nhận hoặc nhập IP máy chủ; mặc định script đề xuất IP của card đang kết nối router.
+6. Giữ hostname oufeidun.home.arpa nếu không có yêu cầu đặc biệt.
+7. Chọn dải mạng được phép. Cùng router/subnet thì giữ LocalSubnet; khác VLAN thì nhập các CIDR do người quản trị mạng cung cấp.
+8. Chọn thư mục dữ liệu; mặc định là OufeidunServerData nằm cạnh 01-MAY-CHU, nên bộ cài đặt ở ổ đĩa nào thì dữ liệu theo ổ đĩa đó.
+9. Nhập mật khẩu root MySQL và tạo mật khẩu Admin Oufeidun tối thiểu 12 ký tự.
+10. Script tự làm các việc sau:
+   - Tạo database/user MySQL chỉ dùng loopback.
+   - Chạy toàn bộ migration.
+   - Cài Local API, HTTPS Caddy và backup 23:00 dưới Scheduled Task SYSTEM.
+   - Mở duy nhất HTTPS 443 cho mạng Private/LocalSubnet.
+   - Tắt Sleep/Hibernate khi cắm điện; màn hình vẫn có thể tắt.
+   - Sinh chứng chỉ riêng của máy chủ.
+   - Ghi server-info.json và tự hoàn thiện thư mục 02-MAY-CLIENT.
+11. Mở https://oufeidun.home.arpa/health trên máy chủ. Kết quả đúng: {"ok":true}.
+
+D. VAN HANH
+
+- Máy chủ phải bật trong giờ bán hàng. Windows + L không làm mất kết nối.
+- Không để Sleep/Hibernate.
+- Backup nằm trong <thu_muc_du_lieu>\backups\daily.
+- Dữ liệu/ảnh nằm ở máy chủ; gỡ app trên máy nhân viên không xóa dữ liệu.
+- Khi IP/MAC thay đổi: cập nhật DHCP Reservation, chạy lại CAI-MAY-CHU.cmd hoặc sửa IP đúng rồi chạy TAO-BO-CAI-MAY-CLIENT.cmd để tạo lại bộ client.
+- Sau khi cập nhật source server, chạy script khởi động lại dịch vụ bằng Administrator.
+
+E. TAO BO CHO MAY NHAN VIEN
+
+CAI-MAY-CHU.cmd tự chạy bước này. Nếu cần tạo lại, nhấp phải TAO-BO-CAI-MAY-CLIENT.cmd > Run as administrator.
+Sau đó chép nguyên thư mục 02-MAY-CLIENT sang từng máy nhân viên.
+
+F. NEU BUOC /health BAO LOI
+
+Không xóa database hoặc cài lại MySQL. Nhấp phải SUA-LOI-KHOI-DONG.cmd > Run as administrator.
+Script sẽ sửa hostname về đúng oufeidun.home.arpa, chờ MySQL, khởi động lại API/HTTPS, kiểm tra health và tạo lại bộ client.
+
+G. GO SACH DE CAI LAI TU DAU
+
+Nhấp phải GO-OUFEIDUN-DE-CAI-LAI.cmd > Run as administrator, nhập chính xác XOA OUFEIDUN và mật khẩu root MySQL.
+Script cố tạo backup cuối, sau đó xóa database/user Oufeidun, Scheduled Task, firewall, hosts, chứng chỉ, runtime và app desktop.
+MySQL Server và Node.js vẫn được giữ lại. Không dùng file này nếu chỉ thấy `Cannot GET /`; đường dẫn kiểm tra đúng là /health.
+H. QUAN LY TAI KHOAN ADMIN
+
+Nhấp phải QUAN-LY-TAI-KHOAN.cmd > Run as administrator.
+- Chọn 1 để xem đúng tên đăng nhập, vai trò, trạng thái hoạt động/xóa và trạng thái phiên.
+- Chọn 2 để kiểm tra một mật khẩu có đúng với tài khoản hay không. Mật khẩu được nhập ẩn và không được in ra màn hình.
+- Chọn 3 để đặt lại mật khẩu, mở khóa tài khoản và xóa phiên cũ. Mật khẩu mới cần tối thiểu 12 ký tự.
+Mật khẩu trong database được lưu bằng mã băm nên không thể xem lại mật khẩu gốc; chỉ có thể kiểm tra đúng/sai hoặc đặt lại.
+
+I. KET NOI MYSQL BANG DBEAVER TREN MAY CHU
+
+Thông số: Host 127.0.0.1, Port 3306, Database oufeidun_local, User oufeidun_app.
+Mật khẩu là giá trị MYSQL_PASSWORD trong <thu_muc_du_lieu>\config\server.env; đây không phải mật khẩu root hoặc mật khẩu đăng nhập Admin.
+Nếu MySQL báo Access denied for oufeidun_app@localhost, nhấp phải SUA-LOI-KET-NOI-MYSQL.cmd > Run as administrator, nhập mật khẩu root MySQL rồi thử lại.
+Chỉ dùng kết nối này ngay trên máy chủ. Không mở cổng MySQL 3306 cho máy nhân viên.

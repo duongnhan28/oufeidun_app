@@ -1,0 +1,19 @@
+OUFEIDUN LOCAL - CÀI MÁY NHÂN VIÊN
+
+1. Máy nhân viên phải cùng mạng nội bộ với máy chủ 192.168.0.102. Máy chủ dùng dây LAN và máy nhân viên dùng Wi-Fi vẫn được; không dùng Wi-Fi Guest và không bật AP/Client Isolation.
+2. Đóng hoàn toàn ứng dụng Oufeidun cũ nếu đang mở, kể cả cửa sổ chạy nền.
+3. Giải nén toàn bộ thư mục; không chạy trực tiếp bên trong file ZIP.
+4. Nhấp phải CAI-MAY-CON.cmd > Run as administrator, rồi bấm Yes ở UAC.
+5. Script sẽ cài chứng chỉ HTTPS, ánh xạ oufeidun.home.arpa và mở bộ cài Oufeidun.
+6. Sau khi cài, mở Oufeidun từ Start Menu hoặc Desktop và đăng nhập bằng tài khoản được cấp riêng.
+7. Có thể mở https://oufeidun.home.arpa/health; nếu thấy `"ok": true` thì máy con đã kết nối đúng.
+
+Máy chủ phải đang bật và không ở chế độ Sleep. Có thể khóa máy chủ bằng Windows + L.
+Nếu không kết nối được: kiểm tra hai máy cùng mạng, thử ping 192.168.0.102, rồi liên hệ người quản trị.
+Có thể kiểm tra chính xác cổng ứng dụng bằng PowerShell: Test-NetConnection 192.168.0.102 -Port 443
+
+Máy nhân viên không cần cài MySQL hoặc Node.js. Chỉ cần Windows 10/11 64-bit và chạy CAI-MAY-CON.cmd bằng quyền Administrator một lần.
+
+Để dùng ổn định lâu dài, hãy đặt DHCP Reservation trên router:
+- IP: 192.168.0.102
+- MAC máy chủ: 58-11-22-E6-FD-C5

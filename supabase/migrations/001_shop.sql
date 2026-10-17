@@ -16,6 +16,7 @@ create table app_private.product_costs (product_id uuid primary key references a
 create table app_private.inventory_balances (product_id uuid primary key references app_private.products, on_hand integer not null default 0 check(on_hand>=0), version integer not null default 1);
 create table app_private.sales_orders (
  id uuid primary key default gen_random_uuid(), order_no bigint generated always as identity unique,
+ order_code text unique,
  status text not null default 'draft' check(status in ('draft','confirmed','partially_returned','returned','cancelled','deleted')),
  created_by uuid not null references app_private.app_users, confirmed_by uuid references app_private.app_users,
  customer_name text not null default '' check(length(customer_name)<=200), customer_phone text not null default '' check(length(customer_phone)<=30),
@@ -123,7 +124,7 @@ begin
  'me',jsonb_build_object('id',u.id,'display_name',u.display_name,'role',u.role,'active',u.active),
  'products',coalesce((select jsonb_agg(to_jsonb(x)) from (select p.id,p.sku,p.name,p.glass_type,p.models,p.brand,p.image_path,p.sale_price::text,p.active,p.version,p.price_version,b.on_hand,b.version stock_version,
  case when u.role='admin' then c.fixed_cost::text else null end fixed_cost from app_private.products p join app_private.inventory_balances b on b.product_id=p.id join app_private.product_costs c on c.product_id=p.id where p.deleted_at is null order by p.sku limit 5000) x),'[]'),
- 'orders',coalesce((select jsonb_agg(to_jsonb(x)) from (select o.id,'DH-'||lpad(o.order_no::text,5,'0') order_no,o.status,o.created_by,a.display_name creator_name,o.customer_name,o.customer_phone,o.note,o.payment_method,o.total_amount::text,o.created_at,o.confirmed_at,o.cancelled_at,o.version,o.exchange_return_id,
+ 'orders',coalesce((select jsonb_agg(to_jsonb(x)) from (select o.id,coalesce(o.order_code,'DH-'||lpad(o.order_no::text,5,'0')) order_no,o.status,o.created_by,a.display_name creator_name,o.customer_name,o.customer_phone,o.note,o.payment_method,o.total_amount::text,o.created_at,o.confirmed_at,o.cancelled_at,o.version,o.exchange_return_id,
  (select coalesce(jsonb_agg(jsonb_build_object('id',i.id,'product_id',i.product_id,'quantity',i.quantity,'custom_name',i.custom_name,'unit_sale_price',i.unit_sale_price::text,'quoted_price_version',i.quoted_price_version,'sku_snapshot',i.sku_snapshot,'product_name_snapshot',i.product_name_snapshot,'returned_quantity',(select coalesce(sum(ri.quantity),0) from app_private.sales_return_items ri where ri.order_item_id=i.id)) order by i.id),'[]') from app_private.sales_order_items i where i.order_id=o.id) items,
  (select coalesce(jsonb_agg(jsonb_build_object('id',r.id,'return_no','TH-'||r.return_no,'posted_at',r.posted_at,'refund_amount',r.refund_amount::text,'reason',r.reason,'items',(select jsonb_agg(jsonb_build_object('order_item_id',ri.order_item_id,'quantity',ri.quantity,'restock_quantity',ri.restock_quantity)) from app_private.sales_return_items ri where ri.return_id=r.id))),'[]') from app_private.sales_returns r where r.order_id=o.id) returns
  from app_private.sales_orders o join app_private.app_users a on a.id=o.created_by where o.status<>'deleted' and (u.role='admin' or o.created_by=u.id) order by o.updated_at desc limit 500) x),'[]'),
@@ -139,7 +140,7 @@ create function public.shop_write(payload jsonb) returns jsonb language plpgsql 
 <<write_block>>
 declare u app_private.app_users; act text:=payload->>'action'; key uuid:=(payload->>'key')::uuid; oldreq app_private.mutation_requests;
  o app_private.sales_orders; p app_private.products; b app_private.inventory_balances; i app_private.sales_order_items;
- el jsonb; oid uuid; pid uuid; docid uuid; lineid uuid; retid uuid; n integer; delta integer; restock integer; already integer; total numeric:=0; cost numeric; oldname text; result jsonb; detail text; kind text;
+ seen_products uuid[]:='{}'; el jsonb; oid uuid; pid uuid; docid uuid; lineid uuid; retid uuid; n integer; delta integer; restock integer; already integer; total numeric:=0; cost numeric; oldname text; result jsonb; detail text; kind text;
 begin
  u:=app_private.current_actor();
  if key is null then raise exception 'VALIDATION_ERROR: key required'; end if;
@@ -149,10 +150,11 @@ begin
  if oldreq.result is not null then return oldreq.result; end if;
  if act not in ('save_draft','confirm_order','delete_draft') and u.role<>'admin' then raise exception 'FORBIDDEN'; end if;
  if act='save_draft' then
-  perform app_private.only_keys(payload,array['action','key','id','version','items','customer_name','customer_phone','note']);
+  perform app_private.only_keys(payload,array['action','key','id','version','items','customer_name','customer_phone','note','order_code']);
+  if length(trim(coalesce(payload->>'order_code',''))) > 50 then raise exception 'VALIDATION_ERROR'; end if;
   if jsonb_typeof(payload->'items')<>'array' or coalesce(jsonb_array_length(payload->'items'),0) not between 1 and 100 then raise exception 'VALIDATION_ERROR: items'; end if;
   oid:=(payload->>'id')::uuid;
-  if oid is null then insert into app_private.sales_orders(created_by) values(u.id) returning * into o; oid:=o.id;
+  if oid is null then insert into app_private.sales_orders(created_by,order_code) values(u.id,coalesce(nullif(trim(payload->>'order_code'),''),'AUTO-'||substr(gen_random_uuid()::text,1,8))) returning * into o; oid:=o.id;
   else
    select * into o from app_private.sales_orders where id=oid for update;
    if o.id is null or (o.created_by<>u.id and u.role<>'admin') then raise exception 'FORBIDDEN'; end if;
@@ -173,7 +175,7 @@ begin
   end loop;
   if (select count(*) from jsonb_array_elements(payload->'items'))<>(select count(distinct value->>'product_id') from jsonb_array_elements(payload->'items')) then raise exception 'VALIDATION_ERROR: duplicate product'; end if;
   delete from app_private.sales_order_items where order_id=oid and product_id not in(select (value->>'product_id')::uuid from jsonb_array_elements(payload->'items'));
-  update app_private.sales_orders set customer_name=coalesce(payload->>'customer_name',''),customer_phone=coalesce(payload->>'customer_phone',''),note=coalesce(payload->>'note',''),total_amount=(select sum(quantity*unit_sale_price) from app_private.sales_order_items where order_id=oid),version=version+1,updated_at=now() where id=oid;
+  update app_private.sales_orders set order_code=coalesce(nullif(trim(payload->>'order_code'),''),order_code),customer_name=coalesce(payload->>'customer_name',''),customer_phone=coalesce(payload->>'customer_phone',''),note=coalesce(payload->>'note',''),total_amount=(select sum(quantity*unit_sale_price) from app_private.sales_order_items where order_id=oid),version=version+1,updated_at=now() where id=oid;
   result:=jsonb_build_object('id',oid); detail:=oid::text;
  elsif act in ('confirm_order','delete_draft','cancel_order','return_order') then
   perform app_private.only_keys(payload,array['action','key','id','version','payment_method','reason','refund_method','items']);
@@ -262,9 +264,26 @@ begin
   if coalesce(jsonb_array_length(payload->'items'),0) not between 1 and 100 then raise exception 'VALIDATION_ERROR'; end if;
   insert into app_private.inventory_documents(type,reason,created_by) values(kind,trim(payload->>'reason'),u.id) returning id into docid;
   for el in select value from jsonb_array_elements(payload->'items') order by value->>'product_id' loop
-   perform app_private.only_keys(el,array['product_id','quantity','purchase_price','stock_version']);
-   if (el->>'quantity') !~ '^[0-9]+$' then raise exception 'VALIDATION_ERROR'; end if;
-   pid:=(el->>'product_id')::uuid; n:=(el->>'quantity')::integer;
+   perform app_private.only_keys(el,array['product_id','sku','quantity','purchase_price','stock_version']);
+   if (el->>'quantity') is null or (el->>'quantity') !~ '^[0-9]+$' then raise exception 'VALIDATION_ERROR'; end if;
+   if el ? 'sku' then
+    if kind<>'receipt' or el->>'product_id' is not null then raise exception 'VALIDATION_ERROR'; end if;
+    oldname:=upper(trim(el->>'sku'));
+    if oldname is null or length(oldname) not between 1 and 50 or coalesce(el->>'purchase_price','') !~ '^[0-9]{1,15}$' then raise exception 'VALIDATION_ERROR'; end if;
+    pid:=null;
+    insert into app_private.products(sku,name,glass_type,brand,sale_price) values(oldname,oldname,'other','other',0) on conflict(sku) do nothing returning id into pid;
+    if pid is not null then
+     insert into app_private.product_costs(product_id,fixed_cost) values(pid,(el->>'purchase_price')::numeric);
+     insert into app_private.inventory_balances(product_id) values(pid);
+    else
+     select id into pid from app_private.products where sku=oldname and deleted_at is null for update;
+     if pid is null then raise exception 'PRODUCT_NOT_FOUND'; end if;
+    end if;
+   else pid:=(el->>'product_id')::uuid;
+   end if;
+   if pid is null or pid=any(seen_products) then raise exception 'VALIDATION_ERROR'; end if;
+   seen_products:=array_append(seen_products,pid);
+   n:=(el->>'quantity')::integer;
    if n>1000000 or (kind<>'adjustment' and n<=0) then raise exception 'VALIDATION_ERROR'; end if;
    select * into p from app_private.products where id=pid for share;
    select fixed_cost into cost from app_private.product_costs where product_id=pid for share;
@@ -318,4 +337,4 @@ alter table app_private.sales_payments enable row level security;
 create function app_private.preserve_order_item_price() returns trigger language plpgsql set search_path='' as $$begin if new.item_kind in ('gift','sample') then new.custom_unit_price:=0;new.unit_sale_price:=0;elsif new.custom_unit_price is not null then new.unit_sale_price:=new.custom_unit_price;end if;return new;end$$;
 create trigger preserve_order_item_price before insert or update on app_private.sales_order_items for each row execute function app_private.preserve_order_item_price();
 create function public.shop_order_extras() returns jsonb language plpgsql security definer set search_path='' as $$declare u app_private.app_users;begin u:=app_private.current_actor();return coalesce((select jsonb_agg(jsonb_build_object('order_id',o.id,'customer_address',o.customer_address,'customer_type',o.customer_type,'paid_amount',coalesce((select sum(p.amount) from app_private.sales_payments p where p.order_id=o.id),0)::text,'payment_status',case when coalesce((select sum(p.amount) from app_private.sales_payments p where p.order_id=o.id),0)=0 then 'unpaid' when coalesce((select sum(p.amount) from app_private.sales_payments p where p.order_id=o.id),0)<o.total_amount then 'partial' else 'paid' end,'payments',coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'amount',p.amount::text,'method',p.method,'note',p.note,'paid_at',p.paid_at,'actor_name',a.display_name) order by p.paid_at) from app_private.sales_payments p join app_private.app_users a on a.id=p.created_by where p.order_id=o.id),'[]'::jsonb),'items',coalesce((select jsonb_agg(jsonb_build_object('product_id',i.product_id,'unit_sale_price',i.unit_sale_price::text,'item_kind',i.item_kind,'item_note',i.item_note)) from app_private.sales_order_items i where i.order_id=o.id),'[]'::jsonb))) from app_private.sales_orders o where o.status<>'deleted' and (u.role='admin' or o.created_by=u.id)),'[]'::jsonb);end$$;
-create function public.shop_order_features(payload jsonb) returns jsonb language plpgsql security definer set search_path='' as $$declare u app_private.app_users;o app_private.sales_orders;el jsonb;line app_private.sales_order_items;pay numeric;payid uuid;begin u:=app_private.current_actor();select * into o from app_private.sales_orders where id=(payload->>'order_id')::uuid for update;if o.id is null or (u.role<>'admin' and o.created_by<>u.id) then raise exception 'FORBIDDEN';end if;if payload->>'action'='save' then if o.status<>'draft' then raise exception 'INVALID_ORDER_STATE';end if;update app_private.sales_orders set customer_address=trim(coalesce(payload->>'customer_address','')),customer_type=coalesce(payload->>'customer_type','retail') where id=o.id;for el in select value from jsonb_array_elements(payload->'items') loop select * into line from app_private.sales_order_items where order_id=o.id and product_id=(el->>'product_id')::uuid for update;if line.id is null or coalesce(el->>'item_kind','sale') not in ('sale','gift','sample') or coalesce(el->>'unit_sale_price','')!~'^[0-9]{1,15}$' then raise exception 'VALIDATION_ERROR';end if;update app_private.sales_order_items set custom_unit_price=(el->>'unit_sale_price')::numeric,item_kind=coalesce(el->>'item_kind','sale'),item_note=trim(coalesce(el->>'item_note','')) where id=line.id;end loop;update app_private.sales_orders set total_amount=(select coalesce(sum(quantity*unit_sale_price),0) from app_private.sales_order_items where order_id=o.id),version=version+1,updated_at=now() where id=o.id;return jsonb_build_object('id',o.id);elsif payload->>'action'='payment' then pay:=(payload->>'amount')::numeric;if o.status not in ('confirmed','partially_returned','returned') or coalesce(payload->>'method','') not in ('cash','transfer','cod','cod_transfer','cash_transfer') or pay<=0 or pay+coalesce((select sum(amount) from app_private.sales_payments where order_id=o.id),0)>o.total_amount then raise exception 'VALIDATION_ERROR';end if;insert into app_private.sales_payments(order_id,amount,method,note,created_by) values(o.id,pay,payload->>'method',trim(coalesce(payload->>'note','')),u.id) returning id into payid;return jsonb_build_object('id',payid);end if;raise exception 'VALIDATION_ERROR';end$$;
+create function public.shop_order_features(payload jsonb) returns jsonb language plpgsql security definer set search_path='' as $$declare u app_private.app_users;o app_private.sales_orders;el jsonb;line app_private.sales_order_items;pay numeric;payid uuid;kind text;applied numeric;begin u:=app_private.current_actor();select * into o from app_private.sales_orders where id=(payload->>'order_id')::uuid for update;if o.id is null or (u.role<>'admin' and o.created_by<>u.id) then raise exception 'FORBIDDEN';end if;if payload->>'action'='save' then if o.status<>'draft' then raise exception 'INVALID_ORDER_STATE';end if;update app_private.sales_orders set customer_address=trim(coalesce(payload->>'customer_address','')),customer_type=coalesce(payload->>'customer_type','retail') where id=o.id;for el in select value from jsonb_array_elements(payload->'items') loop kind:=coalesce(el->>'item_kind','sale');select * into line from app_private.sales_order_items where order_id=o.id and product_id=(el->>'product_id')::uuid for update;if line.id is null or kind not in ('sale','gift','sample') then raise exception 'VALIDATION_ERROR';end if;if kind='sale' then select sale_price into applied from app_private.products where id=line.product_id;else applied:=0;end if;update app_private.sales_order_items set custom_unit_price=applied,item_kind=kind,item_note=trim(coalesce(el->>'item_note','')) where id=line.id;end loop;update app_private.sales_orders set total_amount=(select coalesce(sum(quantity*unit_sale_price),0) from app_private.sales_order_items where order_id=o.id),version=version+1,updated_at=now() where id=o.id;return jsonb_build_object('id',o.id);elsif payload->>'action'='payment' then pay:=(payload->>'amount')::numeric;if o.status not in ('confirmed','partially_returned','returned') or coalesce(payload->>'method','') not in ('cash','transfer','cod','cod_transfer','cash_transfer') or pay<=0 or pay+coalesce((select sum(amount) from app_private.sales_payments where order_id=o.id),0)>o.total_amount then raise exception 'VALIDATION_ERROR';end if;insert into app_private.sales_payments(order_id,amount,method,note,created_by) values(o.id,pay,payload->>'method',trim(coalesce(payload->>'note','')),u.id) returning id into payid;return jsonb_build_object('id',payid);end if;raise exception 'VALIDATION_ERROR';end$$;

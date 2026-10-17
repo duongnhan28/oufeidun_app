@@ -1,0 +1,44 @@
+DON DU LIEU THU - GIU ACCOUNT - LOCAL 0.2.13
+
+Chi chay tren MAY CHU. Khong can cai lai app/MySQL/database.
+Copy CLEAN-DATA-GIU-ACCOUNT.bat va CA THU MUC scripts vao 01-MAY-CHU
+trong bo khach dang dung (CHEP GOP scripts, cho phep ghi de file;
+khong xoa ca folder scripts cu).
+Khong copy config/server.env cua may phat trien sang khach.
+
+1. Dong Oufeidun tren tat ca may, tam ngung ban hang.
+2. Chay CLEAN-DATA-GIU-ACCOUNT.bat, dong y quyen Administrator.
+3. Neu khong tim thay du lieu cu, nhap folder chua config/server.env.
+4. Doc database/folder/so ban ghi se xoa.
+5. Nhap dung cau XOA DU LIEU <ten database> hien tren man hinh.
+   Enter hoac nhap sai: huy, khong xoa gi.
+6. Script dung API, BACKUP thanh cong truoc khi don. Backup loi: khong xoa.
+7. Xoa du lieu nghiep vu trong transaction; chuyen anh cu vao backup.
+8. API khoi dong lai. Mo app, kiem tra account cu va kho/don/khach rong;
+   sau do nhap san pham, bang gia va so luong production.
+
+SE XOA: danh muc kinh/loai hang, gia theo khach, khach hang, don/dong don,
+lich su giao, thanh toan, tra hang, phieu kho, so kho, ton, log nghiep vu,
+idempotency va anh san pham local.
+GIU: tat ca account, ID, ten dang nhap, mat khau, quyen, trang thai;
+schema/migration, cau hinh DB, hostname/IP, CA/nhan dien may chu, backup.
+Khong reset mat khau, khong tao lai admin, khong xoa backup cu.
+Khong xoa du lieu Ma dung chung tren website/Supabase; day la nguon rieng.
+
+BACKUP HANG NGAY
+Source da co tac vu Windows Oufeidun Backup, lich 23:00 moi ngay theo
+dong ho Windows may chu,
+StartWhenAvailable: neu lo gio, chay khi may hoat dong lai.
+Du lieu luu tai <folder du lieu>\backups\daily\<ngay_gio>, gom database.sql,
+uploads.zip (neu co anh), server.env bi han che quyen va SHA256SUMS.txt.
+Anh goc truoc khi clean nam trong uploads-before-clean cua ban backup do.
+Tac vu chi chay khi Windows/MySQL hoat dong, khong backup khi tat may/Sleep.
+Day la backup tren cung may; mat/hong o dia thi backup cung co the mat.
+
+KIEM TRA TREN POWERSHELL ADMIN
+Get-ScheduledTask -TaskName 'Oufeidun Backup'
+Get-ScheduledTaskInfo -TaskName 'Oufeidun Backup'
+Start-ScheduledTask -TaskName 'Oufeidun Backup'
+LastTaskResult = 0 sau khi tac vu da chay: lan chay do ket thuc thanh cong.
+Kiem tra them database.sql va SHA256SUMS.txt trong folder backup moi nhat.
+Neu khong co task, chay CHAY-MAY-CHU.bat/KHOI-DONG-LAI.bat cua bo 0.2.13.
