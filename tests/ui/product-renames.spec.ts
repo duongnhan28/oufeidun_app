@@ -1,0 +1,30 @@
+import {test,expect} from '@playwright/test';
+import ExcelJS from 'exceljs';
+
+test('rename sold product keeps old draft/documents, aliases merge quantities and reports stay traceable',async({page})=>{
+ await page.goto('/');await page.getByRole('button',{name:/Chủ cửa hàng/}).click();
+ const nav=async(name:string)=>page.getByRole('button',{name,exact:true}).click();
+ await nav('Kho hàng');await nav('Thêm sản phẩm');let dialog=page.getByRole('dialog');
+ await dialog.getByLabel('Mã kính',{exact:true}).fill('RENAME-A');await dialog.getByLabel('Giá bán (đ)',{exact:true}).fill('10000');await dialog.getByLabel('Giá vốn cố định (đ)',{exact:true}).fill('1234');await dialog.getByLabel('Số lượng nhập ban đầu',{exact:true}).fill('10');await dialog.getByRole('button',{name:'Lưu sản phẩm',exact:true}).click();await expect(page.getByRole('status')).toContainText('nhập tồn ban đầu 10 tấm');
+ const fill=async(code:string)=>{await page.getByLabel('Mã đơn hàng',{exact:true}).fill(code);await page.getByLabel('Tên khách hàng',{exact:true}).fill('Khách đổi mã');await page.getByLabel('Số điện thoại',{exact:true}).fill('0');};
+ await nav('Bán hàng');await fill('RENAME-SOLD');await nav('Thêm RENAME-A');await nav('Xác nhận bán');await nav('Xác nhận và trừ kho');await expect(page.getByRole('status')).toContainText('Đã xác nhận');
+ await fill('RENAME-DRAFT');await nav('Thêm RENAME-A');await page.getByLabel('Số lượng RENAME-A',{exact:true}).fill('2');await nav('Lưu bản nháp');await expect(page.getByRole('status')).toContainText('Đã lưu');
+ const rename=async(from:string,to:string)=>{await nav('Kho hàng');await nav(`Sửa ${from}`);dialog=page.getByRole('dialog');await dialog.getByLabel('Mã kính',{exact:true}).fill(to);await dialog.getByRole('button',{name:'Lưu sản phẩm',exact:true}).click();await expect(page.getByRole('status')).toContainText('Đã lưu sản phẩm');};
+ await rename('RENAME-A','RENAME-B (REDMI13)');await nav('Đăng xuất');await page.getByRole('button',{name:/Nguyễn An/}).click();await rename('RENAME-B (REDMI13)','RENAME-C');
+ await expect(page.getByRole('columnheader',{name:'Giá vốn',exact:true})).toHaveCount(0);
+ await nav('Đơn nháp');await page.locator('tbody tr').filter({hasText:'RENAME-DRAFT'}).getByRole('button',{name:'Chi tiết',exact:true}).click();dialog=page.getByRole('dialog');await expect(dialog.locator('.order-detail-product b')).toHaveText('RENAME-A');await expect(dialog).toContainText('Mã hiện tại: RENAME-C');await dialog.getByRole('button',{name:'Mở bản nháp',exact:true}).click();
+ await page.getByPlaceholder('Tìm mã kính hoặc dòng điện thoại...').fill('RENAME-B');await expect(page.getByRole('button',{name:'Thêm RENAME-C',exact:true})).toBeVisible();
+ for(let n=0;n<5;n++)await nav('Thêm RENAME-C');
+ await expect(page.locator('.cart-item')).toHaveCount(1);await expect(page.locator('.line-name b')).toHaveText('RENAME-A');await expect(page.getByLabel('Số lượng RENAME-C',{exact:true})).toHaveValue('7');await expect(page.locator('.cart-summary .total')).toContainText('70.000đ');
+ await nav('Lưu bản nháp');await expect(page.getByRole('status')).toContainText('Đã lưu bản nháp.');await page.reload();await page.getByRole('button',{name:/Nguyễn An/}).click();await nav('Đơn nháp');await page.locator('tbody tr').filter({hasText:'RENAME-DRAFT'}).getByRole('button',{name:'Chi tiết',exact:true}).click();await nav('Mở bản nháp');
+ await expect(page.locator('.line-name b')).toHaveText('RENAME-A');await expect(page.getByLabel('Số lượng RENAME-C',{exact:true})).toHaveValue('7');
+ const dl=page.waitForEvent('download');await nav('Tải Excel');const book=new ExcelJS.Workbook();await book.xlsx.readFile((await(await dl).path())!);const values=JSON.stringify(book.worksheets[0].getSheetValues());expect(values).toContain('RENAME-A');expect(values).not.toContain('RENAME-C');
+ await page.evaluate(()=>{const original=CanvasRenderingContext2D.prototype.fillText;(window as any).drawn=[];CanvasRenderingContext2D.prototype.fillText=function(text,x,y,maxWidth){(window as any).drawn.push(text);if(maxWidth===undefined)original.call(this,text,x,y);else original.call(this,text,x,y,maxWidth);};});
+ const png=page.waitForEvent('download');await nav('Tải ảnh xác nhận');await(await png).saveAs('test-results/renamed-old-draft.png');const drawn:string[]=await page.evaluate(()=>(window as any).drawn);expect(drawn).toContain('RENAME-A');expect(drawn).not.toContain('RENAME-C');
+ await nav('Xác nhận bán');await nav('Xác nhận và trừ kho');await expect(page.getByRole('status')).toContainText('Đã xác nhận');await nav('Kho hàng');await expect(page.locator('tbody tr').filter({hasText:'RENAME-C'})).toContainText('2 tấm');
+ await nav('Lịch sử RENAME-C');dialog=page.getByRole('dialog');await expect(dialog).toContainText('Mã lúc ghi: RENAME-A');await expect(dialog).toContainText('Mã hiện tại: RENAME-C');await dialog.getByRole('button',{name:'Đóng',exact:true}).click();
+ await nav('Đơn hàng');await page.locator('tbody tr').filter({hasText:'RENAME-SOLD'}).getByRole('button',{name:'Chi tiết',exact:true}).click();await nav('In / lưu PDF');await expect(page.locator('.bill-table tbody')).toContainText('RENAME-A');await expect(page.locator('.bill-table tbody')).not.toContainText('RENAME-C');await nav('Đóng');
+ await nav('Báo cáo');const reportDl=page.waitForEvent('download');await nav('Tải báo cáo Excel');const report=new ExcelJS.Workbook();await report.xlsx.readFile((await(await reportDl).path())!);const stock=report.getWorksheet('Nhập xuất tồn')!;const row=stock.getRows(2,stock.rowCount-1)!.find(r=>r.getCell(1).text==='RENAME-C')!;expect(row.getCell(6).text).toContain('RENAME-A');expect(row.getCell(6).text).toContain('RENAME-B');
+ await nav('Bán hàng');await nav('Thêm RENAME-C');await expect(page.locator('.line-name b')).toHaveText('RENAME-C');
+ await page.route('**/api/**',route=>route.abort());await nav('Mã dùng chung');await page.getByLabel('Tra cứu mã kính dùng chung').fill('RENAME-B');await nav('Tra cứu');await expect(page.locator('.lookup-results')).toContainText('RENAME-C');await expect(page.locator('.lookup-results')).toContainText('RENAME-B');
+});

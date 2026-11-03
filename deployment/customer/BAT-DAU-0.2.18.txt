@@ -1,0 +1,127 @@
+OUFEIDUN LOCAL 0.2.18 — KÍNH, PHỤ KIỆN VÀ HÀNG TẶNG
+
+SỬA LỖI KHÁCH HÀNG BỊ GHI ĐÈ KHI DÙNG SỐ 0 — 21/10/2026
+- Khách chưa có số điện thoại thật, cùng nhập 0, được tách theo tên khách;
+  không ghi đè tên/địa chỉ của nhau. Tên có dấu khác nhau như An/Ân được giữ riêng.
+  Lưu lại bản nháp không tạo trùng khách. Số điện thoại thật giữ cách nhận diện cũ.
+- Trang Khách hàng tự tải lại khi mở và mỗi 10 giây khi đang xem, giống danh sách đơn.
+- Máy chủ chạy migration 010 sau khi backup: thêm khóa nhận diện phù hợp và khôi phục
+  các tên còn lưu trên nhiều đơn nhưng bị dồn vào cùng khách số 0. Chỉ phục hồi
+  thông tin có sẵn trong đơn; không đoán SĐT thật, không chép bảng giá riêng giữa khách.
+  Không làm sống lại khách đã chủ động xóa; giữ tiền, tồn, nội dung/chứng từ đơn cũ.
+- BẮT BUỘC chạy 01-MAY-CHU\CAP-NHAT.bat trước để cập nhật API/migration 010,
+  rồi xuất/cập nhật app mọi máy dù vẫn là 0.2.18. Giữ folder dữ liệu và config cũ.
+
+SỬA BÁO CÁO TỔNG HỢP VÀ MÀU CHỮ TRONG APP — 20/10/2026
+- Báo cáo > Tải báo cáo Excel > Chi tiết kho dùng đúng mã đơn tự nhập, giống
+  danh sách đơn và Excel từng đơn; không đổi thành DH-xxxxx. Chỉ đơn cũ không
+  có mã tự nhập mới dùng mã DH dự phòng. Dòng nhập kho không có đơn bán vẫn trống.
+  Giao bổ sung, trả và hủy liên kết đúng đơn; không sửa lại dữ liệu lịch sử.
+- Chữ mã sản phẩm trong Bán hàng/giỏ/Kho hàng/chi tiết đơn/giao-trả/Báo cáo:
+  Full viền đen, CNT vàng đậm, Không viền xanh nước biển; Excel báo cáo cùng màu.
+- CẬP NHẬT CẢ MÁY CHỦ VÀ APP MỌI MÁY dù vẫn mang version 0.2.18.
+  Máy chủ chạy 01-MAY-CHU\CAP-NHAT.bat trước, sau đó xuất bộ nhân viên/cập nhật app
+  theo các bước bên dưới. Không cần đổi config, không reset hoặc nhập lại dữ liệu.
+  Riêng hai sửa lỗi này không thêm migration MySQL mới.
+
+BỔ SUNG GOOGLE DRIVE VÀ MÀU CHỨNG TỪ — BUILD LẠI 0.2.18
+- Excel/ảnh xác nhận/In-PDF: chữ mã Full viền đen, CNT vàng đậm, Không viền xanh nước biển.
+  Giữ số lượng, đơn giá, tổng tiền và thứ tự bán/tặng/mẫu.
+- Backup Drive là tùy chọn. Chỉ cài trên MÁY CHỦ sau khi cập nhật máy chủ thành công.
+  Chạy CAI-BACKUP-GOOGLE-DRIVE.bat, chấp nhận Administrator; tool tự tải rclone
+  chính thức và kiểm tra SHA256. Nhập tên cửa hàng không dấu (Enter dùng tên máy).
+  Link thư mục Drive: Enter để tự tạo trong Drive của tôi, hoặc dán link folders có sẵn.
+  Trình duyệt mở: đăng nhập Google của cửa hàng, cấp quyền một lần.
+  Tool tạo Oufeidun-Backup/<tên cửa hàng>, backup local rồi tải thử và kiểm tra.
+  Chỉ coi cài xong khi tool báo thành công. Chạy lại giữ tài khoản/thư mục đã chọn.
+- Tự tải sau backup hoàn tất; tác vụ Oufeidun Drive Backup chạy SYSTEM thử lại mỗi giờ,
+  kể cả chưa đăng nhập Windows. Máy cần bật, không Sleep và có mạng để tải lên.
+  Mất mạng/hết dung lượng/thu hồi quyền: vẫn giữ backup local, lưu trạng thái và thử lại;
+  nếu quyền bị thu hồi cần cấu hình lại kết nối Google với hỗ trợ kỹ thuật.
+- BACKUP-VA-DAY-LEN-DRIVE.bat để chạy tay. KIEM-TRA-BACKUP-DRIVE.bat để xem
+  kết nối, lần thành công gần nhất, trạng thái tác vụ và đường dẫn log.
+  File đăng nhập nằm ở <folder dữ liệu>\config\drive-backup, chỉ Admin/SYSTEM truy cập.
+  Drive nhận SQL/ảnh/config trong backup cùng checksum; không tự xóa backup trên Drive
+  khi xóa bản local. Chỉ upload backup có checksum hợp lệ; bản hỏng được báo và bỏ qua.
+  Không cần Google Drive for desktop. Không chép file đăng nhập Google sang máy nhân viên.
+
+SỬA LỖI 19/10/2026 — BẢN 0.2.18
+- Cho sửa mã kính chưa từng xác nhận bán, kể cả đã nhập kho hoặc lưu nháp.
+  Mã từng xác nhận bán vẫn khóa đổi mã, kể cả đã hủy/trả; giữ lịch sử chứng từ.
+- Mã nháp đã xóa được dùng lại; giữ nguyên mã và lịch sử nháp cũ.
+  Đơn chưa xóa vẫn chống trùng mã, kể cả hai máy gửi cùng lúc.
+- BẮT BUỘC cập nhật máy chủ để chạy migration 009 và nạp API mới; chỉ thay EXE chưa đủ.
+  Migration không xóa đơn/kho/tài khoản/ảnh; không cần nhập lại config.
+
+CÁC CHỨC NĂNG ĐƯỢC GIỮ
+- Bản final 17/10: nhân viên sửa giá lẻ/sỉ chung của danh mục cho đơn sau và mọi máy;
+  trả/đổi/hủy đơn đã bán; quản lý khách hàng, báo cáo, nhân viên và lịch sử thao tác.
+  Xử lý được cả đơn/nháp do Admin hoặc người khác tạo. Lịch sử trả có Tạo đơn đổi.
+  Nhân viên vẫn KHÔNG nhập hàng/Excel danh mục/tồn đầu kỳ và KHÔNG xem/sửa vốn,
+  giá nhập, lợi nhuận hoặc giá trị tồn theo vốn (kể cả API và Excel báo cáo).
+  Staff không đặt lại mật khẩu/khóa/xóa Admin; quản lý tài khoản nhân viên bình thường.
+  Staff tạo mã mới có tồn 0; Admin cần bổ sung giá vốn trước khi nhập/bán.
+  CẦN cập nhật cả API máy chủ và app các máy. Không chỉ thay EXE.
+  Không thêm schema/migration MySQL mới cho phân quyền; giữ DB/config/tài khoản/ảnh.
+- Chi tiết nháp có Xác nhận bán: chốt đơn cũ mà không lưu hoặc thay thế đơn
+  khác đang nhập. Vẫn kiểm tra thanh toán, giao thiếu, tồn kho và trạng thái đơn.
+- Thứ tự chốt 16/10: giữ thứ tự hàng bán; hàng tặng cùng mã ngay dưới dòng bán.
+  Hàng tặng không có dòng bán nằm sau nhóm bán-tặng; mọi hàng mẫu luôn ở cuối.
+  Giỏ, lưu/mở nháp, đơn bán, ảnh PNG, Excel và PDF thống nhất. Không đổi giá,
+  số lượng, tồn hoặc ID dòng. Riêng sửa hiển thị này chỉ cần cập nhật app;
+  máy chủ chưa có migration 007/008/API mới vẫn cập nhật theo hướng dẫn dưới.
+- Sửa giá trong đơn: Admin/Nhân viên chọn Lưu giá lẻ chung / Lưu giá sỉ chung để đổi
+  danh mục cả nhóm và hàng bán cùng nhóm trong giỏ hiện tại. Giá mới dùng
+  cho đơn sau/mọi máy; danh mục tự tải lại mỗi 10 giây khi Bán hàng/Kho đang mở.
+  Giữ giá vốn, mức giá còn lại, giá riêng khách sỉ và đơn đã bán. Giá riêng
+  khách sỉ vẫn được ưu tiên khi lên đơn mới; tặng/mẫu giữ 0đ.
+  Cần cập nhật cả API máy chủ lẫn app; không đổi config.
+- Cập nhật 15/10: nhân viên xem được cả đơn/nháp tạo từ máy chủ và máy khác.
+  Bản final cho xử lý đơn mọi người tạo. Danh sách tự tải lại mỗi 10 giây khi mở.
+  CẦN chạy CAP-NHAT.bat máy chủ để nạp API mới, rồi cập nhật app các máy.
+  Sửa xem chung đơn không thêm migration; sửa thứ tự mới cần migration 008.
+- Kho hàng gồm kính/phụ kiện; số mã và tồn từng nhóm, kính tính theo tấm, phụ kiện theo sản phẩm.
+- Bộ lọc tìm kiếm: Full viền, Chống nhìn trộm, Phụ kiện khác;
+  vẫn giữ nhóm Không viền cao cấp cũ. Full viền cao cấp chỉ bỏ khỏi bộ lọc,
+  không xóa dữ liệu. Sửa lọc bỏ sót mã Full viền cũ.
+- Cùng mã có dòng bán/tặng/mẫu riêng; tự nhập số lượng, không tự tặng theo tỷ lệ.
+  Hàng tặng/mẫu giá 0 vẫn trừ tồn. Giao thiếu, giao bổ sung, trả theo từng dòng.
+- Máy nhân viên chọn được các Sales đang hoạt động.
+- Bộ 0.2.17 cập nhật: chỉ một lựa chọn Full viền, lọc chung mã cũ/mới;
+  gợi ý khách tối đa 3 người, tìm tên/SĐT vẫn tìm trên toàn bộ danh sách.
+- Tìm khách theo tên/SĐT thay danh sách dài; lưu nháp/giá sỉ vào dữ liệu thật.
+- Giữ các tính năng và mẫu ảnh xác nhận, Excel, chi phí khác, ngày đặt của 0.2.15.
+- Mã dùng chung tiếp tục dùng https://oufeidun.vn/api/glass-lookup như 0.2.16.
+
+CẬP NHẬT CỬA HÀNG ĐÃ CÀI 0.2.15 / CLIENT 0.2.16 / BỘ 0.2.17 CŨ
+1. Lưu các đơn đang nhập và đóng app ở tất cả máy; tạm ngừng bán trong lúc cập nhật.
+2. Giải nén bộ mới vào folder riêng, ngoài folder dữ liệu máy chủ đang chạy.
+   Giữ folder dữ liệu cũ. Không xóa, không clean data, không cài lại MySQL.
+3. Máy chủ chạy 01-MAY-CHU\CAP-NHAT.bat, chấp nhận Administrator.
+   Nếu được hỏi, chọn folder dữ liệu CŨ có config\server.env và app.
+   Công cụ backup DB/ảnh/config, thay API, chạy các migration còn thiếu gồm 007/008/009/010 rồi khởi động lại.
+   Migration giữ đơn và tồn cũ; hỗ trợ bán/tặng/mẫu, vị trí dòng và dùng lại mã nháp đã xóa.
+4. Chạy KIEM-TRA-LOI.bat. Nếu lỗi, giữ backup/log để hỗ trợ, chưa mở bán trở lại.
+5. Chạy TAO-BO-MAY-NHAN-VIEN.bat. Chép TOÀN BỘ 02-MAY-CLIENT vừa xuất sang từng máy.
+6. Máy đã cài: đóng app và chạy 02-MAY-CLIENT\CAP-NHAT.bat. Máy portable: dùng
+   MO-APP.bat trong folder mới, đổi shortcut cũ. Máy chủ cũng cập nhật app nếu dùng bán hàng.
+7. Kiểm tra đăng nhập, đơn cũ, kho/ảnh, tìm khách, Sales và lưu/mở lại nháp mới.
+   Không xác nhận đơn thử nếu không muốn phát sinh kho/doanh thu.
+   Đăng nhập nhân viên: có Khách hàng/Báo cáo/Nhân viên/Lịch sử; có lựa chọn lưu
+   giá chung và xử lý đơn Admin. Không có nút Nhập hàng/Tồn đầu kỳ hoặc cột Giá vốn.
+
+CẤU HÌNH GIỮ NGUYÊN
+DB, tài khoản/mật khẩu, IP/hostname, ảnh, CA, discovery và AppData giữ nguyên.
+Không sửa server.env, không nhập lại DB, không copy khóa riêng sang máy nhân viên.
+Phải cập nhật cả API máy chủ và app, không gửi riêng EXE cho lần này.
+Các máy cần cùng bản mới trước khi tiếp tục bán hàng.
+
+BACKUP VÀ KHỞI ĐỘNG
+Backup nằm trong <folder dữ liệu>\backups\daily, task Windows Oufeidun Backup.
+Nếu dịch vụ lỗi sau tắt máy, dùng CHAY-MAY-CHU.bat/KHOI-DONG-LAI.bat rồi KIEM-TRA-LOI.bat.
+Máy chủ phải bật và không Sleep; LAN/Wi-Fi vẫn dùng HTTPS và public profile của cửa hàng.
+Không chỉ chép Oufeidun.exe từ App portable: cần cả folder App và các file đi kèm.
+
+GIỚI HẠN
+Installer chưa ký số Authenticode thương mại. Kết nối máy vật lý, UAC và reboot
+tại cửa hàng cần kiểm tra sau khi cập nhật. Không dùng bộ này để cập nhật Supabase.

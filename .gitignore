@@ -30,3 +30,6 @@ connection.json
 *.sqlite3
 *.db
 *.zip
+rclone.conf
+drive-settings.json
+upload-state.json

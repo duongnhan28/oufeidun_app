@@ -14,7 +14,8 @@ function Wait-Api {
     try{
       $health=Invoke-RestMethod "http://127.0.0.1:$($profile.Port)/health" -TimeoutSec 2
       $expected=(Get-Content -LiteralPath (Join-Path $profile.DataDir 'app\package.json') -Raw|ConvertFrom-Json).version
-      if($health.ok-and(([version]$expected-lt[version]'0.2.12')-or$health.version-eq$expected)){return}
+      $requiresVersion=([version]$expected-ge[version]'0.2.12')-or(Test-Path -LiteralPath (Join-Path $profile.DataDir 'app\src\discovery.cjs'))
+      if($health.ok-and($health.version-eq$expected-or(-not $health.version-and-not $requiresVersion))){return}
     }catch{}
     Start-Sleep -Seconds 1
   }
@@ -65,6 +66,11 @@ function Ensure-ExistingTasks {
   $backupScript=Join-Path $profile.DataDir 'app\backup-server.ps1'
   Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'backup-server.ps1') -Destination $backupScript -Force
   Copy-Item -LiteralPath $backupScript -Destination (Join-Path $profile.DataDir 'app\backup-local-server.ps1') -Force
+  if(Test-Path -LiteralPath (Join-Path $profile.DataDir 'config\drive-backup\drive-settings.json')){
+    foreach($name in @('drive-backup-core.ps1','upload-drive.ps1')){
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination (Join-Path $profile.DataDir "tools\drive-backup\$name") -Force
+    }
+  }
   if(-not(Get-ScheduledTask -TaskName 'Oufeidun Backup' -ErrorAction SilentlyContinue)){
     $backupAction=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$backupScript`" -EnvFile `"$($profile.EnvFile)`"" -WorkingDirectory $profile.DataDir
     Register-ScheduledTask -TaskName 'Oufeidun Backup' -Action $backupAction -Trigger (New-ScheduledTaskTrigger -Daily -At '23:00') -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable) -User 'SYSTEM' -RunLevel Highest -Force|Out-Null
@@ -88,7 +94,7 @@ switch($Action){
     }
     try{
       $health=Invoke-RestMethod "http://127.0.0.1:$($profile.Port)/health" -TimeoutSec 3
-      if([version]$health.version-ge[version]'0.2.13'-and-not $health.discovery){throw 'discovery not ready'}
+      if($health.PSObject.Properties['discovery']-and-not $health.discovery){throw 'discovery not ready'}
       $lines.Add('Tu tim may chu UDP 47631: OK')
     }catch{$lines.Add('Tu tim may chu UDP 47631: CHUA SAN SANG');$failed=$true}
     $logDir=Join-Path $serverFolder 'logs';New-Item -ItemType Directory -Path $logDir -Force|Out-Null

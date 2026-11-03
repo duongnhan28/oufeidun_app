@@ -24,7 +24,7 @@ declare definition text; old_block text:=$old$   perform app_private.only_keys(e
    n:=(el->>'quantity')::integer;$new$;
 begin
  definition:=pg_get_functiondef('public.shop_write(jsonb)'::regprocedure);
- if position(new_block in definition)>0 then return; end if;
+ if position(new_block in definition)>0 or position('-- capabilities_v1' in definition)>0 then return; end if;
  if position(old_block in definition)=0 or position('el jsonb; oid uuid;' in definition)=0 then raise exception 'Inventory migration source mismatch'; end if;
  definition:=replace(definition,'el jsonb; oid uuid;','seen_products uuid[]:=''{}''; el jsonb; oid uuid;');
  definition:=replace(definition,old_block,new_block);

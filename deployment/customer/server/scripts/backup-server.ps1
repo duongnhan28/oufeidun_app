@@ -34,4 +34,10 @@ if((Test-Path -LiteralPath $uploads)-and(Get-ChildItem -LiteralPath $uploads -Fo
 Get-ChildItem -LiteralPath $daily -File|Get-FileHash -Algorithm SHA256|ForEach-Object{"$($_.Hash)  $($_.Path|Split-Path -Leaf)"}|Set-Content (Join-Path $daily 'SHA256SUMS.txt') -Encoding ascii
 # Retention is performed separately; updating never deletes an existing backup.
 Write-Host "Backup hoàn tất: $daily" -ForegroundColor Green
+# Cloud failure never invalidates the completed local backup. Hourly task retries.
+$driveHook=Join-Path $data 'tools\drive-backup\upload-drive.ps1'
+if(Test-Path -LiteralPath $driveHook){
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $driveHook -DataDir $data | ForEach-Object {Write-Host $_}
+  if($LASTEXITCODE-ne 0){Write-Warning 'Backup local da xong; Drive chua tai duoc, se thu lai. Chay KIEM-TRA-BACKUP-DRIVE.bat de xem log.'}
+}
 if($PassThru){[pscustomobject]@{Directory=$daily}}

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { config, pool, appError, assert, newId } = require('./core.cjs');
-const { requireOperator } = require('./permissions.cjs');
+const { requireOperator,requirePermission } = require('./permissions.cjs');
 
 const types = {
   jpeg: { mime: 'image/jpeg', ext: 'jpg' },
@@ -23,6 +23,7 @@ function resolveImage(relative) {
   return target;
 }
 async function saveImage(actor, file) {
+  requirePermission(actor,'manage_products');
   requireOperator(actor);
   assert(file && file.buffer && file.size > 0 && file.size <= 5 * 1024 * 1024);
   const type = sniff(file.buffer);
@@ -36,6 +37,7 @@ async function saveImage(actor, file) {
   return { path: relative };
 }
 async function deleteImage(actor, relative) {
+  requirePermission(actor,'manage_products');
   requireOperator(actor);
   const [[usage]] = await pool.execute('SELECT COUNT(*) count FROM products WHERE image_path=? AND deleted_at IS NULL', [relative]);
   assert(!Number(usage.count), 'PRODUCT_IN_USE', 409);

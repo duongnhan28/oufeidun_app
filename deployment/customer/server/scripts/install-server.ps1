@@ -79,6 +79,7 @@ ADMIN_LOGIN=admin
 ADMIN_DISPLAY_NAME=Admin
 ADMIN_PASSWORD=$adminPassword
 SESSION_IDLE_SECONDS=90
+SESSION_MAX_SECONDS=43200
 OUFEIDUN_ALLOWED_ORIGINS=shop://app
 "@
 [IO.File]::WriteAllText($envFile,$envText,[Text.UTF8Encoding]::new($false))

@@ -51,7 +51,7 @@ function loadServerConfig() {
   return { lookupApiUrl, apiBaseUrl, bakedApiBaseUrl };
 }
 function createWindow() {
-  const win = new BrowserWindow({ show:!process.env.APP_TEST_DATA||process.env.APP_TEST_VISIBLE==='1',width: 1500, height: 960, minWidth: 1000, minHeight: 700, backgroundColor: '#f4f7fa', autoHideMenuBar: true, title: 'Oufeidun • Quản lý bán hàng', icon: path.resolve(__dirname, '../assets/app-icon.ico'), webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, zoomFactor: DEFAULT_UI_ZOOM, preload: path.resolve(__dirname, 'preload.cjs') } });
+  const win = new BrowserWindow({ show:!process.env.APP_TEST_DATA||process.env.APP_TEST_VISIBLE==='1',width: 1500, height: 960, minWidth: 1000, minHeight: 700, backgroundColor: '#f4f7fa', autoHideMenuBar: true, title: 'Oufeidun • Quản lý bán hàng', icon: path.resolve(__dirname, '../assets/app-icon.ico'), webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false, zoomFactor: DEFAULT_UI_ZOOM, preload: path.resolve(__dirname, 'preload.cjs') } });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));

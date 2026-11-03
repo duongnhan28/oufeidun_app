@@ -2,6 +2,7 @@ import type { OrderExcelData } from "./excel";
 import { saveDownload } from "./download";
 import {quantitySummary} from './catalog';
 import {orderItemsForDisplay} from './order-item-order';
+import {orderProductColor} from './order-product-color';
 
 const formatNumber = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 const safeFilename = (value: string) => value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, "-").replace(/\s+/g, "-") || "don-hang";
@@ -144,7 +145,7 @@ export async function createOrderImage(data: OrderExcelData): Promise<GeneratedO
     const values = [String(index + 1), item.sku, delivered === item.quantity ? String(item.quantity) : `${delivered}/${item.quantity}`, `${formatNumber(item.unitPrice)}đ`, `${formatNumber(delivered * item.unitPrice)}đ`];
     cursor = tableX;
     values.forEach((value, column) => {
-      ctx.fillStyle = ink;
+      ctx.fillStyle = column===1 ? orderProductColor(item.glassType,item.sku) : ink;
       font(column===1?23:21,column===1||column===4);
       ctx.textAlign = column >= 2 ? "right" : column === 0 ? "center" : "left";
       const x = column >= 2 ? cursor + columns[column] - 16 : column === 0 ? cursor + columns[column] / 2 : cursor + 14;

@@ -53,9 +53,11 @@ function endpoint(path: string) {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
+  const requestToken = accessToken;
+  const authenticating = path === "/auth/login";
   if (!(init.body instanceof FormData))
     headers.set("Content-Type", "application/json");
-  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  if (!authenticating && requestToken) headers.set("Authorization", `Bearer ${requestToken}`);
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20_000);
   try {
@@ -67,8 +69,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const body = (await response.json().catch(() => ({}))) as {
       error?: string;
     };
+    // An old response must not invalidate or populate a later login session.
+    if (!authenticating && accessToken !== requestToken) throw new Error("SESSION_STALE");
     if (!response.ok) {
-      if (response.status === 401 || body.error === "SESSION_REQUIRED")
+      if (!authenticating && (response.status === 401 || body.error === "SESSION_REQUIRED"))
         accessToken = "";
       throw new Error(body.error || `HTTP_${response.status}`);
     }
@@ -143,13 +147,14 @@ export async function releaseOnlineSession() {
     return;
   }
   if (!accessToken) return;
+  const logoutToken = accessToken;
   try {
     await request<{ ok: boolean }>("/auth/logout", {
       method: "POST",
       body: "{}",
     });
   } finally {
-    accessToken = "";
+    if (accessToken === logoutToken) accessToken = "";
   }
 }
 
@@ -220,6 +225,12 @@ export async function workspace() {
   data.customer_prices ||= [];
   data.salespeople ||= [data.me];
   return data;
+}
+
+export async function loadStockForecast(from:string,to:string):Promise<import('../lib/stock-forecast').StockForecast>{
+ if(demo)return (await import('./demo')).demoStockForecast(actor,from,to);
+ if(backend!=='api')throw new Error('CONFIG_REQUIRED');
+ return request('/stock/forecast',{method:'POST',body:JSON.stringify({from,to})});
 }
 
 type BusinessExtras = {
@@ -334,6 +345,7 @@ export async function recordPayment(payload: Record<string, unknown>) {
 }
 
 export type SharedLookupItem = {
+  previousSkus?: string[];
   id: number | string;
   sku: string;
   name: string;
@@ -479,6 +491,7 @@ export async function deleteProductRecord(payload: Record<string, unknown>) {
 }
 
 export async function manageStaffAccount(payload: Record<string, unknown>) {
+  if (demo&&payload.action==='permissions')return import('./demo').then(m=>m.demoStaffPermissions(actor,payload));
   if (demo) throw new Error("CONFIG_REQUIRED");
   if (backend === "supabase") {
     const { data, error } = await supabase!.rpc("app_ban_hang_manage_staff", {
@@ -491,6 +504,13 @@ export async function manageStaffAccount(payload: Record<string, unknown>) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export type ProductReportData={product:{id:string;sku:string;glass_type:string};summary:{total:number;quantity:number;revenue:string};offset:number;rows:{id:string;sku:string;item_kind:string;ordered_at:string;order_no:string;customer_name:string;sales:string;ordered:number;delivered:number;returned:number;quantity:number;unit_price:string;revenue:string}[]};
+export async function loadProductReport(payload:Record<string,unknown>):Promise<ProductReportData>{
+ if(demo)return import('./demo').then(m=>m.demoProductReport(actor,payload));
+ if(backend==='supabase')throw new Error('Báo cáo chi tiết cần backend LOCAL đã cập nhật.');
+ return request<ProductReportData>('/reports/product',{method:'POST',body:JSON.stringify(payload)});
 }
 
 export async function uploadImage(file: File) {
@@ -563,8 +583,13 @@ export async function removeImage(path: string) {
 }
 
 const errors: Record<string, string> = {
+  COST_NOT_CONFIGURED: 'Sản phẩm chưa được Admin thiết lập giá vốn. Vui lòng nhờ Admin bổ sung trước khi xác nhận bán.',
+  REPORT_TOO_LARGE: 'Báo cáo quá lớn; vui lòng thu hẹp khoảng ngày để xuất đầy đủ.',
+  SKU_ALIAS_CONFLICT: "Mã này đang là mã hiện tại hoặc mã cũ của sản phẩm khác. Vui lòng dùng mã khác.",
   INVALID_ORDER_DATE: "Ngày giờ đặt đơn không hợp lệ. Vui lòng chọn ngày từ năm 2000 đến 2100 theo giờ Việt Nam.",
   CUSTOMER_NAME_REQUIRED: "Vui lòng nhập tên khách hàng trước khi lưu đơn.",
+  CUSTOMER_NOT_FOUND: "Khách hàng không còn tồn tại. Vui lòng tải lại danh sách và chọn lại.",
+  CUSTOMER_PHONE_EXISTS: "Số điện thoại này đã thuộc khách hàng khác. Vui lòng chọn đúng khách đã lưu.",
   CUSTOMER_PHONE_REQUIRED:
     "Vui lòng nhập số điện thoại khách hàng trước khi lưu đơn.",
   ZERO_PRICE_CONFIRM_REQUIRED:
@@ -583,6 +608,7 @@ const errors: Record<string, string> = {
     "Phiên đăng nhập đã được chuyển sang máy khác. Vui lòng đăng nhập lại.",
   SESSION_REQUIRED:
     "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại.",
+  SESSION_STALE: "Đã bỏ qua phản hồi của phiên đăng nhập trước.",
   FORBIDDEN: "Bạn không có quyền thực hiện thao tác này.",
   COST_ACCESS_DENIED: "Chỉ Admin được cập nhật giá vốn và giá nhập.",
   VERSION_CONFLICT: "Dữ liệu vừa thay đổi. Tải lại và kiểm tra trước khi lưu.",
@@ -595,7 +621,7 @@ const errors: Record<string, string> = {
   IDEMPOTENCY_CONFLICT: "Yêu cầu đã được sử dụng với nội dung khác.",
   OPENING_EXISTS:
     "Sản phẩm đã có lịch sử kho. Hãy dùng nhập hàng hoặc kiểm kê.",
-  SKU_IMMUTABLE: "Mã kính đã có giao dịch, không thể thay đổi.",
+  SKU_IMMUTABLE: "Mã kính đã từng xác nhận bán, không thể đổi mã. Nhập kho hoặc lưu nháp không khóa mã.",
   VALIDATION_ERROR: "Thông tin chưa hợp lệ. Vui lòng kiểm tra các trường.",
   PAYLOAD_TOO_LARGE: "Dữ liệu gửi lên vượt quá giới hạn cho phép.",
   PAYMENT_EXCEEDS_DUE: "Số tiền thu vượt quá số tiền còn phải thanh toán.",

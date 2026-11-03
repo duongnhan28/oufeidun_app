@@ -1,4 +1,5 @@
 const { pool, newId, transaction, audit } = require('./core.cjs');
+const {resolveSku,reserveSku}=require('./sku-names.cjs');
 const samples = [
   ['IP15-TR','Kính trong iPhone 15','clear',['iPhone 15','iPhone 16'],'Apple',25000,22000,10000,15],
   ['IP15-CNT','Kính chống nhìn trộm iPhone 15','privacy',['iPhone 15','iPhone 16'],'Apple',45000,40000,20000,15],
@@ -10,11 +11,12 @@ async function seed() {
     const [[admin]] = await db.query("SELECT id FROM app_users WHERE role='admin' AND deleted_at IS NULL LIMIT 1 FOR UPDATE");
     if (!admin) throw new Error('Chưa có tài khoản admin. Hãy chạy setup-local-server.ps1 trước.');
     for (const [sku,name,type,models,brand,retail,wholesale,cost,stock] of samples) {
-      const [[existing]] = await db.execute('SELECT id FROM products WHERE sku=?', [sku]);
+      const existing = await resolveSku(db,sku);
       if (existing) continue;
       const id = newId();
       await db.execute(`INSERT INTO products(id,sku,name,glass_type,models,brand,sale_price,wholesale_price,fixed_cost,on_hand,stock_version)
         VALUES (?,?,?,?,CAST(? AS JSON),?,?,?,?,?,2)`, [id,sku,name,type,JSON.stringify(models),brand,retail,wholesale,cost,stock]);
+      await reserveSku(db,id,sku);
       const documentId=newId(), lineId=newId();
       await db.execute("INSERT INTO inventory_documents(id,type,reason,created_by) VALUES (?,'opening','Dữ liệu mẫu ban đầu',?)",[documentId,admin.id]);
       await db.execute('INSERT INTO inventory_document_items(id,document_id,product_id,quantity_delta,fixed_cost_snapshot,sku_snapshot,name_snapshot) VALUES (?,?,?,?,?,?,?)',[lineId,documentId,id,stock,cost,sku,name]);

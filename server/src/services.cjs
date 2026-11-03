@@ -1,6 +1,6 @@
 const { pool, appError, assert, uuid, newId, cleanText, moneyValue, passwordHash, transaction, audit } = require('./core.cjs');
 const withDb = (db, fn) => db ? fn(db) : transaction(fn);
-const {requireOperator,rejectCostWrite} = require('./permissions.cjs');
+const {requireOperator,rejectCostWrite,requirePermission,keys} = require('./permissions.cjs');
 const { lockOrder } = require('./mutations.cjs');
 
 async function saveOrderFeatures(actor, payload, connection) {
@@ -71,6 +71,7 @@ async function saveOrderFeatures(actor, payload, connection) {
 }
 
 async function saveCustomer(actor, payload, connection) {
+  requireOperator(actor);
   return withDb(connection, async db => {
     if (payload.action === 'delete') {
       requireOperator(actor);
@@ -87,12 +88,30 @@ async function saveCustomer(actor, payload, connection) {
     assert(['retail','wholesale'].includes(type));
     const address = cleanText(payload.address, 500);
     const note = cleanText(payload.note, 1000);
-    const id = payload.id ? uuid(payload.id) : newId();
+    let id = payload.id ? uuid(payload.id) : newId();
+    let existing;
+    if(payload.id){
+      [[existing]]=await db.execute('SELECT id,name,phone FROM customers WHERE id=? FOR UPDATE',[id]);
+      assert(existing,'CUSTOMER_NOT_FOUND',404);
+      // Typing another unnamed-phone customer on a draft must not rename the
+      // selected customer or keep their private price association.
+      if(payload.from_order && /^0+$/.test(phone) && (existing.phone!==phone || existing.name.trim().toLowerCase()!==name.toLowerCase())){
+        id=newId();existing=null;
+      }
+    }
+    if(existing){
+      try{
+        await db.execute('UPDATE customers SET customer_type=?,name=?,phone=?,address=?,note=?,active=TRUE WHERE id=?',[type,name,phone,address,note,id]);
+      }catch(error){if(error.code==='ER_DUP_ENTRY')throw appError('CUSTOMER_PHONE_EXISTS',409);throw error;}
+    }else{
     await db.execute(`INSERT INTO customers(id,customer_type,name,phone,address,note,active) VALUES (?,?,?,?,?,?,TRUE)
       ON DUPLICATE KEY UPDATE customer_type=VALUES(customer_type),name=VALUES(name),phone=VALUES(phone),address=VALUES(address),note=VALUES(note),active=TRUE`, [id, type, name, phone, address, note]);
-    const [[saved]] = await db.execute('SELECT id FROM customers WHERE phone=?', [phone]);
+      const identity=/^0+$/.test(phone)?`unknown:${phone}:${name.toLowerCase()}`:`phone:${phone}`;
+      const [[saved]] = await db.execute('SELECT id FROM customers WHERE identity_key=?',[identity]);
+      id=saved.id;
+    }
     await audit(db, actor.id, 'customer.save', `${name} / ${phone}`);
-    return { id: saved.id };
+    return { id };
   });
 }
 
@@ -115,6 +134,8 @@ async function saveOrderBusiness(actor, payload, connection) {
 }
 
 async function setWholesalePrice(actor, payload) {
+  requirePermission(actor,'manage_prices');
+  rejectCostWrite(actor,payload);
   requireOperator(actor);
   const id = uuid(payload.product_id);
   const price = moneyValue(payload.wholesale_price);
@@ -127,6 +148,7 @@ async function setWholesalePrice(actor, payload) {
 }
 
 async function setBulkPrice(actor, payload) {
+  requirePermission(actor,'manage_prices');
   requireOperator(actor);
   rejectCostWrite(actor,payload);
   assert(['clear','privacy','matte','other','full_border','premium_borderless'].includes(payload.glass_type));
@@ -147,14 +169,15 @@ async function setBulkPrice(actor, payload) {
   return transaction(async db => {
     const [result] = await db.execute(`UPDATE products SET
       price_version=price_version+IF(sale_price<>? OR wholesale_price<>?,1,0),version=version+1,
-      fixed_cost=IF(?,?,fixed_cost),sale_price=?,wholesale_price=?
-      WHERE (glass_type=? OR (? IN ('clear','full_border') AND glass_type IN ('clear','full_border'))) AND active=TRUE AND deleted_at IS NULL`, [retail, wholesale,actor.role==='admin',cost,retail,wholesale, payload.glass_type,payload.glass_type]);
+      fixed_cost=IF(?,?,fixed_cost),cost_configured=IF(?,TRUE,cost_configured),sale_price=?,wholesale_price=?
+      WHERE (glass_type=? OR (? IN ('clear','full_border') AND glass_type IN ('clear','full_border'))) AND active=TRUE AND deleted_at IS NULL`, [retail, wholesale,actor.role==='admin',cost,actor.role==='admin',retail,wholesale, payload.glass_type,payload.glass_type]);
     await audit(db, actor.id, 'product.bulk_price', `${payload.glass_type}: ${result.affectedRows} mã`);
     return { updated: result.affectedRows };
   });
 }
 
 async function deleteProduct(actor, payload) {
+  requirePermission(actor,'manage_products');
   requireOperator(actor);
   return transaction(async db => {
     const id = uuid(payload.id);
@@ -172,6 +195,7 @@ async function deleteProduct(actor, payload) {
 
 async function manageStaff(actor, payload) {
   requireOperator(actor);
+  if(payload.action!=='profile')assert(actor.role==='admin','FORBIDDEN',403);
   return transaction(async db => {
     if (payload.action === 'create') {
       const displayName = cleanText(payload.display_name, 100, true);
@@ -179,7 +203,7 @@ async function manageStaff(actor, payload) {
       assert(/^[a-z0-9._-]{3,100}$/.test(loginName));
       const id = newId();
       try {
-        await db.execute("INSERT INTO app_users(id,login_name,display_name,password_hash,role,active) VALUES (?,?,?,?, 'staff',TRUE)", [id, loginName, displayName, passwordHash(String(payload.password || ''))]);
+        await db.execute("INSERT INTO app_users(id,login_name,display_name,password_hash,role,active,permissions) VALUES (?,?,?,?, 'staff',TRUE,JSON_OBJECT())", [id, loginName, displayName, passwordHash(String(payload.password || ''))]);
       } catch (error) { if (error.code === 'ER_DUP_ENTRY') throw appError('ACCOUNT_EXISTS', 409); throw error; }
       await audit(db, actor.id, 'staff.create', displayName);
       return { id };
@@ -193,6 +217,15 @@ async function manageStaff(actor, payload) {
     const id = uuid(payload.id);
     const [[target]] = await db.execute('SELECT * FROM app_users WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id]);
     assert(target, 'ACCOUNT_NOT_FOUND', 404);
+    if(payload.action==='permissions'){
+      assert(target.role==='staff','FORBIDDEN',403);
+      assert(Number(payload.version)===Number(target.permissions_version),'VERSION_CONFLICT',409);
+      const value=payload.permissions;
+      assert(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(k=>keys.includes(k)&&typeof value[k]==='boolean'));
+      await db.execute('UPDATE app_users SET permissions=CAST(? AS JSON),permissions_version=permissions_version+1 WHERE id=?',[JSON.stringify(value),id]);
+      await audit(db,actor.id,'staff.permissions',`${target.display_name} / ${JSON.stringify(value)}`);
+      return {id};
+    }
     assert(actor.role==='admin' || target.role==='staff', 'FORBIDDEN',403);
     if (payload.action === 'reset') {
       await db.execute('UPDATE app_users SET password_hash=?,session_device_id=NULL,session_token_hash=NULL,session_last_seen=NULL WHERE id=?', [passwordHash(String(payload.password || '')), id]);

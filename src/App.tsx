@@ -2,6 +2,14 @@ import {categoryKey, categoryLabels, searchCategoryLabels, productUnit, quantity
 import {CustomerSearch} from './components/CustomerSearch';
 import {orderItemsForDisplay} from './lib/order-item-order';
 import {reportSheets} from './lib/report-sheets';
+import {reportTotals} from './lib/report-totals';
+import {StockAdjustmentFields} from './components/StockAdjustmentFields';
+import {stockAdjustmentTarget} from './lib/stock-adjustment';
+import {hasPermission,permissionLabels,type Permission} from './lib/permissions';
+import ProductReportDetails from './components/ProductReportDetails';
+import StockForecastPanel from './components/StockForecastPanel';
+import {estimateForCart} from './lib/stock-forecast';
+import {startSessionHeartbeat} from './lib/session-heartbeat';
 import SalesReportTable from './components/SalesReportTable';
 import { productExcelColumns, readProductWorkbook } from "./lib/product-excel";
 import {
@@ -92,6 +100,7 @@ import {
 } from "./types";
 import InventoryReport from "./InventoryReport";
 import { downloadWorkbook, downloadOrderWorkbook, readInventoryWorkbook } from "./lib/excel";
+import {orderProductColor} from './lib/order-product-color';
 import { InputError } from "./lib/input-error";
 import { createOrderImage, downloadOrderImage } from "./lib/order-image";
 import { saveDownload } from "./lib/download";
@@ -107,6 +116,7 @@ type Modal = {
   onSubmit?: (data: FormData) => Promise<void>;
 };
 const actionLabels: Record<string, string> = {
+  "product.rename": "Đổi mã sản phẩm",
   product: "Cập nhật sản phẩm",
   inventory: "Ghi nhận kho",
   save_draft: "Lưu bản nháp",
@@ -132,6 +142,7 @@ const actionLabels: Record<string, string> = {
   "customer.price.save": "Lưu giá riêng cho khách sỉ",
 };
 actionLabels["product.delete"] = "Xóa mã kính";
+actionLabels['staff.permissions']='Thay đổi phân quyền';
 function auditDetail(log: Workspace["logs"][number], data: Workspace) {
   const detail = log.detail || "";
   const id = detail.match(/^[0-9a-f]{8}-[0-9a-f-]{27}/i)?.[0];
@@ -383,6 +394,7 @@ function productSearchRank(product: Product, query: string) {
 }
 
 function ProductCompatibility({ product, query }: { product: Product; query: string }) {
+  if(product.sku_aliases?.length)return <small className="compatibility-list">Mã cũ: {product.sku_aliases.join(' / ')} · Dùng chung: {product.models.join(' / ')||'Chưa có'}</small>;
   const matched = matchingCompatibleModel(product, query);
   if (matched) {
     return (
@@ -410,7 +422,7 @@ function SupplementalDeliveryFields({ order, products }: { order: Order; product
         const missing = item.quantity - (item.delivered_quantity || 0);
         return <div className="supplemental-line" key={item.id}>
           {product && <ProductArt product={product} />}
-          <div className="supplemental-product"><b>{item.sku_snapshot || product?.sku}</b><small>{item.sku_snapshot || product?.sku} · Tồn {product?.on_hand || 0} {productUnit(product)}</small><span className="badge amber">Còn thiếu {missing} {productUnit(product)}</span><small>Đơn giá {money(item.unit_sale_price || 0)}</small></div>
+          <div className="supplemental-product"><b style={{color:orderProductColor(product?.glass_type,item.sku_snapshot||product?.sku)}}>{item.sku_snapshot || product?.sku}</b><small>{item.sku_snapshot || product?.sku} · Tồn {product?.on_hand || 0} {productUnit(product)}</small><span className="badge amber">Còn thiếu {missing} {productUnit(product)}</span><small>Đơn giá {money(item.unit_sale_price || 0)}</small></div>
           <label className="field supplemental-quantity">Giao lần này<input aria-label={`Giao bổ sung ${item.sku_snapshot || product?.sku}`} name={`delivery_${item.id}`} type="number" min={0} max={Math.min(missing, product?.on_hand || 0)} value={quantities[item.id!]} onChange={(event) => setQuantities((previous) => ({ ...previous, [item.id!]: Math.max(0, Math.floor(Number(event.target.value) || 0)) }))} /><small>{money((BigInt(item.unit_sale_price || 0) * BigInt(quantities[item.id!] || 0)).toString())}</small></label>
         </div>;
       })}
@@ -427,19 +439,21 @@ function SupplementalDeliveryFields({ order, products }: { order: Order; product
 
 function InventoryReceiptFields({
   products,
+  canSeeCosts,
   initialProduct,
   onDownloadTemplate,
   onModeChange,
 }: {
   products: Product[];
   initialProduct?: Product;
+  canSeeCosts: boolean;
   onDownloadTemplate: () => void;
   onModeChange: (mode: "single" | "excel") => void;
 }) {
   const [mode, setMode] = useState<"single" | "excel">("single");
   const [query, setQuery] = useState("");
   const filtered = products.filter((product) =>
-    !query.trim() || containsProductSearch(`${product.sku} ${product.name} ${product.models.join(" ")}`, query),
+    !query.trim() || containsProductSearch(`${product.sku} ${(product.sku_aliases||[]).join(' ')} ${product.name} ${product.models.join(" ")}`, query),
   );
   return (
     <div className="inventory-entry">
@@ -457,20 +471,20 @@ function InventoryReceiptFields({
           </label>
           <label className="field full">
             Mã kính cần nhập
-            <select name="product_id" defaultValue={initialProduct?.id} required>
+            <select aria-label="Mã kính cần nhập" name="product_id" defaultValue={initialProduct?.id} required>
               {filtered.map((product) => (
                 <option key={product.id} value={product.id}>{product.sku} · Tồn hiện tại: {product.on_hand}</option>
               ))}
             </select>
           </label>
           {field("Số lượng nhập", "quantity", 1, "number", true, { min: 1, max: 1000000, step: 1 })}
-          {field("Đơn giá mua thực tế (đ)", "purchase_price", "", "number", true, { min: 0, step: 1 })}
+          {canSeeCosts&&field("Đơn giá mua thực tế (đ)", "purchase_price", "", "number", true, { min: 0, step: 1 })}
         </div>
       ) : (
         <div className="inventory-excel-fields">
           <div className="excel-instruction">
             <b>Nhập nhiều mã kính cùng lúc</b>
-            <span>Mẫu mới gồm 9 cột, có Số lượng để nhập thêm vào kho cùng lúc với mã kính và giá. Số lượng 0 chỉ cập nhật danh mục. Dòng máy cách nhau bằng dấu phẩy. Mỗi lần nhập file mới sẽ cộng tiếp số lượng; kiểm tra trước khi nhập lại. File 8 cột cũ vẫn chỉ cập nhật danh mục, file 3 cột cũ vẫn nhập kho.</span>
+            <span>{!canSeeCosts?"Mẫu nhân viên chỉ gồm Mã kính và Số lượng. Không dùng file chứa giá/vốn. Mã mới chờ Admin thiết lập vốn và giá.":"Mẫu mới gồm 9 cột, có Số lượng để nhập thêm vào kho cùng lúc với mã kính và giá. Số lượng 0 chỉ cập nhật danh mục. Dòng máy cách nhau bằng dấu phẩy. Mỗi lần nhập file mới sẽ cộng tiếp số lượng; kiểm tra trước khi nhập lại. File 8 cột cũ vẫn chỉ cập nhật danh mục, file 3 cột cũ vẫn nhập kho."}</span>
             <button type="button" onClick={onDownloadTemplate}><Download size={16} /> Tải file Excel mẫu</button>
           </div>
           <label className="field full">
@@ -486,6 +500,7 @@ function InventoryReceiptFields({
 export default function App() {
   const [findingServer,setFindingServer]=useState(false);
   const [serverStatus,setServerStatus]=useState('');
+  const [stockView,setStockView]=useState<'actual'|'forecast'>('actual');
   const [data, setData] = useState<Workspace | null>(null),
     [page, setPage] = useState("sale"),
     [busy, setBusy] = useState(false),
@@ -531,6 +546,7 @@ export default function App() {
     [from, setFrom] = useState(currentMonthStart()),
     [to, setTo] = useState(today()),
     [report, setReport] = useState<Report | null>(null),
+    [reportRevision,setReportRevision]=useState(0),
     [performanceMode, setPerformanceMode] = useState<"fast" | "slow">("fast"),
      [passwordVisible, setPasswordVisible] = useState(false);
   const [orderImagePreview, setOrderImagePreview] = useState<{
@@ -592,6 +608,13 @@ export default function App() {
   // Operations are shared; cost visibility is a separate capability.
   const canOperate = Boolean(data) && (sharedOperations || data?.me.role === "admin");
   const canSeeCosts = data?.me.role === "admin";
+  const permits=(key:Permission)=>(sharedOperations||canSeeCosts)&&hasPermission(data?.me,key);
+  const canProducts=permits('manage_products'),canPrices=permits('manage_prices'),canAdjust=permits('adjust_stock'),canReceive=permits('receive_stock'),canReturns=permits('manage_returns'),canReports=permits('view_reports'),canAudit=permits('view_audit');
+  const canPage=(id:string)=>id==='users'?canSeeCosts:id==='reports'?canReports:id==='audit'?canAudit:canOperate||['sale','lookup','orders','drafts','stock'].includes(id);
+  useEffect(()=>{if(data&&!canPage(page)){setModal(null);setReport(null);setPage('sale');}},[data,page]);
+  function editPermissions(user:User){
+    setModal({title:'Phân quyền · '+user.display_name,body:<><p>Bán hàng, khách hàng và tra cứu tồn kho luôn được phép. Giá vốn, giá nhập, lợi nhuận và quản trị tài khoản chỉ dành cho Admin.</p>{(Object.entries(permissionLabels) as [Permission,string][]).map(([key,label])=><label className="check" key={key}><input type="checkbox" name={key} defaultChecked={hasPermission(user,key)}/>{label}</label>)}</>,submit:'Lưu phân quyền',onSubmit:async fd=>{await manageStaffAccount({action:'permissions',id:user.id,version:user.permissions_version||1,permissions:Object.fromEntries(Object.keys(permissionLabels).map(key=>[key,fd.get(key)==='on']))});await refresh();setToast('Đã cập nhật phân quyền. Quyền mới được kiểm tra ở yêu cầu tiếp theo.');}});
+  }
   function suggestedPrice(
     product: Product,
     type = customerType,
@@ -637,13 +660,14 @@ export default function App() {
   }, [toast]);
   useEffect(() => {
     if (demo || !data) return;
-    const timer = setInterval(() => {
-      void touchOnlineSession().catch((e) => {
+    return startSessionHeartbeat({
+      touch: touchOnlineSession,
+      expired: (e) => {
         setError(friendly(e));
         setData(null);
-      });
-    }, 25000);
-    return () => clearInterval(timer);
+      },
+      unavailable: () => setToast('Kết nối máy chủ tạm gián đoạn. Ứng dụng sẽ thử lại; hãy kiểm tra kết nối trước khi lưu đơn.'),
+    });
   }, [!!data]);
   useEffect(() => {
     const stop = (e: BeforeUnloadEvent) => {
@@ -668,7 +692,7 @@ export default function App() {
     return () => window.removeEventListener("focus", focus);
   }, [!!data, refresh]);
   useEffect(() => {
-    if (!data || !["orders", "drafts", "sale", "stock"].includes(page)) return;
+    if (!data) return;
     let cancelled = false, loading = false;
     const syncOrders = async () => {
       if (loading || busy || modal || document.visibilityState === "hidden") return;
@@ -682,7 +706,7 @@ export default function App() {
     return () => { cancelled = true; clearInterval(timer); };
   }, [!!data, page, busy, !!modal]);
   useEffect(() => {
-    if (page !== "reports" || !canOperate) return;
+    if (page !== "reports" || !canReports) return;
     let live = true;
     setReport(null);
     loadReport(from, to, "all")
@@ -695,7 +719,7 @@ export default function App() {
     return () => {
       live = false;
     };
-  }, [page, from, to, data, canOperate]);
+  }, [page, from, to, data?.me.id, canReports, canSeeCosts, reportRevision]);
   async function run(fn: () => Promise<void>) {
     if (busy) return;
     setBusy(true);
@@ -833,7 +857,7 @@ export default function App() {
       id:draft?.id||null,version:draft?.version,order_code:manualOrderCode,ordered_at:date,
       extra_cost:extraCost,extra_cost_note:extraCostNote,customer_name:customerName,customer_phone:customerPhone,note,
       sale_details:{customer_id:customerId,customer_type:customerType,customer_address:address,customer_note:data?.customers.find(c=>c.id===customerId)?.note||'',sales_user_id:salespersonId||data?.me.id,fulfillment_status:fulfillmentStatus,missing_summary:fulfillmentStatus==='short'?effectiveMissingSummary:''},
-      items:cart.map(i=>({product_id:i.product_id,quantity:i.quantity,custom_name:i.custom_name,price_overridden:Boolean(i.price_overridden),save_customer_price:Boolean(i.save_customer_price),zero_price_confirm:Boolean(i.zero_price_confirm),item_note:i.item_note||'',item_kind:i.item_kind||'sale',unit_sale_price:i.unit_sale_price||'0'})),
+      items:cart.map(i=>({product_id:i.product_id,selected_sku:i.sku_snapshot,quantity:i.quantity,custom_name:i.custom_name,price_overridden:Boolean(i.price_overridden),save_customer_price:Boolean(i.save_customer_price),zero_price_confirm:Boolean(i.zero_price_confirm),item_note:i.item_note||'',item_kind:i.item_kind||'sale',unit_sale_price:i.unit_sale_price||'0'})),
     });
     const o = d.orders.find((o) => o.id === result.id)!;
     setCustomerId(o.customer_id||null);
@@ -916,6 +940,7 @@ export default function App() {
             {
               product_id: p.id,
               quantity: 1,
+              sku_snapshot:old.find(row=>row.product_id===p.id)?.sku_snapshot||p.sku,
               custom_name: null,
               unit_sale_price: kind === "sale" ? suggestedPrice(p) : "0",
               price_overridden: false,
@@ -961,7 +986,7 @@ export default function App() {
         "Chọn sửa giá trong đơn hoặc lưu giá danh mục dùng chung cho các đơn sau và mọi máy.",
       body: (
         <div className="form-grid">
-          <div className="field"><span>Mã kính</span><b>{p.sku}</b></div>
+          <div className="field"><span>Mã kính</span><b style={{color:orderProductColor(p.glass_type,p.sku)}}>{i.sku_snapshot||p.sku}</b>{i.sku_snapshot&&i.sku_snapshot!==p.sku&&<small>Mã hiện tại: {p.sku}</small>}</div>
           <label className="field">
             Giá bán thực tế (đ)
             <input
@@ -982,8 +1007,8 @@ export default function App() {
               <option value="glass_type">
                 Toàn bộ {glassTypeName} trong đơn ({sameTypeSaleCount} sản phẩm)
               </option>
-              {canOperate && <option value="catalog_retail">Lưu giá lẻ chung cho toàn bộ {glassTypeName}</option>}
-              {canOperate && <option value="catalog_wholesale">Lưu giá sỉ chung cho toàn bộ {glassTypeName}</option>}
+              {canPrices && <option value="catalog_retail">Lưu giá lẻ chung cho toàn bộ {glassTypeName}</option>}
+              {canPrices && <option value="catalog_wholesale">Lưu giá sỉ chung cho toàn bộ {glassTypeName}</option>}
             </select>
             <small>Lưu giá chung cập nhật danh mục và hàng bán cùng nhóm trong đơn này. Giữ mức giá lẻ/sỉ còn lại, giá riêng của khách và đơn đã bán. Giá riêng của khách vẫn được ưu tiên khi lên đơn mới. {canOperate ? "Các máy tự tải danh mục mỗi 10 giây khi đang mở." : ""}</small>
           </label>
@@ -1017,7 +1042,7 @@ export default function App() {
             Tôi xác nhận nếu giá bán thực tế bằng 0đ
           </label>
           <div className="hint full">
-            Mã kính: <b>{p.sku}</b>. Hàng tặng và hàng mẫu vẫn trừ tồn nhưng
+            Mã kính: <b style={{color:orderProductColor(p.glass_type,p.sku)}}>{i.sku_snapshot||p.sku}</b>{i.sku_snapshot&&i.sku_snapshot!==p.sku&&<small>Mã hiện tại: {p.sku}</small>}. Hàng tặng và hàng mẫu vẫn trừ tồn nhưng
             thành tiền bằng 0đ.
           </div>
         </div>
@@ -1123,7 +1148,7 @@ export default function App() {
               <b>Sản phẩm</b><b>Khách đặt</b><b>Giao lần này</b>
               {orderItemsForDisplay(deliveries.map(row=>({...row,product_id:row.item.product_id,item_kind:row.item.item_kind,sku_snapshot:row.item.sku_snapshot})),products).map(({ item, product, quantity }) => (
                 <div className="return-input" key={item.id}>
-                  <span><b>{product?.sku}</b><small>{product?.sku} · Tồn {product?.on_hand || 0}</small></span>
+                  <span><b style={{color:orderProductColor(product?.glass_type,product?.sku)}}>{product?.sku}</b><small>{product?.sku} · Tồn {product?.on_hand || 0}</small></span>
                   <b>{item.quantity}</b>
                   <input aria-label={`Giao ${product?.sku}`} name={`delivery_${item.id}`} type="number" min={0} max={Math.min(item.quantity, product?.on_hand || 0)} defaultValue={quantity} />
                 </div>
@@ -1212,6 +1237,7 @@ export default function App() {
     });
   }
   function editProduct(p?: Product) {
+    if(!canProducts)return;
     setModal({
       title: p ? "Chỉnh sửa mã kính" : "Thêm sản phẩm",
       subtitle: "Thông tin sản phẩm được lưu chung cho tất cả máy.",
@@ -1259,7 +1285,7 @@ export default function App() {
             p?.sale_price || "0",
             "number",
             true,
-            { min: 0, max: 999999999999999, step: 1 },
+            { min: 0, max: 999999999999999, step: 1, readOnly:!canPrices },
           )}
           {field(
             "Giá sỉ mặc định (đ)",
@@ -1267,7 +1293,7 @@ export default function App() {
             p?.wholesale_price || p?.sale_price || "0",
             "number",
             true,
-            { min: 0, max: 999999999999999, step: 1 },
+            { min: 0, max: 999999999999999, step: 1, readOnly:!canPrices },
           )}
           {canSeeCosts && field(
             "Giá vốn cố định (đ)",
@@ -1277,7 +1303,7 @@ export default function App() {
             true,
             { min: 0, max: 999999999999999, step: 1 },
           )}
-          {!p && !canSeeCosts && <small className="hint full">Mã mới chưa có tồn kho. Admin cần bổ sung giá vốn trước khi nhập hàng.</small>}
+          {!p && !canSeeCosts && <small className="hint full">Mã mới chưa có tồn kho. Admin cần thiết lập giá vốn trước khi xác nhận bán.</small>}
           {!p && canSeeCosts &&
             field(
               "Số lượng nhập ban đầu",
@@ -1397,6 +1423,7 @@ export default function App() {
     });
   }
   function bulkPricing() {
+    if(!canPrices)return;
     setModal({
       title: "Chỉnh giá đồng loạt",
       subtitle: "Áp dụng cùng giá cho toàn bộ mã kính đang kinh doanh thuộc nhóm đã chọn. Giá mới sẽ tự hiển thị khi lên đơn.",
@@ -1424,7 +1451,7 @@ export default function App() {
         <>
           {p.on_hand > 0 ? (
             <div className="error">
-              Mã <b>{p.sku}</b> vẫn còn {p.on_hand} {productUnit(p)}. Hãy điều chỉnh tồn
+              Mã <b style={{color:orderProductColor(p.glass_type,p.sku)}}>{p.sku}</b> vẫn còn {p.on_hand} {productUnit(p)}. Hãy điều chỉnh tồn
               kho về 0 trước khi xóa.
             </div>
           ) : (
@@ -1451,13 +1478,13 @@ export default function App() {
     });
   }
   function inventory(kind: string, p?: Product) {
-    if (!canSeeCosts && ["receipt","opening"].includes(kind)) return;
+    if(kind==='receipt'&&!canReceive||kind==='opening'&&!canSeeCosts||!['receipt','opening'].includes(kind)&&!canAdjust)return;
     const titles: Record<string, string> = {
       receipt: "Nhập hàng",
       opening: "Tồn đầu kỳ",
       issue: "Xuất kho",
       damage: "Ghi nhận kính lỗi",
-      adjustment: "Kiểm kê tồn kho",
+      adjustment: "Điều chỉnh tồn kho",
     };
     const balances = new Map(
       data!.products.map((p) => [p.id, p.stock_version]),
@@ -1471,7 +1498,9 @@ export default function App() {
       body: (
         <>
           {kind === "receipt" ? (
-            <InventoryReceiptFields products={data!.products} initialProduct={p} onDownloadTemplate={() => run(downloadInventoryTemplate)} onModeChange={mode => setModal(current => current ? { ...current, submit: mode === "excel" ? "Nhập file Excel" : "Xác nhận ghi kho" } : null)} />
+            <InventoryReceiptFields canSeeCosts={canSeeCosts} products={data!.products} initialProduct={p} onDownloadTemplate={() => run(downloadInventoryTemplate)} onModeChange={mode => setModal(current => current ? { ...current, submit: mode === "excel" ? "Nhập file Excel" : "Xác nhận ghi kho" } : null)} />
+          ) : kind === "adjustment" ? (
+            <StockAdjustmentFields products={data!.products} initialProduct={p} />
           ) : (
             <>
               <label className="field">
@@ -1499,26 +1528,29 @@ export default function App() {
       onSubmit: async (fd) => {
         const inventoryMode = String(fd.get("inventory_mode") || "single");
         const id = String(fd.get("product_id"));
+        const adjustmentProduct=data!.products.find(product=>product.id===id);
+        const adjustedQuantity=kind==='adjustment'?stockAdjustmentTarget(adjustmentProduct?.on_hand??-1,String(fd.get('adjustment_mode')),String(fd.get('adjustment_amount'))):Number(fd.get('quantity'));
+        if(kind==='adjustment'&&!String(fd.get('reason')||'').trim())throw new InputError('Vui lòng nhập lý do điều chỉnh tồn kho.');
         let items: Record<string, unknown>[] = [{
           product_id: id,
-          quantity: Number(fd.get("quantity")),
+          quantity: adjustedQuantity,
           stock_version: balances.get(id),
-          ...(kind === "receipt" ? { purchase_price: fd.get("purchase_price") } : {}),
+          ...(kind === "receipt" && canSeeCosts ? { purchase_price: fd.get("purchase_price") } : {}),
         }];
         const excelFile = fd.get("inventory_excel");
         if (kind === "receipt" && inventoryMode === "excel" && excelFile instanceof File && excelFile.size) {
-          const catalog = await readProductWorkbook(excelFile);
+          const catalog = canSeeCosts ? await readProductWorkbook(excelFile) : null;
           if (catalog) {
             await write("import_products", { items: catalog, reason: fd.get("reason") });
             const quantity = catalog.reduce((sum, row) => sum + row.quantity, 0);
             setToast(`Đã nhập ${catalog.length} mã kính và cập nhật giá. ${quantity ? `Đã cộng ${quantitySummary(catalog.map(row=>({quantity:row.quantity||0,unit:productUnit({glass_type:row.glass_type})})))} vào kho.` : "Tồn kho được giữ nguyên."}`);
             return;
           }
-          const rows = await readInventoryWorkbook(excelFile);
-          items = rows.map((row) => ({ sku: row.sku, quantity: row.quantity, purchase_price: row.purchase_price }));
+          const rows = await readInventoryWorkbook(excelFile,!canSeeCosts);
+          items = rows.map((row) => ({ sku: row.sku, quantity: row.quantity,...(canSeeCosts?{purchase_price:row.purchase_price}:{}) }));
         }
         if (kind === "receipt" && inventoryMode === "excel" && !(excelFile instanceof File && excelFile.size)) throw new Error("Vui lòng chọn file Excel đã điền.");
-        if (kind === "receipt" && inventoryMode === "single" && String(fd.get("purchase_price") || "") === "") throw new Error("Vui lòng nhập đơn giá mua.");
+        if (canSeeCosts && kind === "receipt" && inventoryMode === "single" && String(fd.get("purchase_price") || "") === "") throw new Error("Vui lòng nhập đơn giá mua.");
         await write("inventory", {
           type: kind,
           reason: fd.get("reason"),
@@ -1572,6 +1604,7 @@ export default function App() {
       items: o.items.map((item) => ({
         product_id:item.product_id,
         kind:item.item_kind||"sale",
+        glassType:data?.products.find(p=>p.id===item.product_id)?.glass_type,
         unit:productUnit(data?.products.find(p=>p.id===item.product_id)),
         sku: item.sku_snapshot || data?.products.find((p) => p.id === item.product_id)?.sku || "",
         name: item.sku_snapshot || data?.products.find((p) => p.id === item.product_id)?.sku || "",
@@ -1600,6 +1633,7 @@ export default function App() {
       items: o.items.map((item) => ({
         product_id:item.product_id,
         kind:item.item_kind||"sale",
+        glassType:data?.products.find(p=>p.id===item.product_id)?.glass_type,
         unit:productUnit(data?.products.find(p=>p.id===item.product_id)),
         sku: item.sku_snapshot || data?.products.find((p) => p.id === item.product_id)?.sku || "",
         name: item.sku_snapshot || data?.products.find((p) => p.id === item.product_id)?.sku || "",
@@ -1621,9 +1655,10 @@ export default function App() {
       return {
         product_id:item.product_id,
         kind:item.item_kind||"sale",
+        glassType:data?.products.find(p=>p.id===item.product_id)?.glass_type,
         unit:productUnit(data?.products.find(p=>p.id===item.product_id)),
-        sku: product?.sku || "",
-        name: product?.sku || "",
+        sku: item.sku_snapshot||product?.sku || "",
+        name: item.sku_snapshot||product?.sku || "",
         quantity: item.quantity,
         unitPrice: Number(item.unit_sale_price || 0),
         note: item.item_note || "",
@@ -1646,9 +1681,10 @@ export default function App() {
   }
   async function exportReport() {
     if (!report) return;
-    await downloadWorkbook(`bao-cao-${from}-${to}.xlsx`, reportSheets(report,canSeeCosts));
+    await downloadWorkbook(`bao-cao-${from}-${to}.xlsx`, reportSheets(report,canSeeCosts,data?.products));
   }
   async function downloadInventoryTemplate() {
+    if(!canSeeCosts){await downloadWorkbook("Nhap-kho-so-luong.xlsx",[{name:"Nhập kho",columns:["Mã kính","Số lượng"],rows:[]}]);return;}
     await downloadWorkbook("mau-nhap-kho-oufeidun.xlsx", [
       {
         name: "Nhập kho",
@@ -1776,7 +1812,7 @@ export default function App() {
                 <div className="order-detail-product" key={i.id}>
                   {p && <button className="order-product-photo" aria-label={`Xem ảnh ${p.sku}`} onClick={() => setModal({ title: `Ảnh sản phẩm · ${p.sku}`, className: "product-photo-modal", body: <div className="product-photo-preview"><ProductArt product={p} /></div> })} type="button"><ProductArt product={p} /></button>}
                   <span className="order-detail-product-info">
-                    <b>{i.sku_snapshot || p?.sku}</b>
+                    <b style={{color:orderProductColor(p?.glass_type,i.sku_snapshot||p?.sku)}}>{i.sku_snapshot || p?.sku}</b>{p&&i.sku_snapshot&&i.sku_snapshot!==p.sku&&<small>Mã hiện tại: {p.sku}</small>}
                     <small>
                       {i.sku_snapshot || p?.sku} · Đặt {i.quantity} {productUnit(p)} · Đã giao {i.delivered_quantity || 0} · Còn thiếu {Math.max(0, i.quantity - (i.delivered_quantity || 0))}
                       {i.item_kind && i.item_kind !== "sale"
@@ -1842,7 +1878,7 @@ export default function App() {
                       <small>{record.reason}</small>
                     </span>
                     <b>Hoàn {money(record.refund_amount)}</b>
-                    {canOperate && <button type="button" onClick={() => {
+                    {canReturns && <button type="button" onClick={() => {
                       setModal(null);
                       abandon(() => { void run(async () => {
                         const {result,data:updated} = await write("exchange", {return_id:record.id});
@@ -1934,7 +1970,7 @@ export default function App() {
                 </button>
               </>
             ) : (
-              canOperate &&
+              canReturns &&
               ["confirmed", "partially_returned"].includes(o.status) && (
                 <>
                   <button type="button" onClick={() => returnOrder(o)}>
@@ -2024,7 +2060,7 @@ export default function App() {
               .map((i) => (
                 <div className="return-input" key={i.id}>
                   <span>
-                    {i.sku_snapshot || data?.products.find(p => p.id === i.product_id)?.sku}
+                    <b style={{color:orderProductColor(data?.products.find(p=>p.id===i.product_id)?.glass_type,i.sku_snapshot||'')}}>{i.sku_snapshot || data?.products.find(p => p.id === i.product_id)?.sku}</b>
                     <small>
                       {i.sku_snapshot} · còn trả được{" "}
                       {(i.delivered_quantity || 0) - (i.returned_quantity || 0)}
@@ -2266,12 +2302,15 @@ export default function App() {
     });
   }
   async function logout() {
-    await releaseOnlineSession();
-    clearCart();
-    setData(null);
-    setModal(null);
-    setReport(null);
-    setError("");
+    try {
+      await releaseOnlineSession();
+    } finally {
+      clearCart();
+      setData(null);
+      setModal(null);
+      setReport(null);
+      setError("");
+    }
   }
   const products =
     data?.products.filter(
@@ -2280,13 +2319,14 @@ export default function App() {
         (filter === "all" || categoryKey(p.glass_type) === categoryKey(filter)) &&
         (page !== "stock" || stockGroup === "all" || (stockGroup === "accessory" ? isAccessory(p) : !isAccessory(p))) &&
         (glassBrand === "all" || p.glass_brand_id === glassBrand) &&
-        [p.sku, p.name, ...p.models].some((value) =>
+        [p.sku, p.name, ...(p.sku_aliases||[]), ...p.models].some((value) =>
           containsProductSearch(value, query),
         ),
     ).sort((a, b) => productSearchRank(a, query) - productSearchRank(b, query)) || [];
   const businessLogs = (data?.logs || []).filter((log) =>
     log.action === "confirm_order" || log.action === "deliver_order" ||
-    (log.action === "inventory" && /^(receipt|opening):/.test(log.detail || "")),
+    log.action === "product.rename" ||
+    (log.action === "inventory" && /^(receipt|opening|adjustment):/.test(log.detail || "")),
   );
   const auditActors = Array.from(
     new Set(businessLogs.map((log) => log.actor_name)),
@@ -2504,7 +2544,7 @@ export default function App() {
             </div>
             <div className="nav-label">Không gian làm việc</div>
             <nav>
-              {nav.filter(([id]) => canOperate || ["sale","lookup","orders","drafts","stock"].includes(id)).map(([id, label, Icon]) => (
+              {nav.filter(([id]) => canPage(id)).map(([id, label, Icon]) => (
                 <button
                   key={id}
                   className={page === id ? "active" : ""}
@@ -2536,9 +2576,10 @@ export default function App() {
                 </span>
               </div>
               <button
+                disabled={busy}
                 onClick={() =>
                   abandon(() => {
-                    void logout();
+                    void run(logout);
                   })
                 }
               >
@@ -2560,6 +2601,7 @@ export default function App() {
                   onClick={() =>
                     run(async () => {
                       await refresh();
+                      if(page==='reports')setReportRevision(value=>value+1);
                       setToast("Đã tải lại dữ liệu.");
                     })
                   }
@@ -2568,16 +2610,17 @@ export default function App() {
                 </button>
                 {page === "stock" && canOperate && (
                   <>
-                    <button onClick={manageGlassBrands}>
+                    <button disabled={!canProducts} onClick={manageGlassBrands}>
                       <Package size={18} /> Thương hiệu
                     </button>
-                    {canSeeCosts && <button onClick={() => inventory("receipt")}>
+                    {canReceive && <button onClick={() => inventory("receipt")}>
                       <ArrowDownToLine size={18} /> Nhập hàng
                     </button>}
-                    <button onClick={bulkPricing}>
+                    <button disabled={!canAdjust} onClick={() => inventory("adjustment")}><SlidersHorizontal size={18} /> Điều chỉnh tồn</button>
+                    <button disabled={!canPrices} onClick={bulkPricing}>
                       <SlidersHorizontal size={18} /> Bảng giá đồng loạt
                     </button>
-                    <button className="primary" onClick={() => editProduct()}>
+                    <button disabled={!canProducts} className="primary" onClick={() => editProduct()}>
                       <Plus size={18} /> Thêm sản phẩm
                     </button>
                   </>
@@ -2587,7 +2630,7 @@ export default function App() {
                     <Plus size={18} /> Đơn mới
                   </button>
                 )}
-                {page === "users" && (
+                {page === "users" && canSeeCosts && (
                   <button className="primary" onClick={() => manageStaff()}>
                     <Plus size={18} /> Thêm nhân viên
                   </button>
@@ -2634,7 +2677,7 @@ export default function App() {
                           <ProductArt product={p} />
                         </button>
                         <div className="product-info">
-                          <strong>{p.sku}</strong>
+                          <strong style={{color:orderProductColor(p.glass_type,p.sku)}}>{p.sku}</strong>
                           
                           <ProductCompatibility product={p} query={query} />
                           <span
@@ -2642,6 +2685,7 @@ export default function App() {
                           >
                             Tồn: {p.on_hand} {productUnit(p)}
                           </span>
+                          {p.draft_quantity!==undefined&&<small className="product-forecast">Trong nháp: {p.draft_quantity} · Dự kiến: {p.on_hand-p.draft_quantity} {productUnit(p)}</small>}
                           <div className="product-price">
                             <span><b>{money(suggestedPrice(p))}</b><small>{suggestedPriceLabel(p)}</small></span>
                             <button
@@ -2783,7 +2827,7 @@ export default function App() {
                             <button className="cart-product-photo" aria-label={`Xem ảnh ${p.sku}`} onClick={() => setModal({ title: `Ảnh sản phẩm · ${p.sku}`, className: "product-photo-modal", body: <div className="product-photo-preview"><ProductArt product={p} /></div> })}><ProductArt product={p} /><span>Xem ảnh</span></button>
                             <div className="cart-line">
                               <div className="line-name">
-                                <b>{p.sku}</b>
+                                <b style={{color:orderProductColor(p.glass_type,p.sku)}}>{i.sku_snapshot||p.sku}</b>{i.sku_snapshot&&i.sku_snapshot!==p.sku&&<small>Mã hiện tại: {p.sku}</small>}
                                 <button
                                   aria-label={`Bỏ ${p.sku}`}
                                   onClick={() => {
@@ -2870,6 +2914,7 @@ export default function App() {
                                 </b>
                               </div>
                               <div className={`cart-stock-status ${i.quantity > availableForLine(cart,i,p.on_hand) ? "short" : ""}`}>Có thể giao {Math.min(i.quantity, availableForLine(cart,i,p.on_hand))} / {i.quantity} {productUnit(p)}{i.quantity > availableForLine(cart,i,p.on_hand) && <b>Thiếu {i.quantity - availableForLine(cart,i,p.on_hand)} {productUnit(p)}</b>}</div>
+                              {p.draft_quantity!==undefined&&cart.find(x=>x.product_id===p.id)===i&&(()=>{const estimate=estimateForCart(p,cart,data.orders.find(o=>o.id===draft?.id)||draft);return <div className={`cart-stock-status ${estimate.remaining<0?'short':''}`}>Nháp khác: {estimate.otherDrafts} · Dự kiến sau đơn này: {estimate.remaining} {productUnit(p)}{estimate.remaining<0&&<b>Dự kiến thiếu {-estimate.remaining} {productUnit(p)}. Vẫn có thể lưu nháp.</b>}</div>})()}
                             </div>
                           </div>
                         );
@@ -2969,8 +3014,11 @@ export default function App() {
                     value={`${products.filter((p) => p.active && p.on_hand < 10).length} mã sản phẩm`}
                     amber
                   />
+                  {sharedOperations&&<Stat icon={<Package/>} label="Trong đơn nháp" value={quantitySummary(products.map(p=>({quantity:p.draft_quantity||0,unit:productUnit(p)})))}/>}
+                  {sharedOperations&&<Stat icon={<SlidersHorizontal/>} label="Tồn dự kiến" value={quantitySummary(products.map(p=>({quantity:p.on_hand-(p.draft_quantity||0),unit:productUnit(p)})))} amber={products.some(p=>p.on_hand<(p.draft_quantity||0))}/>}
                 </div>
-                <section className="panel stock-panel">
+                {sharedOperations&&<div className="list-toolbar"><button className={stockView==='actual'?'primary':''} onClick={()=>setStockView('actual')}>Danh mục và tồn thực tế</button><button className={stockView==='forecast'?'primary':''} onClick={()=>setStockView('forecast')}>Tồn dự kiến</button></div>}
+                {stockView==='forecast'&&sharedOperations?<><section className="panel">{searchBar}</section><StockForecastPanel products={products}/></>:<section className="panel stock-panel">
                   {searchBar}
                   <div className="table-scroll">
                     <table>
@@ -2996,7 +3044,8 @@ export default function App() {
                               <div className="product-cell">
                                 <ProductArt product={p} small />
                                 <span>
-                                  <b>{p.sku}</b>
+                                  <b style={{color:orderProductColor(p.glass_type,p.sku)}}>{p.sku}</b>
+                                  {p.cost_configured===false&&<small className="badge amber">Chưa thiết lập vốn</small>}
                                   
                                   <small>
                                     {typeLabels[p.glass_type]}
@@ -3011,6 +3060,7 @@ export default function App() {
                               >
                                 {p.on_hand} {productUnit(p)}
                               </span>
+                              {p.draft_quantity!==undefined&&<small>Trong nháp: {p.draft_quantity} · Dự kiến: {p.on_hand-p.draft_quantity}</small>}
                             </td>
                             <td>
                               {data.glass_brands.find(
@@ -3028,11 +3078,15 @@ export default function App() {
                               <td>
                                 <div className="actions">
                                   <button
-                                    aria-label={`Sửa ${p.sku}`}
+                                    disabled={!canProducts} aria-label={`Sửa ${p.sku}`}
                                     onClick={() => editProduct(p)}
                                   >
                                     <Pencil size={15} /> Sửa
                                   </button>
+                                  <button
+                                    disabled={!canAdjust} aria-label={`Điều chỉnh tồn ${p.sku}`}
+                                    onClick={() => inventory('adjustment',p)}
+                                  ><SlidersHorizontal size={15} /> Chỉnh tồn</button>
                                   <button
                                     aria-label={`Lịch sử ${p.sku}`}
                                     onClick={() =>
@@ -3043,6 +3097,10 @@ export default function App() {
                                             quantity_delta: number;
                                             balance_after: number;
                                             occurred_at: string;
+                                            reason?: string;
+                                            actor_name?: string;
+                                            sku?: string;
+                                            current_sku?: string;
                                           }[]
                                         >("shop_read", {
                                           action: "history",
@@ -3059,6 +3117,10 @@ export default function App() {
                                                     <small>
                                                       {dateText(r.occurred_at)}
                                                     </small>
+                                                    {r.reason&&<small>Lý do: {r.reason}</small>}
+                                                    <small>Mã lúc ghi: {r.sku||p.sku}</small>
+                                                    {r.current_sku&&r.current_sku!==r.sku&&<small>Mã hiện tại: {r.current_sku}</small>}
+                                                    {r.actor_name&&<small>Người thực hiện: {r.actor_name}</small>}
                                                   </span>
                                                   <b>
                                                     {r.quantity_delta > 0
@@ -3082,7 +3144,7 @@ export default function App() {
                                   </button>
                                   <button
                                     className="danger-outline"
-                                    aria-label={`Xóa ${p.sku}`}
+                                    disabled={!canProducts} aria-label={`Xóa ${p.sku}`}
                                     onClick={() => deleteProduct(p)}
                                   >
                                     <Trash2 size={15} /> Xóa
@@ -3106,15 +3168,13 @@ export default function App() {
                     </span>
                   </div>
                 </section>
+                }
                 {canOperate && (
                   <div className="stock-actions">
-                    <button onClick={() => inventory("damage")}>
+                    <button disabled={!canAdjust} onClick={() => inventory("damage")}>
                       <AlertTriangle size={18} /> Ghi nhận kính lỗi
                     </button>
-                    <button onClick={() => inventory("adjustment")}>
-                      <SlidersHorizontal size={18} /> Điều chỉnh tồn
-                    </button>
-                    <button onClick={() => inventory("issue")}>Xuất kho</button>
+                    <button disabled={!canAdjust} onClick={() => inventory("issue")}>Xuất kho</button>
                     {canSeeCosts && <button onClick={() => inventory("opening")}>
                       Tồn đầu kỳ
                     </button>}
@@ -3276,7 +3336,7 @@ export default function App() {
                 {!data.customers.length && <div className="empty"><Users /><h3>Chưa có khách hàng đã lưu</h3><p>Thông tin khách sẽ tự lưu khi tạo đơn, hoặc thêm thủ công bằng nút phía trên.</p></div>}
               </section>
             )}
-            {page === "reports" && canOperate && (
+            {page === "reports" && canReports && (
               <>
                 <div className="date-filter">
                   <label>
@@ -3297,8 +3357,8 @@ export default function App() {
                       onChange={(e) => setTo(e.target.value)}
                     />
                   </label>
-                  <span>Kỳ báo cáo là khoảng “Từ ngày – Đến ngày” đã chọn · tối đa 366 ngày</span>
-                  <button className="primary" disabled={!report} onClick={() => run(exportReport)}><Download size={17} /> Tải báo cáo Excel</button>
+                  <span>Theo ngày đặt đơn · chỉ đơn đã bán · không phụ thuộc thanh toán · tối đa 366 ngày</span>
+                  <button className="primary" disabled={!report||busy} onClick={() => run(exportReport)}><Download size={17} /> Tải báo cáo Excel</button>
                 </div>
                 {report ? (
                   <>
@@ -3307,7 +3367,7 @@ export default function App() {
                       <Stat
                         icon={<BarChart3 />}
                         label="Doanh thu thuần"
-                        value={money(report.revenue)}
+                        value={money(reportTotals(report).revenue)}
                       />
                       {canSeeCosts && (<Stat
                         icon={<Package />}
@@ -3326,11 +3386,12 @@ export default function App() {
                         <dl>
                           <dt>Tiền hoàn / hủy</dt>
                           <dd>{money(report.refunds)}</dd>
-                          <dt>Khoản thu chi phí khác</dt><dd>{money(report.other_charges || 0)}</dd>
-                          <dt>Tổng giá trị gồm chi phí khác</dt><dd>{money(BigInt(report.revenue) + BigInt(report.other_charges || 0))}</dd>
+                          <dt>Tiền sản phẩm sau trả hàng</dt><dd>{money(reportTotals(report).products)}</dd>
+                          <dt>Chi phí khác trong đơn</dt><dd>{money(reportTotals(report).fees)}</dd>
+                          <dt>Tổng giá trị gồm chi phí khác</dt><dd>{money(reportTotals(report).revenue)}</dd>
                           {canSeeCosts && <><dt>Kính lỗi và hàng trả không bán lại</dt>
                           <dd>{money(report.damage)}</dd></>}
-                          <dt>Số lượng đã xác nhận bán (trước trả)</dt>
+                          <dt>Số lượng đã giao sau trả hàng</dt>
                           <dd>{report.sold}</dd>
                         </dl>
                       </section>
@@ -3344,10 +3405,11 @@ export default function App() {
                         </dl>
                       </section>
                     </div>
-                    <InventoryReport rows={report.inventory} />
-                    <SalesReportTable report={report} canSeeCosts={canSeeCosts} />
-                    <section className="panel sales-performance"><div className="list-toolbar"><h2>Khả năng bán ra của sản phẩm</h2><select aria-label="Xếp hạng bán hàng" value={performanceMode} onChange={(e) => setPerformanceMode(e.target.value as "fast" | "slow")}><option value="fast">Bán chạy nhất</option><option value="slow">Bán chậm nhất</option></select></div><div className="performance-bars">{[...(report.sales || [])].sort((a,b) => performanceMode === "fast" ? b.quantity-a.quantity : a.quantity-b.quantity).slice(0,10).map((row) => { const max=Math.max(1,...(report.sales || []).map((item) => item.quantity)); return <div className="performance-row" key={`${performanceMode}-${row.sku}-${row.sale_price}`}><span><b>{row.sku}</b></span><i><em style={{width:`${Math.max(3,row.quantity/max*100)}%`}} /></i><strong>{row.quantity} {productUnit(data!.products.find(p=>p.sku===row.sku))}</strong></div>})}{!(report.sales || []).length && <div className="empty">Chưa có dữ liệu bán hàng trong kỳ đã chọn.</div>}</div></section>
-                    <section className="panel" style={{marginTop:22}}><div className="list-toolbar"><h2>Chi tiết biến động kho</h2></div><div className="table-scroll"><table><thead><tr><th>Thời gian</th><th>Mã sản phẩm</th><th>Giao dịch</th><th className="number">Số lượng</th><th className="number">Tồn sau</th><th>Sales</th><th>Đơn hàng</th></tr></thead><tbody>{(report.movements || []).map((row, index) => <tr key={`${row.occurred_at}-${row.sku}-${index}`}><td>{dateText(row.occurred_at)}</td><td><b>{row.sku}</b></td><td>{row.movement_type}</td><td className="number">{row.quantity_delta > 0 ? "+" : ""}{row.quantity_delta}</td><td className="number">{row.balance_after}</td><td>{row.sales}</td><td>{row.order_no || "—"}</td></tr>)}</tbody></table></div></section>
+                    <InventoryReport rows={report.inventory} products={data?.products} />
+                    {canSeeCosts&&!!report.unconfigured_products&&<p role="status">Có {report.unconfigured_products} mã còn tồn chưa thiết lập vốn; giá trị tồn theo vốn hiện chưa đầy đủ.</p>}
+                    <SalesReportTable report={report} canSeeCosts={canSeeCosts} products={data?.products} onDetails={p=>setModal({title:"Bán hàng chi tiết · "+p.sku,className:"product-report-modal",body:<ProductReportDetails product={p} from={from} to={to}/>} )} />
+                    <section className="panel sales-performance"><div className="list-toolbar"><h2>Khả năng bán ra của sản phẩm</h2><select aria-label="Xếp hạng bán hàng" value={performanceMode} onChange={(e) => setPerformanceMode(e.target.value as "fast" | "slow")}><option value="fast">Bán chạy nhất</option><option value="slow">Bán chậm nhất</option></select></div><div className="performance-bars">{[...(report.sales || [])].sort((a,b) => performanceMode === "fast" ? b.quantity-a.quantity : a.quantity-b.quantity).slice(0,10).map((row) => { const max=Math.max(1,...(report.sales || []).map((item) => item.quantity)); return <div className="performance-row" key={`${performanceMode}-${row.sku}-${row.sale_price}`}><span><b style={{color:orderProductColor(row.glass_type||data?.products.find(p=>p.sku===row.sku)?.glass_type,row.sku)}}>{row.sku}</b></span><i><em style={{width:`${Math.max(3,row.quantity/max*100)}%`}} /></i><strong>{row.quantity} {productUnit(data!.products.find(p=>p.sku===row.sku))}</strong></div>})}{!(report.sales || []).length && <div className="empty">Chưa có dữ liệu bán hàng trong kỳ đã chọn.</div>}</div></section>
+                    <section className="panel" style={{marginTop:22}}><div className="list-toolbar"><h2>Chi tiết biến động kho</h2></div><div className="table-scroll"><table><thead><tr><th>Thời gian</th><th>Mã sản phẩm</th><th>Giao dịch</th><th className="number">Số lượng</th><th className="number">Tồn sau</th><th>Sales</th><th>Đơn hàng</th><th>Lý do / ghi chú</th><th>Mã hiện tại</th></tr></thead><tbody>{(report.movements || []).map((row, index) => <tr key={`${row.occurred_at}-${row.sku}-${index}`}><td>{dateText(row.occurred_at)}</td><td><b style={{color:orderProductColor(row.glass_type||data?.products.find(p=>p.sku===row.sku)?.glass_type,row.sku)}}>{row.sku}</b></td><td>{row.movement_type}</td><td className="number">{row.quantity_delta > 0 ? "+" : ""}{row.quantity_delta}</td><td className="number">{row.balance_after}</td><td>{row.sales}</td><td>{row.order_no || "—"}</td><td className="log-detail">{row.reason || "—"}</td><td>{row.current_sku||row.sku}</td></tr>)}</tbody></table></div></section>
                     <div className="info-box">
                       <ShieldCheck size={20} />
                       <p>
@@ -3361,7 +3423,7 @@ export default function App() {
                 )}
               </>
             )}
-            {page === "users" && canOperate && (
+            {page === "users" && canSeeCosts && (
               <section className="panel">
                 <table>
                   <thead>
@@ -3392,6 +3454,7 @@ export default function App() {
                         <td>
                           {u.role === "staff" ? (
                             <div className="actions">
+                              <button onClick={()=>editPermissions(u)}>Phân quyền</button>
                               <button
                                 onClick={() =>
                                   setModal({
@@ -3451,11 +3514,11 @@ export default function App() {
                   </tbody>
                 </table>
                 <div className="table-foot">
-                  <LockKeyhole size={14} /> Nhân viên có cùng quyền nghiệp vụ, ngoại trừ nhập hàng và xem giá vốn, giá nhập. Tài khoản Admin được bảo vệ để giữ riêng quyền xem giá vốn.
+                  <LockKeyhole size={14} /> Admin cấp quyền riêng từng nhân viên. Tài khoản mới chỉ có quyền bán hàng cơ bản; giá vốn, giá nhập và lợi nhuận chỉ Admin được xem.
                 </div>
               </section>
             )}
-            {page === "audit" && canOperate && (
+            {page === "audit" && canAudit && (
               <section className="panel">
                 <div className="audit-toolbar">
                   <label>
@@ -3508,7 +3571,7 @@ export default function App() {
                         <tr key={l.id}>
                           <td>{dateText(l.created_at)}</td>
                           <td>{l.actor_name}</td>
-                          <td>{l.action === "inventory" ? (l.detail?.startsWith("opening:") ? "Nhập hàng ban đầu" : "Nhập hàng") : actionLabels[l.action] || l.action}</td>
+                          <td>{l.action === "inventory" ? (l.detail?.startsWith("adjustment:") ? "Điều chỉnh tồn" : l.detail?.startsWith("opening:") ? "Nhập hàng ban đầu" : "Nhập hàng") : actionLabels[l.action] || l.action}</td>
                           <td className="log-detail">{auditDetail(l, data)}</td>
                         </tr>
                       ))}
@@ -3528,7 +3591,7 @@ export default function App() {
                 </div>
               </section>
             )}
-            {page === "lookup" && <SharedLookup />}
+            {page === "lookup" && <SharedLookup products={data.products} />}
           </main>
         </div>
       )}
@@ -3749,7 +3812,7 @@ function OrderBill({ order, products }: { order: Order; products: Product[] }) {
               <tr key={item.id || item.product_id}>
                 <td>{index + 1}</td>
                 <td>
-                  <b>{name}</b>
+                  <b style={{color:orderProductColor(p?.glass_type,name)}}>{name}</b>
                   <small>
                     Dùng chung: {(item.models_snapshot ?? p?.models ?? []).join(', ') || 'Chưa có'}
                     {item.item_kind && item.item_kind !== "sale"
@@ -3796,7 +3859,7 @@ function OrderBill({ order, products }: { order: Order; products: Product[] }) {
     </div>
   );
 }
-function SharedLookup() {
+function SharedLookup({products}:{products:Product[]}) {
   const [query, setQuery] = useState(""),
     [items, setItems] = useState<SharedLookupItem[]>([]),
     [loading, setLoading] = useState(false),
@@ -3828,7 +3891,16 @@ function SharedLookup() {
     setLoading(true);
     setMessage("");
     try {
-      const result = await lookupSharedProducts(query);
+      const local=products.filter(p=>p.active&&p.sku_aliases?.length&&[p.sku,...p.sku_aliases,...p.models].some(value=>containsProductSearch(value,query))).map(p=>({id:p.id,sku:p.sku,name:p.sku,glassTypes:[p.glass_type],images:[],matchedModels:[],compatibleModels:p.models,previousSkus:p.sku_aliases} as SharedLookupItem));
+      let remote:SharedLookupItem[]=[];
+      try{remote=await lookupSharedProducts(query);}catch(e){if(!local.length)throw e;}
+      const merged=new Map<string,SharedLookupItem>();
+      for(const item of [...local,...remote]){
+        const p=products.find(p=>p.sku===item.sku||p.sku_aliases?.includes(item.sku));
+        const value=p?.sku_aliases?.length?{...item,sku:p.sku,previousSkus:p.sku_aliases}:item;
+        merged.set(value.sku.toLocaleUpperCase('vi'),value);
+      }
+      const result=[...merged.values()];
       setItems(result);
       if (!result.length) setMessage("Không tìm thấy mã kính phù hợp.");
     } catch {
@@ -3889,6 +3961,7 @@ function SharedLookup() {
               <div className="lookup-result-content">
                 <div>
                   <b>{item.sku}</b>
+                  {!!item.previousSkus?.length&&<small>Mã cũ: {item.previousSkus.join(', ')}</small>}
                   
                 </div>
                 <p>

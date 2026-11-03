@@ -4,8 +4,12 @@ export type User = {
   display_name: string;
   role: Role;
   active: boolean;
+  permissions?: Partial<Record<'receive_stock'|'adjust_stock'|'manage_products'|'manage_prices'|'manage_returns'|'view_reports'|'view_audit',boolean>>;
+  permissions_version?: number;
 };
 export type Product = {
+  cost_configured?: boolean;
+  sku_aliases?: string[];
   id: string;
   sku: string;
   name: string;
@@ -17,6 +21,7 @@ export type Product = {
   wholesale_price?: string;
   fixed_cost?: string;
   on_hand: number;
+  draft_quantity?: number;
   version: number;
   price_version: number;
   stock_version: number;
@@ -152,6 +157,7 @@ export type Workspace = {
   customer_prices: { customer_id: string; product_id: string; unit_price: string }[];
 };
 export type Report = {
+  product_revenue?: string;
   other_charges?: string;
   order_value?: string;
   revenue: string;
@@ -163,15 +169,23 @@ export type Report = {
   stock: number;
   stock_value?: string;
   order_count?: number;
+  unconfigured_products?: number;
   sales?: {
+    product_id?: string;
+    glass_type?: string;
+    sku_aliases?: string[]; current_sku?: string;
     sku: string; name: string; unit_cost?: string; sale_price: string;
     quantity: number; total_cost?: string; revenue: string; profit?: string;
   }[];
   movements?: {
-    occurred_at: string; sku: string; name: string; movement_type: string;
+    glass_type?: string;
+    sku_aliases?: string[]; current_sku?: string;
+    occurred_at: string; sku: string; name: string; movement_type: string; reason?: string | null;
     quantity_delta: number; balance_after: number; sales: string; order_no?: string | null;
   }[];
   inventory: {
+    glass_type?: string;
+    sku_aliases?: string[]; current_sku?: string;
     sku: string;
     name: string;
     opening: number;

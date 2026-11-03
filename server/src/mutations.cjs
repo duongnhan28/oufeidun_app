@@ -2,7 +2,8 @@ const { appError, assert, uuid, newId, cleanText, moneyValue, positiveInt, canon
 
 const glassTypes = new Set(['clear','privacy','matte','other','full_border','premium_borderless']);
 const { orderDate } = require('./order-details.cjs');
-const {requireOperator,rejectCostWrite} = require('./permissions.cjs');
+const {requireOperator,rejectCostWrite,requirePermission,allowed} = require('./permissions.cjs');
+const {reserveSku,resolveSku}=require('./sku-names.cjs');
 
 async function lockOrder(db, actor, id) {
   const [[order]] = await db.execute('SELECT * FROM sales_orders WHERE id=? FOR UPDATE', [uuid(id)]);
@@ -23,9 +24,18 @@ async function mutate(actor, payload) {
   const action = String(payload.action || '');
   const key = uuid(payload.key);
   requireOperator(actor);
-  // Receiving stock (including opening balances and catalog imports) stays Admin-only.
+  // Permission checks precede retry lookup: revoked requests cannot replay writes.
+  rejectCostWrite(actor,payload);
+  if(action==='product'||action==='glass_brand')requirePermission(actor,'manage_products');
+  if(['cancel_order','return_order','exchange'].includes(action))requirePermission(actor,'manage_returns');
+  if(['staff_create','staff_state','staff_name'].includes(action))assert(actor.role==='admin','FORBIDDEN',403);
+  if(action==='inventory'){
+    if(payload.type==='receipt')requirePermission(actor,'receive_stock');
+    else if(payload.type==='opening')assert(actor.role==='admin','FORBIDDEN',403);
+    else requirePermission(actor,'adjust_stock');
+  }
   if (actor.role !== 'admin') {
-    assert(action !== 'import_products' && !(action === 'inventory' && ['receipt','opening'].includes(payload.type)), 'FORBIDDEN',403);
+    assert(action !== 'import_products' && !(action === 'inventory' && payload.type==='opening'), 'FORBIDDEN',403);
   }
   return transaction(async db => {
     const payloadText = canonical(payload);
@@ -40,7 +50,9 @@ async function mutate(actor, payload) {
       const items = Array.isArray(payload.items) ? payload.items : [];
       assert(items.length >= 1 && items.length <= 100);
       const orderCode = cleanText(payload.order_code, 50, true);
-      const [duplicateCodes] = await db.execute('SELECT id FROM sales_orders WHERE LOWER(order_code)=LOWER(?) AND (? IS NULL OR id<>?) LIMIT 1 FOR UPDATE', [orderCode, payload.id || null, payload.id || null]);
+      // This is only an early validation read. The unique live-code index is the
+      // concurrency guard; locking this LOWER/full-scan read can deadlock inserts.
+      const [duplicateCodes] = await db.execute("SELECT id FROM sales_orders WHERE status<>'deleted' AND LOWER(order_code)=LOWER(?) AND (? IS NULL OR id<>?) LIMIT 1", [orderCode, payload.id || null, payload.id || null]);
       assert(!duplicateCodes.length, 'ORDER_CODE_EXISTS', 409);
       const customerName = cleanText(payload.customer_name, 200, true);
       const customerPhone = cleanText(payload.customer_phone, 30, true);
@@ -51,16 +63,24 @@ async function mutate(actor, payload) {
       const products = await lockProducts(db, items.map(item => item.product_id));
       const productMap = new Map(products.map(product => [product.id, product]));
       let orderId;
+      const savedLabels=new Map();
+      try {
       if (payload.id) {
         const order = await lockOrder(db, actor, payload.id);
         assert(order.status === 'draft', 'INVALID_ORDER_STATE', 409);
         assert(Number(order.version) === Number(payload.version), 'VERSION_CONFLICT', 409);
         orderId = order.id;
+        const [savedItems]=await db.execute('SELECT product_id,item_kind,sku_snapshot FROM sales_order_items WHERE order_id=?',[orderId]);
+        for(const saved of savedItems)savedLabels.set(saved.product_id+':'+saved.item_kind,saved.sku_snapshot);
         await db.execute('DELETE FROM sales_order_items WHERE order_id=?', [orderId]);
         await db.execute(`UPDATE sales_orders SET order_code=?,customer_name=?,customer_phone=?,note=?,ordered_at=COALESCE(?,ordered_at),extra_cost=COALESCE(?,extra_cost),extra_cost_note=COALESCE(?,extra_cost_note),total_amount=0,version=version+1,updated_at=NOW(3) WHERE id=?`, [orderCode, customerName, customerPhone, note, orderedAt, extraCost, extraCostNote, orderId]);
       } else {
         orderId = newId();
         await db.execute(`INSERT INTO sales_orders(id,order_code,created_by,sales_user_id,customer_name,customer_phone,note,ordered_at,extra_cost,extra_cost_note) VALUES (?,?,?,?,?,?,?,COALESCE(?,NOW(3)),?,?)`, [orderId, orderCode, actor.id, actor.id, customerName, customerPhone, note, orderedAt, extraCost ?? '0', extraCostNote ?? '']);
+      }
+      } catch(error) {
+        if(error.code==='ER_DUP_ENTRY' && /sales_orders_(?:active_)?order_code_unique/.test(error.sqlMessage||''))throw appError('ORDER_CODE_EXISTS',409);
+        throw error;
       }
       let total = 0n;
       const draftLines=new Set();
@@ -72,16 +92,18 @@ async function mutate(actor, payload) {
         const quantity = positiveInt(item.quantity);
         const customName = item.custom_name == null ? null : cleanText(item.custom_name, 200, true);
         const price = kind==='sale'?String(product.sale_price):'0';
+        let selectedSku=product.sku;
+        if(item.selected_sku){selectedSku=cleanText(item.selected_sku,50,true).toUpperCase();const owner=await resolveSku(db,selectedSku);assert(owner&&owner.id===product.id,'SKU_ALIAS_CONFLICT',409);}
         total += BigInt(price) * BigInt(quantity);
         await db.execute(`INSERT INTO sales_order_items
-          (id,order_id,product_id,quantity,custom_name,unit_sale_price,quoted_price_version,item_kind,line_position)
-          VALUES (?,?,?,?,?,?,?,?,?)`, [newId(), orderId, product.id, quantity, customName, price, product.price_version,kind,position]);
+          (id,order_id,product_id,quantity,custom_name,unit_sale_price,quoted_price_version,item_kind,line_position,sku_snapshot)
+          VALUES (?,?,?,?,?,?,?,?,?,?)`, [newId(), orderId, product.id, quantity, customName, price, product.price_version,kind,position,savedLabels.get(identity)||selectedSku]);
       }
       await db.execute('UPDATE sales_orders SET total_amount=?+extra_cost WHERE id=?', [total.toString(), orderId]);
       if (payload.sale_details) {
         const services=require('./services.cjs');
         const details=payload.sale_details;
-        const customer=await services.saveCustomer(actor,{id:details.customer_id,customer_type:details.customer_type,name:customerName,phone:customerPhone,address:details.customer_address,note:details.customer_note||''},db);
+        const customer=await services.saveCustomer(actor,{id:details.customer_id,from_order:true,customer_type:details.customer_type,name:customerName,phone:customerPhone,address:details.customer_address,note:details.customer_note||''},db);
         await services.saveOrderBusiness(actor,{order_id:orderId,order_code:orderCode,customer_id:customer.id,sales_user_id:details.sales_user_id,fulfillment_status:details.fulfillment_status,missing_summary:details.missing_summary},db);
         await services.saveOrderFeatures(actor,{...details,action:'save',order_id:orderId,items:items},db);
       }
@@ -123,6 +145,7 @@ async function mutate(actor, payload) {
         const lineKey=item.product_id+':'+kind;assert(!lineTypes.has(lineKey));lineTypes.add(lineKey);
         const product = productMap.get(item.product_id);
         assert(product.active, 'PRODUCT_INACTIVE', 409);
+        assert(product.cost_configured!==0&&product.cost_configured!==false,'COST_NOT_CONFIGURED',409);
         assert(Number(product.price_version) === Number(item.quoted_price_version), 'PRICE_CHANGED', 409);
         let expectedPrice = String(product.sale_price);
         if (order.customer_type === 'wholesale') {
@@ -149,7 +172,7 @@ async function mutate(actor, payload) {
         if (delivered) { await moveStock(db, product.id, -delivered, 'sale', actor.id, { sale: item.id }); product.on_hand=Number(product.on_hand)-delivered; }
         if (delivered) await db.execute(`INSERT INTO order_delivery_items(batch_id,order_item_id,quantity,unit_price_snapshot)
           VALUES (?,?,?,?)`, [deliveryBatchId, item.id, delivered, price]);
-        await db.execute(`UPDATE sales_order_items SET delivered_quantity=?,sku_snapshot=?,product_name_snapshot=?,unit_sale_price=?,unit_cost_snapshot=?,models_snapshot=CAST(? AS JSON) WHERE id=?`, [delivered, product.sku, item.custom_name || product.name, price, product.fixed_cost, JSON.stringify(jsonArray(product.models)), item.id]);
+        await db.execute(`UPDATE sales_order_items SET delivered_quantity=?,sku_snapshot=?,product_name_snapshot=?,unit_sale_price=?,unit_cost_snapshot=?,models_snapshot=CAST(? AS JSON) WHERE id=?`, [delivered, item.sku_snapshot||product.sku, item.custom_name || product.name, price, product.fixed_cost, JSON.stringify(jsonArray(product.models)), item.id]);
         total += BigInt(price) * BigInt(delivered);
         if (delivered < ordered) stillShort = true;
       }
@@ -279,18 +302,24 @@ async function mutate(actor, payload) {
         productId = newId();
         await db.execute(`INSERT INTO products(id,sku,name,glass_type,models,brand,glass_brand_id,image_path,sale_price,wholesale_price,fixed_cost,active)
           VALUES (?,?,?,?,CAST(? AS JSON),?,?,?,?,0,?,?)`, [productId, sku, name, payload.glass_type, JSON.stringify(models), brand, glassBrandId, imagePath, salePrice, fixedCost, payload.active !== false]);
+        await reserveSku(db,productId,sku);
+        await db.execute('UPDATE products SET cost_configured=? WHERE id=?',[actor.role==='admin',productId]);
+        if(!allowed(actor,'manage_prices'))assert(salePrice==='0'&&moneyValue(payload.wholesale_price||'0')==='0','FORBIDDEN',403);
       } else {
         productId = uuid(payload.id);
         const [[product]] = await db.execute('SELECT * FROM products WHERE id=? AND deleted_at IS NULL FOR UPDATE', [productId]);
         assert(product && Number(product.version) === Number(payload.version), 'VERSION_CONFLICT', 409);
+        if(!allowed(actor,'manage_prices'))assert(salePrice===String(product.sale_price)&&(payload.wholesale_price===undefined||moneyValue(payload.wholesale_price)===String(product.wholesale_price)),'FORBIDDEN',403);
         if(actor.role!=='admin')fixedCost=String(product.fixed_cost);
         if (product.sku !== sku) {
-          const [[usage]] = await db.execute(`SELECT (SELECT COUNT(*) FROM inventory_movements WHERE product_id=?) + (SELECT COUNT(*) FROM sales_order_items WHERE product_id=?) count`, [productId, productId]);
-          assert(!Number(usage.count), 'SKU_IMMUTABLE', 409);
+          await reserveSku(db,productId,sku);
+          await db.execute('INSERT INTO product_sku_renames(id,product_id,old_sku,new_sku,actor_id) VALUES (?,?,?,?,?)',[newId(),productId,product.sku,sku,actor.id]);
+          await audit(db,actor.id,'product.rename',`${product.id} / ${product.sku} -> ${sku}`);
         }
         const priceChanged = String(product.sale_price) !== salePrice;
         await db.execute(`UPDATE products SET sku=?,name=?,glass_type=?,models=CAST(? AS JSON),brand=?,glass_brand_id=?,image_path=?,sale_price=?,fixed_cost=?,active=?,version=version+1,price_version=price_version+? WHERE id=?`, [sku, name, payload.glass_type, JSON.stringify(models), brand, glassBrandId, imagePath, salePrice, fixedCost, payload.active !== false, priceChanged ? 1 : 0, productId]);
       }
+      if(actor.role==='admin')await db.execute('UPDATE products SET cost_configured=TRUE WHERE id=?',[productId]);
       if(payload.wholesale_price!==undefined){
         const wholesale=moneyValue(payload.wholesale_price);
         await db.execute('UPDATE products SET price_version=price_version+IF(wholesale_price<>?,1,0),wholesale_price=? WHERE id=?',[wholesale,wholesale,productId]);
@@ -317,11 +346,14 @@ async function mutate(actor, payload) {
           const sku = cleanText(item.sku, 50, true).toUpperCase();
           assert(sku.length <= 50 && !seenSkus.has(sku));
           seenSkus.add(sku);
+          const known=await resolveSku(db,sku);
           const createdId = newId();
-          await db.execute(`INSERT INTO products(id,sku,name,glass_type,models,brand,sale_price,wholesale_price,fixed_cost)
+          if(!known)await db.execute(`INSERT INTO products(id,sku,name,glass_type,models,brand,sale_price,wholesale_price,fixed_cost)
             VALUES (?,?,?,'other',JSON_ARRAY(),'other',0,0,?) ON DUPLICATE KEY UPDATE id=id`, [createdId,sku,sku,actor.role==='admin'?moneyValue(item.purchase_price):'0']);
-          const [[product]] = await db.execute('SELECT id,deleted_at FROM products WHERE sku=? FOR UPDATE', [sku]);
+          const [[product]] = await db.execute('SELECT id,sku,deleted_at FROM products WHERE '+(known?'id':'sku')+'=? FOR UPDATE', [known?known.id:sku]);
           assert(product && !product.deleted_at, 'PRODUCT_NOT_FOUND', 409);
+          await reserveSku(db,product.id,product.sku);
+          if(product.id===createdId)await db.execute('UPDATE products SET cost_configured=? WHERE id=?',[actor.role==='admin',product.id]);
           resolved.push({...item,product_id:product.id});
         } else resolved.push(item);
       }

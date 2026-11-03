@@ -40,7 +40,7 @@ Copy-Item -LiteralPath $setup -Destination (Join-Path $client 'Oufeidun-Setup.ex
 Copy-Item -LiteralPath (Join-Path $root 'out\Oufeidun-win32-x64') -Destination (Join-Path $client 'App') -Recurse
 Copy-Item -LiteralPath $guide -Destination (Join-Path $bundle 'BAT-DAU-O-DAY.txt')
 # Deliberately exclude installed credentials, customer data and developer certificates.
-$forbidden=@(Get-ChildItem -LiteralPath $bundle -Recurse -File|Where-Object {$_.Name-in @('server-info.json','server.env','root.crt','connection.json','server-profile.json','discovery-identity.json')-or$_.Name-like '.env*'})
+$forbidden=@(Get-ChildItem -LiteralPath $bundle -Recurse -File|Where-Object {$_.Name-in @('server-info.json','server.env','root.crt','connection.json','server-profile.json','discovery-identity.json','rclone.conf','drive-settings.json','upload-state.json')-or$_.Name-like '.env*'})
 if($forbidden.Count){throw 'Bundle co cau hinh rieng hoac bi mat; dung ban giao.'}
 Get-ChildItem -LiteralPath $bundle -Recurse -File|Get-FileHash -Algorithm SHA256|ForEach-Object {"$($_.Hash)  $($_.Path.Substring($bundle.Length+1))"}|Set-Content (Join-Path $bundle 'SHA256SUMS.txt') -Encoding ascii
 if(-not $SkipZip){

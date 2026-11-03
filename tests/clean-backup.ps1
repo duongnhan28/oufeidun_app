@@ -18,3 +18,8 @@ if(-not(Test-Path (Join-Path $backup.Directory 'uploads.zip'))){throw 'Missing i
 if((Get-Item (Join-Path $backup.Directory 'database.sql')).Length-lt 128){throw 'Empty dump'}
 if(-not(Test-Path (Join-Path $backup.Directory 'SHA256SUMS.txt'))){throw 'Missing checksum'}
 Write-Output 'PASS real backup: test DB, isolated data dir, SQL/uploads/checksum and PassThru'
+$hookDir=Join-Path $data 'tools\drive-backup';New-Item -ItemType Directory -Path $hookDir -Force|Out-Null
+@('param($DataDir)','Write-Host "simulated offline cloud"','exit 1')|Set-Content (Join-Path $hookDir 'upload-drive.ps1') -Encoding ascii
+$retryBackup=@(& (Join-Path $root 'deployment\customer\server\scripts\backup-server.ps1') -EnvFile $envFile -PassThru)
+if($retryBackup.Count-ne1-or-not(Test-Path (Join-Path $retryBackup[0].Directory 'database.sql'))){throw 'Cloud failure changed local backup/PassThru result'}
+Write-Output 'PASS cloud hook: failed upload preserves complete local backup and single PassThru object'

@@ -1,6 +1,7 @@
 const { assert, cleanText, moneyValue, positiveInt, moveStock, audit, newId } = require('./core.cjs');
 const types = new Set(['clear','privacy','matte','other','full_border','premium_borderless']);
 const {requireAdmin} = require('./auth.cjs');
+const {resolveSku,reserveSku}=require('./sku-names.cjs');
 
 // Called inside mutate's transaction: metadata, brands, costs and retry key commit together.
 async function importProducts(db, payload, actor) {
@@ -32,19 +33,21 @@ async function importProducts(db, payload, actor) {
   let documentId = null;
   const ids = new Set();
   for (const item of items) {
+    const known=await resolveSku(db,item.sku);
     const id = newId();
-    await db.execute(`INSERT INTO products(id,sku,name,glass_type,models,brand,sale_price,wholesale_price,fixed_cost,glass_brand_id)
+    if(!known)await db.execute(`INSERT INTO products(id,sku,name,glass_type,models,brand,sale_price,wholesale_price,fixed_cost,glass_brand_id)
       VALUES (?,?,?,?,CAST(? AS JSON),?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id`,
       [id,item.sku,item.sku,item.type,JSON.stringify(item.models),item.brand,item.sale,item.wholesale,item.cost,brands.get(item.glassBrand) || null]);
-    const [[product]] = await db.execute('SELECT id,name,deleted_at FROM products WHERE sku=? FOR UPDATE', [item.sku]);
+    const [[product]] = await db.execute('SELECT id,sku,name,deleted_at FROM products WHERE '+(known?'id':'sku')+'=? FOR UPDATE', [known?known.id:item.sku]);
     assert(product && !product.deleted_at, 'PRODUCT_NOT_FOUND', 409);
+    await reserveSku(db,product.id,product.sku);
     // Also catch aliases considered equal by the database collation.
     assert(!ids.has(product.id)); ids.add(product.id);
     if (product.id === id) created++;
     else {
       await db.execute(`UPDATE products SET glass_type=?,models=CAST(? AS JSON),brand=?,glass_brand_id=?,
         price_version=price_version+IF(sale_price<>? OR wholesale_price<>?,1,0),
-        sale_price=?,wholesale_price=?,fixed_cost=?,version=version+1 WHERE id=?`,
+        sale_price=?,wholesale_price=?,fixed_cost=?,cost_configured=TRUE,version=version+1 WHERE id=?`,
         [item.type,JSON.stringify(item.models),item.brand,brands.get(item.glassBrand) || null,item.sale,item.wholesale,item.sale,item.wholesale,item.cost,product.id]);
       updated++;
     }
@@ -56,7 +59,7 @@ async function importProducts(db, payload, actor) {
       const lineId = newId();
       // There is no purchase-price column; fixed cost is a separate accounting snapshot.
       await db.execute(`INSERT INTO inventory_document_items(id,document_id,product_id,quantity_delta,unit_purchase_price,fixed_cost_snapshot,sku_snapshot,name_snapshot)
-        VALUES (?,?,?,?,NULL,?,?,?)`, [lineId,documentId,product.id,item.quantity,item.cost,item.sku,product.name]);
+        VALUES (?,?,?,?,NULL,?,?,?)`, [lineId,documentId,product.id,item.quantity,item.cost,product.sku,product.name]);
       await moveStock(db, product.id, item.quantity, 'receipt', actor.id, { doc: lineId });
     }
   }

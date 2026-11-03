@@ -20,7 +20,8 @@ test('new Excel template imports catalog with quantities, updates prices and dis
  const row=page.locator('tbody tr').filter({hasText:'CAT-UI'}),old=page.locator('tbody tr').filter({hasText:'IP15-TR'});
  await expect(row).toContainText('4 tấm');await expect(old).toContainText('53 tấm');
  await expect(page.getByRole('columnheader',{name:'Số lượng tồn',exact:true})).toBeVisible();
- await expect(row.locator('td').nth(1)).toHaveText('4 tấm');
+ await expect(row.locator('td').nth(1).locator('.badge')).toHaveText('4 tấm');
+ await expect(row.locator('td').nth(1)).toContainText('Trong nháp: 0 · Dự kiến: 4');
  await page.getByRole('button',{name:'Sửa CAT-UI',exact:true}).click();
  await expect(page.getByLabel('Giá bán (đ)',{exact:true})).toHaveValue('30000');
  await expect(page.getByLabel('Giá sỉ mặc định (đ)',{exact:true})).toHaveValue('24000');

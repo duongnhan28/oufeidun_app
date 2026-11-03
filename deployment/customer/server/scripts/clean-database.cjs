@@ -1,6 +1,6 @@
 const fs=require('node:fs');
 const path=require('node:path');
-const TABLES=['mutation_requests','audit_logs','inventory_movements','inventory_document_items','inventory_documents','sales_payments','sales_return_items','order_delivery_items','order_delivery_batches','sales_order_items','customer_product_prices','sales_returns','sales_orders','customers','products','glass_brands'];
+const TABLES=['mutation_requests','audit_logs','inventory_movements','inventory_document_items','inventory_documents','sales_payments','sales_return_items','order_delivery_items','order_delivery_batches','sales_order_items','customer_product_prices','sales_returns','sales_orders','customers','product_sku_renames','product_sku_names','products','glass_brands'];
 const KEEP=['app_users','schema_migrations'];
 async function inspect(connection){
  const [rows]=await connection.query('SELECT TABLE_NAME name,ENGINE engine FROM information_schema.tables WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE=\'BASE TABLE\'');

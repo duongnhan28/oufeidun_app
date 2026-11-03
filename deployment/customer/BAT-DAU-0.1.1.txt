@@ -1,0 +1,117 @@
+OUFEIDUN LOCAL 0.1.1 — BUILD MỚI 03/11/2026
+Giữ version 0.1.1, bổ sung tồn dự kiến, Excel kho dự kiến và sửa phiên đăng nhập.
+Cần cập nhật CẢ MÁY CHỦ/API VÀ APP MỌI MÁY. Không gửi riêng EXE.
+
+CẬP NHẬT CỬA HÀNG ĐÃ CÀI
+1. Lưu đơn đang soạn, đóng app mọi máy và tạm ngừng bán trong lúc cập nhật.
+2. Giải nén ZIP vào folder mới, ngoài thư mục dữ liệu đang chạy. Giữ nguyên folder
+   dữ liệu/config/DB/ảnh/tài khoản cũ; không clean data, không cài lại MySQL.
+3. Trên máy chủ chạy 01-MAY-CHU\CAP-NHAT.bat, chấp nhận Administrator.
+   Nếu hỏi, chọn folder dữ liệu CŨ có config\server.env và app.
+   Tool backup DB/ảnh/config, cập nhật API, chạy migration còn thiếu đến 013 rồi
+   khởi động lại. Migration 011 lưu alias/lịch sử đổi mã và nhãn nháp còn trống;
+   012 thêm quyền từng tài khoản và trạng thái thiết lập vốn; 013 thêm thời hạn
+   phiên đăng nhập. Không reset dữ liệu. Sau cập nhật đăng nhập lại một lần.
+4. Chạy KIEM-TRA-LOI.bat. Nếu lỗi, giữ backup/log để hỗ trợ; chưa mở bán lại.
+5. Chạy TAO-BO-MAY-NHAN-VIEN.bat ở máy chủ. Chép TOÀN BỘ bộ client vừa xuất
+   sang từng máy, không chép config/khóa riêng của máy chủ.
+6. Máy đã cài: đóng app, chạy 02-MAY-CLIENT\CAP-NHAT.bat.
+   Máy portable: dùng MO-APP.bat trong folder mới và đổi shortcut cũ.
+   Máy chủ cũng cập nhật app nếu dùng bán hàng. Mọi máy phải cùng build mới.
+7. Kiểm tra đăng nhập, đơn/nháp cũ, tồn/ảnh, tìm khách/Sales, quyền từng nhân viên,
+   báo cáo và Excel. Không chốt đơn thử nếu không muốn phát sinh kho/doanh thu.
+
+TỒN DỰ KIẾN VÀ HÀNG ĐÃ GIAO
+- Tồn dự kiến = tồn hiện tại - tất cả đơn nháp đang lưu của cửa hàng.
+- Có thể âm; chỉ cảnh báo, không giữ hàng hoặc trừ kho khi lưu nháp. Nháp xóa
+  không tính; sửa nháp loại lượng đã lưu của chính nháp trước khi tính lại.
+- Bán hàng có nhãn dự kiến và cảnh báo thiếu; vẫn giữ kiểm tồn thực tế khi bán.
+- Kho hàng > Tồn dự kiến: chọn kỳ hàng đã giao, mặc định hôm nay; tải Excel theo
+  bộ lọc sản phẩm đang chọn. Tồn/nháp là hiện tại, không bị lọc theo kỳ đã giao.
+- Hàng đã giao là lượng xuất bán thực tế trong kỳ (gồm giao bổ sung), trước
+  hoàn/hủy; đã trừ kho nên không trừ lần nữa. Hoàn/hủy theo báo cáo kho cũ.
+
+PHIÊN ĐĂNG NHẬP SAU MẤT MẠNG/SLEEP
+- Phiên mặc định 12 giờ từ lúc login, không theo giờ 17h. Mất kết nối quá90s
+  không tự hết phiên. Nối lại được nếu phiên chưa hết hạn/thu hồi.
+- Khi tài khoản được máy khác nhận phiên, đổi/reset mật khẩu, khóa/xóa hoặc
+  hết12h thì phải login lại. Đóng/mở lại app vẫn cần login, không lưu mật khẩu.
+- Sửa đăng xuất mạng lỗi/đăng nhập nhiều lần và phản hồi phiên cũ đến muộn.
+- Không cần sửa config cũ. Cần cập nhật máy chủ trước và app mọi máy.
+- Cập nhật qua website chưa có trong bản này. Vẫn dùng bộ ZIP/BAT.
+
+PHÂN QUYỀN TÀI KHOẢN
+- Admin vào Nhân viên > Phân quyền, đánh dấu quyền muốn cấp rồi lưu.
+- Bảy quyền: nhập hàng/Excel số lượng; chỉnh tồn/xuất/lỗi; danh mục sản phẩm;
+  giá chung; trả/đổi/hủy đơn đã bán; báo cáo; lịch sử thao tác.
+- Nhân viên mới mặc định bán hàng/nháp/chứng từ/khách hàng/tra cứu tồn.
+  Tài khoản cũ giữ quyền nghiệp vụ trước cập nhật, trừ quản trị tài khoản chỉ Admin.
+- Chỉ Admin xem/sửa vốn, giá nhập, lợi nhuận và quản trị tài khoản khác.
+  Quyền theo tài khoản, không theo máy. Đăng nhập Admin ở máy nào vẫn toàn quyền.
+- Cấp/thu hồi được kiểm tra ở yêu cầu API tiếp theo. App tải quyền khi focus,
+  bấm Tải lại dữ liệu hoặc định kỳ 10 giây; không cần đăng xuất để server nhận quyền.
+
+NHÂN VIÊN NHẬP KHO KHÔNG XEM VỐN
+- Chỉ nhân viên được cấp Nhập hàng mới thấy nút tương ứng.
+- Nhập một mã bằng số lượng/lý do, hoặc tải mẫu Excel riêng HAI CỘT:
+  Mã kính, Số lượng. Không dùng file có cột giá/vốn hoặc mẫu danh mục Admin.
+- Mã cũ giữ giá/vốn; mã mới có nhãn Chưa thiết lập vốn. Admin thiết lập vốn
+  trước khi xác nhận bán mã mới. Admin có thể chủ động xác nhận vốn 0 hợp lệ.
+- Admin vẫn có các mẫu danh mục/kho trước đây và chức năng Tồn đầu kỳ.
+- Chỉnh tồn: chọn giảm/tăng hoặc tồn thực tế, nhập lý do bắt buộc, kiểm tra
+  tồn trước/sau. Giữ giá/vốn và đơn cũ; phát hiện tồn thay đổi ở máy khác.
+
+ĐỔI MÃ/TÊN SẢN PHẨM KỂ CẢ ĐÃ BÁN
+- Người có quyền danh mục được đổi SKU; vẫn cùng sản phẩm và cùng tồn/giá.
+- Danh mục/dòng mới dùng mã mới; đơn/chứng từ cũ giữ nhãn đã lưu.
+  Nháp cũ chưa có nhãn lưu giữ tên đang hiển thị khi nâng cấp; sau đó đổi mã
+  không đổi nhãn trên nháp đã lưu.
+  Nháp hiện thêm Mã hiện tại; thêm cùng hàng qua mã cũ/mới gộp theo loại bán/tặng/mẫu.
+- Tìm và nhập Excel bằng mã cũ vẫn nhận đúng hàng. Không cấp mã cũ cho hàng khác.
+  Một file có hai tên cùng trỏ một sản phẩm bị báo trùng, không nhập đôi.
+- Báo cáo tổng hợp dùng mã hiện tại kèm mã cũ; sổ kho giữ mã giao dịch + mã hiện tại.
+
+BÁO CÁO CHI TIẾT SẢN PHẨM
+- Báo cáo > Báo cáo bán hàng theo mã kính > Chi tiết.
+- Có ngày đặt, mã đơn khách nhập, khách/Sales, mã trên đơn, bán/tặng/mẫu,
+  lượng đặt/giao/trả/sau trả, đơn giá/thành tiền và nút Tải Excel chi tiết.
+- 200 dòng/trang; Excel lấy toàn bộ kỳ, không chỉ trang đang xem. Nếu kỳ quá lớn,
+  thu hẹp ngày để xuất đủ. Nhân viên có quyền báo cáo vẫn không nhận vốn/lợi nhuận.
+- Loại nháp/đơn hủy; doanh thu theo sản phẩm thực giao sau trả, không theo thu tiền.
+  Chi phí khác của đơn được tính ở tổng quan, không chia vào từng sản phẩm.
+- Bấm Tải lại dữ liệu để cập nhật báo cáo; tải quyền nền không làm mất số liệu
+  đang xem hoặc làm hụt thao tác xuất Excel. Số liệu theo ngày đặt Việt Nam,
+  cùng danh sách đơn; tối đa 366 ngày, không tự tính đơn ngày ngoài kỳ.
+
+CÁC CHỨC NĂNG CŨ VẪN GIỮ
+- Nháp xác nhận bán trực tiếp, giữ đơn khác đang nhập dở và thứ tự lựa chọn.
+- Hàng bán giữ thứ tự; tặng cùng mã ngay dưới bán, tặng không có mã bán ở sau,
+  toàn bộ hàng mẫu cuối. Số lượng tự chọn, không tự tặng theo tỷ lệ.
+- Đơn đủ/thiếu, giao bổ sung, thu tiền/công nợ, trả/đổi/hủy theo quyền được cấp.
+- Ngày đặt tự nhập, ghi chú/mã dùng chung, chi phí khác và PNG/Excel/PDF.
+- Đơn nháp đã xóa được dùng lại mã; khách số 0 được tách theo tên, giữ An/Ân riêng.
+- Full viền đen, CNT vàng đậm, Không viền xanh nước biển trên các màn/chứng từ cũ.
+- Kho kính/phụ kiện, kính tính tấm, phụ kiện tính sản phẩm; tìm khách tên/SĐT,
+  tối đa ba gợi ý nhưng tìm trên toàn bộ danh sách; chọn Sales đang hoạt động.
+- Backup local hằng ngày; tự tìm máy chủ LAN/Wi-Fi theo public profile cửa hàng.
+
+CẤU HÌNH VÀ KHỞI ĐỘNG
+DB, tài khoản/mật khẩu, IP/hostname, ảnh, chứng chỉ và cấu hình Drive giữ nguyên.
+Không sửa server.env, không nhập lại DB và không chạy CLEAN-DATA khi cập nhật.
+Backup ở <folder dữ liệu>\backups\daily. Nếu dịch vụ ngừng sau tắt máy,
+dùng CHAY-MAY-CHU.bat/KHOI-DONG-LAI.bat rồi KIEM-TRA-LOI.bat.
+Máy chủ cần bật và không Sleep. Portable cần cả folder App, không riêng Oufeidun.exe.
+
+GOOGLE DRIVE TÙY CHỌN — CHỈ MÁY CHỦ
+Nếu đã cài Drive thì giữ cấu hình cũ. Nếu chưa: chạy CAI-BACKUP-GOOGLE-DRIVE.bat,
+cho phép Administrator, nhập tên cửa hàng, Enter để tạo folder mặc định hoặc
+dán link thư mục Drive có sẵn. Đăng nhập Google và cấp quyền trên trình duyệt.
+Chỉ coi cài xong khi upload thử/kiểm tra thành công. Không gửi token cho máy con.
+Tool tự tải sau backup hoàn tất và thử lại mỗi giờ khi có mạng; cloud lỗi vẫn
+giữ backup local. Dùng BACKUP-VA-DAY-LEN-DRIVE.bat để chạy tay và
+KIEM-TRA-BACKUP-DRIVE.bat để xem trạng thái/log.
+
+GIỚI HẠN
+Installer chưa ký Authenticode thương mại. Kết nối máy vật lý/UAC/reboot và
+Google OAuth của cửa hàng cần nghiệm thu tại máy khách. Không dùng bộ này
+để cập nhật Supabase; mật khẩu chung bảo vệ màn hình chưa có trong bản này.

@@ -9,6 +9,14 @@ process.env.OUFEIDUN_DATA_DIR = path.join(__dirname, '..', '.local', 'server-uni
 const { passwordHash, passwordMatches, canonical } = require('../server/src/core.cjs');
 const { normalize } = require('../server/src/lookup.cjs');
 const { sniff, resolveImage } = require('../server/src/images.cjs');
+const { period } = require('../server/src/reports.cjs');
+
+test('report periods use valid Vietnam calendar days, inclusive maximum 366 days',()=>{
+  assert.deepEqual(period('2026-10-22','2026-10-22'),['2026-10-22 00:00:00','2026-10-23 00:00:00']);
+  assert.deepEqual(period('2024-02-29','2024-02-29'),['2024-02-29 00:00:00','2024-03-01 00:00:00']);
+  assert.doesNotThrow(()=>period('2024-01-01','2024-12-31'));
+  for(const [from,to]of [['2026-02-30','2026-03-02'],['2026-02-29','2026-03-01'],['2026-10-22','2026-10-21'],['2026-01-01','2027-01-02'],['2024-01-01','2025-01-01'],['','2026-10-22']])assert.throws(()=>period(from,to),/VALIDATION_ERROR/);
+});
 
 test('password hash dùng salt và xác minh đúng mật khẩu', () => {
   const first = passwordHash('HuynhHuynh111');

@@ -21,6 +21,14 @@ async function migrate() {
         try { await connection.query(statement); }
         catch (error) {
           if (['ER_DUP_FIELDNAME','ER_DUP_KEYNAME'].includes(error.code)) continue;
+          if(file==='010_customer_placeholder_identity.sql' && statement==='ALTER TABLE customers DROP INDEX customers_phone_unique' && error.code==='ER_CANT_DROP_FIELD_OR_KEY'){
+            const [indexes]=await connection.query("SHOW INDEX FROM customers WHERE Key_name='customers_identity_unique'");
+            if(indexes.length===1 && Number(indexes[0].Non_unique)===0 && indexes[0].Column_name==='identity_key')continue;
+          }
+          if(file==='009_reuse_deleted_draft_codes.sql' && statement==='ALTER TABLE sales_orders DROP INDEX sales_orders_order_code_unique' && error.code==='ER_CANT_DROP_FIELD_OR_KEY'){
+            const [indexes]=await connection.query("SHOW INDEX FROM sales_orders WHERE Key_name='sales_orders_active_order_code_unique'");
+            if(indexes.length===1 && Number(indexes[0].Non_unique)===0 && indexes[0].Column_name==='active_order_code')continue;
+          }
           if(file==='007_sale_gift_lines.sql' && statement==='ALTER TABLE sales_order_items DROP INDEX sales_order_items_order_product' && error.code==='ER_CANT_DROP_FIELD_OR_KEY'){
             const [indexes]=await connection.query("SHOW INDEX FROM sales_order_items WHERE Key_name='sales_order_items_order_product_kind'");
             if(indexes.length===3 && indexes.every(row=>Number(row.Non_unique)===0))continue;

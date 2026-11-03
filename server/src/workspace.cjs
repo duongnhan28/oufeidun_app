@@ -1,5 +1,6 @@
-const { pool, assert, uuid, jsonArray, publicUser } = require('./core.cjs');
-const { requireOperator,visibleData } = require('./permissions.cjs');
+const { pool, readSnapshot, assert, uuid, jsonArray, publicUser } = require('./core.cjs');
+const { requireOperator,visibleData,allowed } = require('./permissions.cjs');
+const {draftDemandSql}=require('./stock-forecast.cjs');
 
 function isoLocal(value) {
   if (!value) return value;
@@ -8,29 +9,37 @@ function isoLocal(value) {
 function orderNumber(value, prefix) { return `${prefix}-${String(value).padStart(5, '0')}`; }
 
 async function workspace(actor) {
+  return readSnapshot(db => workspaceRows(actor,db));
+}
+
+async function workspaceRows(actor,db) {
   const productSql = `SELECT id,sku,name,glass_type,models,brand,glass_brand_id,image_path,
     CAST(sale_price AS CHAR) sale_price,CAST(wholesale_price AS CHAR) wholesale_price,
-    CAST(fixed_cost AS CHAR) fixed_cost,on_hand,version,price_version,stock_version,active
+    CAST(fixed_cost AS CHAR) fixed_cost,cost_configured,on_hand,version,price_version,stock_version,active
+    ,(SELECT JSON_ARRAYAGG(n.sku) FROM product_sku_names n WHERE n.product_id=products.id AND BINARY n.sku<>BINARY products.sku) sku_aliases
     FROM products WHERE deleted_at IS NULL ORDER BY sku LIMIT 5000`;
   const orderSql = `SELECT o.*,creator.display_name creator_name,COALESCE(sales.display_name,creator.display_name) sales_name
     FROM sales_orders o JOIN app_users creator ON creator.id=o.created_by
     LEFT JOIN app_users sales ON sales.id=o.sales_user_id
     WHERE o.status<>'deleted'
     ORDER BY o.updated_at DESC LIMIT 500`;
-  const [productsResult, ordersResult, brandsResult, customersResult, customerPricesResult, usersResult, logsResult] = await Promise.all([
-    pool.query(productSql),
-    pool.query(orderSql),
-    pool.query('SELECT id,name FROM glass_brands ORDER BY name'),
-    pool.query('SELECT id,customer_type,name,phone,address,note,active,created_at,updated_at FROM customers WHERE active=TRUE ORDER BY updated_at DESC'),
-    pool.query('SELECT customer_id,product_id,CAST(unit_price AS CHAR) unit_price FROM customer_product_prices ORDER BY customer_id,product_id'),
-    pool.query('SELECT id,display_name,role,active FROM app_users WHERE deleted_at IS NULL ORDER BY role,display_name'),
-    pool.query(`SELECT l.id,l.action,l.detail,l.created_at,u.display_name actor_name FROM audit_logs l JOIN app_users u ON u.id=l.actor_id
-      WHERE l.action IN ('confirm_order','deliver_order') OR (l.action='inventory' AND (l.detail LIKE 'receipt:%' OR l.detail LIKE 'opening:%'))
+  const [productsResult, ordersResult, brandsResult, customersResult, customerPricesResult, usersResult, logsResult, demandResult] = await Promise.all([
+    db.query(productSql),
+    db.query(orderSql),
+    db.query('SELECT id,name FROM glass_brands ORDER BY name'),
+    db.query('SELECT id,customer_type,name,phone,address,note,active,created_at,updated_at FROM customers WHERE active=TRUE ORDER BY updated_at DESC'),
+    db.query('SELECT customer_id,product_id,CAST(unit_price AS CHAR) unit_price FROM customer_product_prices ORDER BY customer_id,product_id'),
+    db.query('SELECT id,display_name,role,active,permissions,permissions_version FROM app_users WHERE deleted_at IS NULL ORDER BY role,display_name'),
+    db.query(`SELECT l.id,l.action,l.detail,l.created_at,u.display_name actor_name FROM audit_logs l JOIN app_users u ON u.id=l.actor_id
+      WHERE l.action IN ('confirm_order','deliver_order','product.rename','staff.permissions') OR (l.action='inventory' AND (l.detail LIKE 'receipt:%' OR l.detail LIKE 'opening:%' OR l.detail LIKE 'adjustment:%'))
       ORDER BY l.created_at DESC LIMIT 100`),
+    db.query(draftDemandSql),
   ]);
+  const demand=new Map(demandResult[0].map(row=>[row.product_id,Number(row.draft_quantity)]));
   const products = productsResult[0].map(row => {
-    const result = { ...row, models: jsonArray(row.models), active: Boolean(row.active), on_hand: Number(row.on_hand), version: Number(row.version), price_version: Number(row.price_version), stock_version: Number(row.stock_version) };
+    const result = { ...row, models: jsonArray(row.models), sku_aliases: jsonArray(row.sku_aliases), active: Boolean(row.active), cost_configured:Boolean(row.cost_configured), on_hand: Number(row.on_hand), version: Number(row.version), price_version: Number(row.price_version), stock_version: Number(row.stock_version) };
     if (actor.role !== 'admin') delete result.fixed_cost;
+    result.draft_quantity=demand.get(row.id)||0;
     return result;
   });
   const orders = ordersResult[0];
@@ -39,18 +48,18 @@ async function workspace(actor) {
   if (ids.length) {
     const placeholders = ids.map(() => '?').join(',');
     [items, returns, payments, deliveryBatches] = (await Promise.all([
-      pool.query(`SELECT i.*,(SELECT COALESCE(SUM(ri.quantity),0) FROM sales_return_items ri WHERE ri.order_item_id=i.id) returned_quantity FROM sales_order_items i WHERE i.order_id IN (${placeholders}) ORDER BY i.line_position,i.id`, ids),
-      pool.query(`SELECT * FROM sales_returns WHERE order_id IN (${placeholders}) ORDER BY posted_at`, ids),
-      pool.query(`SELECT p.*,u.display_name actor_name FROM sales_payments p JOIN app_users u ON u.id=p.created_by WHERE p.order_id IN (${placeholders}) ORDER BY paid_at`, ids),
-      pool.query(`SELECT b.*,u.display_name actor_name FROM order_delivery_batches b JOIN app_users u ON u.id=b.delivered_by WHERE b.order_id IN (${placeholders}) ORDER BY b.order_id,b.sequence_no`, ids),
+      db.query(`SELECT i.*,(SELECT COALESCE(SUM(ri.quantity),0) FROM sales_return_items ri WHERE ri.order_item_id=i.id) returned_quantity FROM sales_order_items i WHERE i.order_id IN (${placeholders}) ORDER BY i.line_position,i.id`, ids),
+      db.query(`SELECT * FROM sales_returns WHERE order_id IN (${placeholders}) ORDER BY posted_at`, ids),
+      db.query(`SELECT p.*,u.display_name actor_name FROM sales_payments p JOIN app_users u ON u.id=p.created_by WHERE p.order_id IN (${placeholders}) ORDER BY paid_at`, ids),
+      db.query(`SELECT b.*,u.display_name actor_name FROM order_delivery_batches b JOIN app_users u ON u.id=b.delivered_by WHERE b.order_id IN (${placeholders}) ORDER BY b.order_id,b.sequence_no`, ids),
     ])).map(result => result[0]);
     if (deliveryBatches.length) {
       const batchIds = deliveryBatches.map(row => row.id);
-      deliveryItems = (await pool.query(`SELECT di.*,i.product_id,i.sku_snapshot,i.product_name_snapshot,i.custom_name FROM order_delivery_items di JOIN sales_order_items i ON i.id=di.order_item_id WHERE di.batch_id IN (${batchIds.map(() => '?').join(',')}) ORDER BY di.batch_id,i.line_position,i.id`, batchIds))[0];
+      deliveryItems = (await db.query(`SELECT di.*,i.product_id,i.sku_snapshot,i.product_name_snapshot,i.custom_name FROM order_delivery_items di JOIN sales_order_items i ON i.id=di.order_item_id WHERE di.batch_id IN (${batchIds.map(() => '?').join(',')}) ORDER BY di.batch_id,i.line_position,i.id`, batchIds))[0];
     }
     if (returns.length) {
       const returnIds = returns.map(row => row.id);
-      returnItems = (await pool.query(`SELECT * FROM sales_return_items WHERE return_id IN (${returnIds.map(() => '?').join(',')})`, returnIds))[0];
+      returnItems = (await db.query(`SELECT * FROM sales_return_items WHERE return_id IN (${returnIds.map(() => '?').join(',')})`, returnIds))[0];
     }
   }
   const itemMap = new Map();
@@ -113,7 +122,7 @@ async function workspace(actor) {
     glass_brands: brandsResult[0], products, orders: orderList,
     users: usersResult[0].map(publicUser),
     salespeople: usersResult[0].filter(row => Boolean(row.active)).map(publicUser),
-    logs: logsResult[0].map(row => ({ ...row, created_at: isoLocal(row.created_at) })),
+    logs: allowed(actor,'view_audit')?logsResult[0].map(row => ({ ...row, created_at: isoLocal(row.created_at) })):[],
     customers: customersResult[0].map(row => ({ ...row, active: Boolean(row.active), created_at: isoLocal(row.created_at), updated_at: isoLocal(row.updated_at) })),
     customer_prices: customerPricesResult[0],
   };
@@ -122,8 +131,10 @@ async function workspace(actor) {
 async function history(actor, payload) {
   requireOperator(actor);
   const productId = uuid(payload.product_id);
-  const [rows] = await pool.execute(`SELECT m.*,p.sku,p.name,u.display_name actor_name
+  const [rows] = await pool.execute(`SELECT m.*,COALESCE(i.sku_snapshot,di.sku_snapshot,p.sku) sku,p.sku current_sku,p.name,u.display_name actor_name,d.reason
     FROM inventory_movements m JOIN products p ON p.id=m.product_id JOIN app_users u ON u.id=m.actor_id
+    LEFT JOIN inventory_document_items di ON di.id=m.inventory_document_item_id LEFT JOIN inventory_documents d ON d.id=di.document_id
+    LEFT JOIN sales_return_items ri ON ri.id=m.return_item_id LEFT JOIN sales_order_items i ON i.id=COALESCE(m.sale_order_item_id,ri.order_item_id)
     WHERE m.product_id=? ORDER BY m.product_version_after DESC LIMIT 100`, [productId]);
   return visibleData(actor,rows.map(row => ({ ...row, quantity_delta: Number(row.quantity_delta), balance_after: Number(row.balance_after), product_version_after: Number(row.product_version_after), occurred_at: isoLocal(row.occurred_at) })));
 }

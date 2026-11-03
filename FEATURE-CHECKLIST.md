@@ -2,6 +2,48 @@
 
 File này là nguồn đối chiếu bắt buộc sau mỗi lần phát triển hoặc sửa lỗi. Không được kết luận “đã xong”, chạy build bàn giao hoặc gửi khách khi chưa đọc lại toàn bộ file và hoàn thành phần **Kiểm tra sau thay đổi**.
 
+## Quy tắc mới 03/11/2026 — tồn dự kiến và bàn giao ZIP
+
+- STOCK-01/ORDER-01: dự kiến = thực tế - mọi nháp chưa xóa, không limit500/ngày; số âm/cảnh báo mềm, vẫn lưu; cùng ID/bán-tặng-mẫu; sửa nháp loại phần đã lưu của chính nháp. Không giữ chỗ/trừ kho/tiền khi xem/lưu; xác nhận theo tồn thực tế.
+- STOCK-05: tab kho dự kiến/Excel riêng, Hàng đã giao theo kỳ VN mặc định hôm nay là lượng xuất bán gross gồm giao bổ sung, trước hoàn/hủy. Không trừ hàng đã giao lần nữa; ngày chỉ lọc đã giao, tồn/nháp hiện tại. Quyền kho cơ bản xem số lượng, không vốn.
+- LOCAL/demo, không Supabase online; cập nhật web hoãn theo yêu cầu. Đóng ZIP gồm cả fixes phiên30/10–03/11/migration013, giữ data/config. Trạng thái/hash ở nhật ký cuối.
+
+## Quy tắc mới 03/11/2026 — tách presence và thời hạn phiên LOCAL
+
+- AUTH-01/02:12h tuyệt đối từ login (SESSION_MAX_SECONDS mặc định43200), không heartbeat gia hạn;90s chỉ dùng khi máy khác claim. Mất mạng/sleep lâu vẫn nối lại nếu token chưa hết hạn/thu hồi, không replay mutation; giữ sửa client30/10.
+- AUTH-03/USER-01/02: reset password, khóa/xóa hoặc token bị thay vẫn vô hiệu ngay; same-device relogin ngay, khác device active bị409. Touch bị đổi token giữa SELECT/UPDATE không được đi tiếp.
+- DB-03: migration013 additive session_expires_at; token cũ NULL login một lần, không đổi account/quyền/đơn/tiền/tồn; rerun bảo toàn dữ liệu. API trước rồi app; không Supabase online, không tồn dự kiến, chưa EXE/ZIP.
+
+## Quy tắc mới 30/10/2026 — giữ phiên khi lỗi kết nối tạm thời
+
+- AUTH-01/02 và UI-01: heartbeat không coi network/timeout/5xx là mất phiên. Giữ form/giỏ, cảnh báo một lần mỗi đợt, thử lại; chỉ lỗi phiên/tài khoản rõ ràng mới về login. Chống request chồng và kết quả cũ sau cleanup.
+- Electron duy trì timer khi thu nhỏ; không đổi lease 90 giây, quyền API hoặc ngăn Windows sleep. Hết lease/thu hồi thật vẫn đăng nhập lại. Không phát lại mutation.
+- Chưa xác định tác nhân gần 17h ở máy khách. BAT CHAN-DOAN-DANG-XUAT lấy metadata đọc-only, không config/token/DB. Source sửa, EXE/ZIP 29/10 chưa chứa sửa này.
+
+## Quy tắc mới 29/10/2026 — phân quyền riêng từng tài khoản
+
+- AUTH-03/USER-01: hai role giữ nguyên, Admin cấp bảy quyền riêng, nhân viên mới cơ bản; legacy giữ nghiệp vụ trừ quản trị tài khoản chỉ Admin. Quyền kiểm tại API mỗi request, revoke chặn cả replay idempotency; version/audit khi cấp quyền.
+- STOCK-01/02/03/04, PRODUCT-01, PRICE-02, ORDER-06, REPORT-03/07/08 và AUDIT-01 theo quyền tương ứng. Staff nhập một mã/Excel hai cột không vốn; bảo toàn giá/vốn cũ, mã mới chờ Admin thiết lập vốn và chưa chốt bán. Không nhập danh mục chín cột/tồn đầu kỳ hoặc giả vốn 0 đã sẵn sàng.
+- REPORT-08: từng giao dịch bán/tặng/mẫu, lượng giao/trả/net, khách/Sales/mã đơn thật, nhãn cũ + hiện tại; tổng khớp report theo kỳ, phân trang/xuất đủ, không lộ vốn. DB-03: migration 012 giữ quyền cũ và dữ liệu; cấu hình/DB cửa hàng không được thay khi test.
+- Các mục 17–28/10 bên dưới là lịch sử. Quy tắc mới này ưu tiên khi có khác biệt.
+
+## Quy tắc mới 28/10/2026 — đổi mã sau bán
+
+- PRODUCT-01/02/03 thay khóa sau bán bằng lịch sử tên theo product_id; alias không tái sử dụng cho sản phẩm khác. AUTH-03 giữ nguyên ngoại lệ vốn/nhập hàng.
+- ORDER-01/02/03/06/07, IMAGE-01/02/03, EXCEL-01: nháp/đơn/chứng từ giữ nhãn cũ; thêm cùng hàng gộp theo ID + loại; giao/trả/hủy theo ID.
+- STOCK-01/02/03/04: tìm/nhập Excel bằng tên cũ về cùng hàng; trùng alias trong file rollback, chống tranh chấp/gửi lặp; rename giữ tồn/vốn/giá.
+- REPORT-03/04/06/07, AUDIT-01, DB-03: tổng hợp mã hiện tại + mã cũ; lịch sử mã snapshot + mã hiện tại; migration 011 giữ dữ liệu/chạy lại an toàn. Quy tắc mới ưu tiên hơn nhật ký 19/10.
+
+## Sửa lỗi source LOCAL/demo 19/10/2026
+
+- Kiểm thử toàn bộ lần hai theo yêu cầu khách: verify exit 0 (43 dữ liệu, 48 UI, Electron/build/audit); API unit 6/6, MySQL integration 1/1 và LAN 1/1 không skip; server audit 0 lỗ hổng. Cấu hình đổi thư mục và backup SQL/ảnh/checksum trên DB test đạt. Sau verify đã build LOCAL và chạy Electron Admin, staff, quyền dùng chung qua HTTPS/discovery/MySQL thật đều exit 0. Đã xem ảnh kho staff, không có giá vốn. Chưa đóng gói EXE/ZIP hoặc nghiệm thu máy cửa hàng; chi tiết và giới hạn trong `docs/TEST-REPORT-2026-10-19.md`.
+- ID ảnh hưởng: PRODUCT-01/03, ORDER-01/02/08, STOCK-01, AUTH-03 và DB-03; bảo toàn snapshot/chứng từ, giá vốn, tồn, quyền và lịch sử.
+- Nhập kho/tồn đầu kỳ hoặc tham chiếu từ nháp không còn khóa sửa SKU. Chỉ khóa nếu từng xác nhận bán, kể cả đã hủy/trả. Thông báo lỗi nêu đúng điều kiện.
+- Mã nháp đã xóa được dùng lại, giữ nguyên ID/mã/dòng hàng/lịch sử nháp cũ. API chỉ kiểm tra mã đơn chưa xóa; migration MySQL 009 thay unique index bằng generated active_order_code để chống trùng đồng thời. Demo có partial unique tương đương; không áp dụng Supabase online.
+- Nhật ký xác minh 19/10: đã đọc lại toàn bộ checklist. `npm.cmd run verify` exit 0: 43/43 dữ liệu, 48/48 UI, Electron smoke, TypeScript/build, audit 0 lỗ hổng. Local API syntax/migrator và unit 6/6 đạt; MySQL integration thật 1/1 đạt trên database test cô lập.
+- Ca mới: nhập kho/tồn đầu rồi đổi SKU; đổi khi có nháp sống hoặc nháp đã xóa; quyền staff/Admin và giữ vốn; snapshot phiếu nhập giữ mã cũ; reload rồi dùng lại mã nháp; Excel dùng mã mới; chốt bán chỉ trừ kho một lần; SKU đã bán/hủy bị khóa; mã của đơn chưa xóa vẫn bị giữ; hai máy tạo mã khác hoa/thường chỉ một thành công; migration chạy lại sau gián đoạn và giữ dữ liệu cũ.
+- Log `.local/edit-unused-codes-verify.log`, `edit-unused-codes-data.log`, `edit-unused-codes-mysql.log`, `edit-unused-codes-ui.log`, các file `.exit` bằng 0. Không sửa DB/config/dịch vụ khách. Chưa tạo lại EXE/folder/ZIP 0.2.17; khi phát hành cần cập nhật API cùng migration 009, không chỉ thay EXE.
+
 ## Quyền LOCAL đã chốt 17/10/2026
 
 - AUTH-03, USER-01, PRODUCT-01/04, PRICE-01/02/03/04, ORDER-01/02/05/07/09/10/11, CUSTOMER-01/02/03, REPORT-01/02/07, AUDIT-01 và UI-01: nhân viên có cùng quyền nghiệp vụ với Admin, kể cả đơn người khác tạo; không xem/sửa vốn và giá nhập, không nhập hàng/Excel danh mục/tồn đầu kỳ.
@@ -36,21 +78,21 @@ File này là nguồn đối chiếu bắt buộc sau mỗi lần phát triển 
 | ID | Chức năng cần giữ đúng | Tiêu chí kiểm tra | Trạng thái nền |
 | --- | --- | --- | --- |
 | AUTH-01 | Đăng nhập bằng tên đăng nhập và mật khẩu | Không bắt buộc email; có lưu tên đăng nhập; thông báo tiếng Việt | Đã có |
-| AUTH-02 | Một tài khoản chỉ có một phiên hoạt động | Đăng nhập nơi mới làm phiên cũ hết hiệu lực | Đã có |
-| AUTH-03 | Hai vai trò Admin/Nhân viên | LOCAL: cùng quyền nghiệp vụ; nhân viên không nhập hàng, không xem/sửa giá vốn/giá nhập; giữ role thật và bảo vệ tài khoản Admin | Cập nhật 17/10/2026 |
-| USER-01 | Quản lý nhân viên | Thêm tên nhân viên, tên đăng nhập, mật khẩu; sửa, khóa/xóa, đặt lại mật khẩu | Đã có |
+| AUTH-02 | Một tài khoản chỉ có một phiên hoạt động | LOCAL: deadline12h, presence90s; khác device đang hoạt động bị chặn, được claim khi mất liên lạc và vô hiệu token cũ; cùng device đăng nhập lại ngay | Cập nhật03/11/2026 |
+| AUTH-03 | Hai vai trò và quyền theo tài khoản | Admin độc quyền vốn/lợi nhuận/quản trị; staff có bảy quyền riêng, tài khoản mới cơ bản, legacy giữ nghiệp vụ; API kiểm tra mỗi request và chặn replay sau thu hồi | Cập nhật 29/10/2026 |
+| USER-01 | Quản lý nhân viên và cấp quyền | Chỉ Admin thêm/sửa/khóa/xóa/reset tài khoản khác, cấp/thu hồi từng quyền với version chống xung đột và audit | Cập nhật 29/10/2026 |
 | USER-02 | Chủ cửa hàng cập nhật tài khoản | Đổi tên và mật khẩu nhưng vẫn giữ vai trò Admin | Đã có |
-| PRODUCT-01 | Quản lý kính | Thêm, sửa, xóa an toàn; mã kính duy nhất; ảnh; hãng kính; loại kính; hãng điện thoại chọn/nhập mới, không ép Apple | Đã có |
+| PRODUCT-01 | Quản lý kính | Thêm, sửa, xóa an toàn; LOCAL/demo đổi mã cả sau bán/hủy/trả, giữ cùng ID/tồn/giá; mã cũ tìm/nhập Excel được và không cấp lại cho hàng khác; nháp/đơn/chứng từ giữ snapshot; ảnh, hãng/loại và hãng điện thoại tự thêm | Cập nhật 28/10/2026 |
 | PRODUCT-02 | Mã máy dùng chung | Mã chính liên kết nhiều model; tìm model dùng chung trả đúng sản phẩm thay thế và có nhãn rõ | Đã có |
 | PRODUCT-03 | Hiển thị mã kính | Bỏ ô tên sản phẩm/tên riêng trên đơn; UI và chứng từ dùng SKU; giữ dữ liệu tên cũ trong DB để đối chiếu | Cập nhật theo yêu cầu 08/10/2026 |
 | PRODUCT-04 | Phân loại kính/phụ kiện | Full viền/Chống nhìn trộm/Full viền cao cấp/Phụ kiện khác; giữ Không viền cao cấp cũ, full_border và clear lọc chung; bỏ Full viền cao cấp khỏi bộ lọc tìm kiếm, giữ dữ liệu; Excel cũ/mới, lọc và giá hàng loạt nhất quán | Bổ sung 14/10/2026 |
 | PRICE-01 | Giá lẻ, giá sỉ và giá vốn | Chọn loại khách tự gợi ý đúng giá; người bán được sửa giá thực tế theo từng dòng đơn; giá vốn chỉ Admin được xem/sửa | Đã có |
-| PRICE-02 | Giá đồng loạt theo nhóm kính | LOCAL Admin/Nhân viên lưu giá lẻ/sỉ chung từ dòng hàng bán, cập nhật cả nhóm và giỏ; mọi máy/đơn sau dùng giá mới; giữ vốn, mức giá còn lại, giá khách và đơn đã bán. clear/full_border chung nhóm | Cập nhật 17/10/2026 |
+| PRICE-02 | Giá chung theo nhóm kính | Cần manage_prices cho giá danh mục tương lai/mọi máy; giữ vốn/mức giá còn lại/giá khách/đơn đã bán; sửa giá riêng trên đơn vẫn là nghiệp vụ bán | Cập nhật 29/10/2026 |
 | PRICE-03 | Giá riêng theo khách sỉ | Mỗi khách sỉ có thể có giá riêng theo SKU; thiếu giá riêng thì dùng giá sỉ mặc định; đơn cũ giữ snapshot | Đã có |
 | PRICE-04 | Giá tùy chỉnh trên đơn | Admin/Nhân viên sửa giá thực tế từng SKU hoặc toàn bộ sản phẩm cùng loại kính trong draft; lưu lại vẫn còn; xác nhận chụp đúng giá; ghi audit; không sửa danh mục hoặc hồi tố đơn cũ | Đã có |
-| STOCK-01 | Nhập, xuất lỗi, kiểm kê và tồn kho | Sổ kho khớp số dư; số lượng tồn hiển thị cạnh mã kính; lưu thời gian, người thao tác và tồn sau | Đã có |
-| STOCK-02 | Nhập danh mục/kho bằng Excel | Mẫu mới chín cột có Số lượng nhập thêm (0–1.000.000), tự tạo phiếu/sổ kho cùng transaction với danh mục/giá; 0 chỉ sửa danh mục. Tương thích tám cột cũ không cộng tồn và ba cột cũ nhập kho. Nhận `.xlsx` theo tiêu đề ba cột; tự tạo SKU chưa có cùng transaction nhập; mã cũ giữ giá, mã mới giá vốn bằng giá nhập/giá bán-sỉ 0 cần thiết lập; chặn mã sai/trùng/rỗng/quá 100 dòng, không ghi một phần, chỉ Admin | Đã có |
-| STOCK-03 | Tải file Excel mẫu | File mẫu chín cột mở được, có Số lượng và sheet hướng dẫn tách máy bằng dấu phẩy, nhập thêm/0 và tương thích mẫu cũ | Đã có |
+| STOCK-01 | Nhập/xuất/điều chỉnh tồn | Nhập theo receive_stock; chỉnh/xuất/lỗi theo adjust_stock, lý do/version/retry, không âm tồn; giữ ledger/giá/vốn | Cập nhật 29/10/2026 |
+| STOCK-02 | Nhập kho/danh mục Excel | Admin dùng mẫu chín/tám/ba cột như trước; staff có quyền nhận mẫu hai cột SKU/Số lượng, chặn giá/vốn và catalog; alias resolve cùng ID, mã mới pending vốn; transaction/retry/rollback | Cập nhật 29/10/2026 |
+| STOCK-03 | Tải Excel mẫu theo quyền | Admin mẫu danh mục chín cột; staff được nhập tải đúng hai cột không có giá/vốn, .xlsx mở/đọc lại được | Cập nhật 29/10/2026 |
 | STOCK-04 | Kho hàng chung | Lọc Tất cả/Kính/Phụ kiện; số mã và tổng tồn/tồn riêng/sắp hết theo danh sách lọc; kính: tấm, phụ kiện: sản phẩm; nhãn Thương hiệu | Bổ sung 14/10/2026 |
 | CUSTOMER-01 | Danh mục khách hàng | Lưu tên, SĐT, địa chỉ, loại khách, ghi chú; thêm/sửa/xóa; tự lưu từ đơn | Đã có |
 | CUSTOMER-02 | Lọc khách hàng | Combobox Tất cả/Khách lẻ/Khách sỉ; số lượng và kết quả đúng; ghi chú trống hiện `null` | Đã có |
@@ -61,27 +103,30 @@ File này là nguồn đối chiếu bắt buộc sau mỗi lần phát triển 
 | ORDER-03 | Đơn đủ/thiếu hàng | Giữ ghi chú thiếu sau xác nhận khi các dòng giao đủ; chi tiết/Excel thống nhất; chỉ hoàn tất ghi chú khi không còn dòng chờ giao; thiếu số lượng thực tế tự hoàn tất sau giao bổ sung đủ | Đã có |
 | ORDER-04 | Sales phụ trách | Chọn Sales độc lập với người thao tác; hiển thị trên đơn, Excel và báo cáo kho | Đã có |
 | ORDER-05 | Thanh toán và công nợ | Tiền mặt/chuyển khoản/COD/kết hợp; nhiều lần thanh toán; đúng trạng thái | Đã có |
-| ORDER-06 | Hủy, trả và đổi hàng | LOCAL staff/Admin xử lý mọi đơn; không trả quá số đã giao; lịch sử trả có Tạo đơn đổi, một phiếu trả chỉ có một đơn liên kết, không mất giỏ chưa lưu | Cập nhật 17/10/2026 |
+| ORDER-06 | Hủy, trả và đổi hàng | Cần manage_returns để xử lý mọi đơn; theo ID dòng, không trả quá lượng giao, không lặp kho/tiền; exchange giữ quan hệ và giỏ | Cập nhật 29/10/2026 |
 | ORDER-07 | Hàng bán, hàng tặng, hàng mẫu | Cùng SKU có các dòng riêng theo loại, tự chọn số lượng, không tự 10+1; hàng tặng/mẫu 0đ vẫn trừ kho/vốn; giao/trả theo ID dòng, tổng stock dùng chung và retry không lặp. Chốt 16/10: hàng bán giữ thứ tự chọn, tặng cùng mã ngay dưới bán, tặng không có mã bán sau nhóm bán-tặng, mọi mẫu cuối; giỏ/nháp/đơn/PNG/Excel/PDF thống nhất | Cập nhật 16/10/2026 |
-| ORDER-08 | Mã đơn hàng tự nhập | Bắt buộc, tối đa 50 ký tự, không trùng không phân biệt hoa/thường; lưu nháp và tải lại vẫn giữ đúng mã | Đã có |
+| ORDER-08 | Mã đơn hàng tự nhập | Bắt buộc, tối đa 50 ký tự, không trùng không phân biệt hoa/thường giữa đơn chưa xóa; LOCAL/demo dùng lại mã nháp đã xóa, giữ nguyên mã/lịch sử nháp cũ; đơn đã bán/hủy vẫn giữ mã; chặn hai máy tạo cùng mã | Cập nhật 19/10/2026 |
 | ORDER-09 | Ngày giờ đặt đơn tự nhập | Giờ Việt Nam; lưu/sửa/lọc/chứng từ thống nhất; version/quyền; giữ thời gian thao tác thực tế riêng | Bổ sung 10/10/2026 |
 | ORDER-10 | Chi phí khác | Tiền nguyên đồng không âm, nội dung; tổng/công nợ gồm phí, giao bổ sung không cộng phí lại, báo cáo tách khoản thu khác | Bổ sung 10/10/2026 |
 | IMAGE-02 | Xem/tải ảnh bản nháp và ghi chú chứng từ | Chi tiết nháp xem/tải PNG không trừ kho; máy dùng chung, ghi chú dòng/đơn, phí, ngày đặt đầy đủ trên PNG/Excel/PDF | Bổ sung 10/10/2026 |
 | IMAGE-01 | Ảnh xác nhận đơn tại màn Bán hàng | Tải PNG có mã đơn, khách, SĐT, địa chỉ, Sales, thời gian, tình trạng, mặt hàng và tổng tiền; tên file dễ nhận biết | Đã có |
+| IMAGE-03 | Màu chữ mã hàng trên chứng từ | Excel/PNG/PDF: Full viền đen, CNT vàng đậm, Không viền xanh nước biển; giữ thứ tự bán/tặng/mẫu, số lượng và số tiền; loại danh mục ưu tiên, SKU dự phòng khi không có loại | Bổ sung 19/10/2026 |
 | EXCEL-01 | Xuất đơn hàng | Đơn đang tạo và danh sách đơn đều tải được Excel một sheet; có khách, SĐT, địa chỉ, Sales, thời gian, số đơn, tình trạng, mặt hàng và tổng tiền | Đã có |
-| REPORT-01 | Kỳ báo cáo | Người dùng chọn Từ ngày–Đến ngày; mặc định đầu tháng đến hôm nay; tính đủ hai ngày; tối đa 366 ngày | Đã có |
-| REPORT-02 | Tổng quan bán hàng | Tổng đơn, doanh thu thuần đúng kỳ; LOCAL staff không nhận giá vốn/lợi nhuận/giá trị tồn theo vốn từ API | Cập nhật 17/10/2026 |
-| REPORT-03 | Báo cáo theo mã kính | Admin đủ cột; LOCAL staff chỉ mã, giá bán, số lượng, tổng bán; không vốn/lợi nhuận | Cập nhật 17/10/2026 |
+| REPORT-01 | Kỳ báo cáo | Người dùng chọn Từ ngày–Đến ngày; doanh thu/số đơn theo ngày đặt VN như danh sách đơn; gồm đủ hai ngày, tối đa 366 ngày; ngày sổ kho giữ thời điểm thao tác | Cập nhật 23/10/2026 |
+| REPORT-02 | Tổng quan bán hàng | Chỉ đơn xác nhận, loại nháp/xóa/hủy; doanh thu sản phẩm đã giao sau trả + phí đúng một lần, không phụ thuộc thanh toán; staff không nhận vốn/lợi nhuận/giá trị tồn theo vốn | Cập nhật 23/10/2026 |
+| REPORT-03 | Báo cáo theo sản phẩm | Cần view_reports; Admin có vốn/lợi nhuận, staff không nhận các trường này; nút Chi tiết theo ID kể cả đổi mã/xóa mềm | Cập nhật 29/10/2026 |
 | REPORT-04 | Nhập–xuất–tồn | Tồn đầu, hàng vào, hàng ra, tồn cuối; bỏ bộ lọc hãng máy theo phạm vi kính iPhone | Đã có |
-| REPORT-05 | Giá trị tồn theo vốn hiện hành | Bằng tồn hiện tại nhân giá vốn quy định hiện hành và cộng toàn bộ sản phẩm | Đã có |
-| REPORT-06 | Chi tiết kho | Thời gian, mã kính, loại giao dịch, thay đổi, tồn sau, Sales và đơn hàng | Đã có |
-| REPORT-07 | Tải báo cáo Excel | Có Tổng quan, Báo cáo bán hàng, Nhập xuất tồn và Chi tiết kho; LOCAL staff loại cả cột/lượng vốn và lợi nhuận | Cập nhật 17/10/2026 |
-| AUDIT-01 | Lịch sử thao tác | Nội dung dễ hiểu, có người thực hiện, thời gian, đối tượng; không chỉ hiện UUID | Đã có |
+| REPORT-05 | Giá trị tồn theo vốn | Tính tồn hiện tại theo vốn hiện hành; Admin thấy cảnh báo/số mã chưa thiết lập vốn, không coi vốn 0 chưa cấu hình là số liệu đầy đủ | Cập nhật 29/10/2026 |
+| REPORT-06 | Chi tiết kho | Thời gian, mã kính, loại giao dịch, thay đổi, tồn sau, Sales, mã đơn tự nhập; thêm cột cuối lý do phiếu kho/điều chỉnh, giữ cột mã đơn | Cập nhật 24/10/2026 |
+| REPORT-07 | Xuất báo cáo Excel | Bốn sheet tổng quan/bán hàng/nhập xuất tồn/chi tiết kho, staff không vốn/lợi nhuận; thêm file chi tiết từng sản phẩm xuất đủ kỳ | Cập nhật 29/10/2026 |
+| REPORT-08 | Chi tiết bán từng sản phẩm | Ngày VN/mã đơn thật/khách/Sales/nhãn snapshot/loại/đặt-giao-trả-net/giá/thành tiền; loại nháp/hủy, khớp tổng hợp; 200 dòng/trang, Excel đủ kỳ và không vốn staff | Bổ sung 29/10/2026 |
+| AUDIT-01 | Lịch sử thao tác và cấp quyền | Xem theo view_audit; có người/thời gian/mã/đối tượng/lý do; lưu thay đổi quyền và đổi SKU, không mật khẩu | Cập nhật 29/10/2026 |
 | UI-01 | Giao diện desktop | Không tràn, chữ và thành phần vừa màn hình, popup không đẩy bố cục | Đã có |
 | UI-02 | Nhận diện Oufeidun | Logo, tên công ty, ảnh đăng nhập và icon ứng dụng đúng | Đã có |
 | DB-01 | Backend TEST | Build test chỉ gọi Supabase test và các bảng/RPC riêng của AppBanHang | Đã có |
 | DB-02 | Backend PRODUCTION | Build production chỉ gọi PHP API kết nối MySQL; phải chặn build nếu URL chưa hợp lệ | Chờ thông tin hosting thật |
 | DB-03 | Backend LOCAL | Nghiệp vụ gọi Node API + MySQL qua HTTPS LAN; Mã dùng chung gọi API website/Supabase; không mở MySQL trực tiếp; có backup/restore | Đã cài máy chủ; chờ xác nhận máy LAN thứ hai |
+| DB-04 | Tự tải backup Google Drive | BAT tự tải rclone chính thức/kiểm SHA256, OAuth một lần, folder mặc định/link có sẵn; token ACL ngoài bundle/Git; copy/check backup hoàn tất, không xóa cloud, chạy SYSTEM sau backup/thử lại mỗi giờ, chống trùng, lỗi upload không hỏng local, trạng thái/log | Bổ sung 19/10/2026 |
 
 ## Kiểm tra sau thay đổi
 
@@ -98,6 +143,188 @@ Mỗi lần làm xong một tính năng, người thực hiện phải tạo m�
 - [ ] Nếu bàn giao: đã tăng phiên bản, build lại, kiểm tra file cài và tạo SHA256.
 
 ## Nhật ký xác minh
+
+### 2026-11-03 — Bàn giao ZIP tồn dự kiến và phiên12h
+
+- Đọc/đối chiếu checklist STOCK-01/05, ORDER-01/02/03/07, AUTH-01/02/03, USER-01/02, PRODUCT-01/02/03, REPORT-01..08, EXCEL-01, UI-01, DB-03/04. Tồn dự kiến đã duyệt; cập nhậtweb hoãn. Không thay công thức tiền/tồn thực tế hoặc đơn cũ.
+- Source verify cuối63data/58UI/Electron/build/productionaudit0 exit0 (.local/forecast-verify-release-20261103.*). MySQL501draft không giới hạn500, delete/save/confirm/cancel/negative/period/staff no-cost; business/permissions/session;unit10/10 exit0. UI Admin/staff đọc XLSX thật/self-exclusion/softsave; đã xem ảnh actual UI và packaged.
+- Hai lượt source cũ fail do assertiontd cần chọn actualbadge khi thêmforecasttext và startupPGLitebudget5s không giống fixture45s; giữ kiểmactualexact4tấm, thêmforecastassertion, không bỏtest/businessassertions. Lượtmake đầu ASAR28byte rỗng do globlegacy dùng minimatch11; tách @electron/asar build-onlyglob7.2.0/minimatch3.1.5, Excelruntime11, productionaudit0; regressionASARpackage.json+glob/XLSX pass vàmake/audit lại. Không gửi bản lỗi.
+- MakeLOCAL/auditASAR; EXEthật HTTPS/MySQL:forecast/Excel/save/self-exclusion/confirm80/delete/period không trừhai lần;sessionoffline2phút/30phút/4giờ, ngắtAPI/phục hồi giữ form/deadline,expiry401;relogin5vòng/late401/logoutmạnglỗi;permissions/report/customer0/revenue/mã/màu/stockreason/rename/PNG/XLSX đều exit0. Installer càiđè/defaultlauncher đúngasar mới đạt. Logs .local/forecast-release-*-20261103.*; orchestration-final exit0.
+- Đã thay E:\outputt\Oufeidun-Local-0.1.1 và ZIP374.526.066byte, SHA256 A0F14CF1FB72740A2EFCDAC9E30B883E1DB20C8F1A49BB689A0534449B37930F; Setup175.265.792byte SHA256 F4A861EAA5CC40C43BDB7A33793E45D63530F4581118FFF5677DB57CEE9ABE54. Audit1.171file folder/ZIP/source/API/migrations/setup/asar/PS/privateconfig pass;3guides khớp03/11.
+- Bộ29/10 giữbackup E:\outputt\_BACKUP\Oufeidun-0.1.1-before-forecast-20261103-223043; hashZIPcũ DDA8B5F36212B662C5FB0A97B2CAF6BEEA3CD058695D0D18724982979E830C5B không đổi.0.2.18 không thay. API/migration013 trước app mọi máy, giữdata/config/loginlại1lần. Không DB/máy vật lý khách/updaterweb/pushGit. Chi tiết docs/RELEASE-0.1.1-2026-11-03.md.
+
+### 2026-11-03 — Hoàn tất source phiên12h, tồn dự kiến tiếp tục chờ duyệt
+
+- Đọc/đối chiếu checklist, ưu tiên AUTH-01/02/03, USER-01/02, ORDER-01, DB-03/04 và UI-01. Tách presence90s khỏi deadline12h tuyệt đối. Giữ khóa/reset/xóa/revoke/one-token, chống token thay giữa đọc/touch. Không sửa kho dự kiến/tiền/đơn/giá/quyền hoặc Supabase online; config cũ nhận mặc định, không sửa file khách.
+- MySQL013 additive deadline nullable; legacy token NULL login một lần, không tự gia hạn. Re-run2lần giữ tất cả account rows và snapshots đơn/tồn/giá. Config SESSION_MAX_SECONDS43200 optional300–86400, không heartbeat gia hạn. Chi tiết docs/SESSION-LIFETIME-2026-11-03.md.
+- Unit auth10/10 và MySQL integration mới1/1 không skip đạt:offline120/1800/14400s,deadline12h không kéo dài,legacyNULL/expiry/logout/reset/disable/enable/delete; same-device relogin ngay;2device tranh claim chỉ1thắng, token cũ401; giữ dữ liệu nghiệp vụ. Hồi quy MySQL cũ và permissions/report riêng1/1 mỗi suite đều exit0. Logs .local/session-lifetime-unit/api-regression/permissions/mysql-final-20261103.*.
+- Verify cuối exit0 (.local/session-lifetime-verify-release-20261103.*):60data/56UI/Electron smoke/TypeScript/build/audit production0. Lượt đầu1toast assertion nháp lỗi dù đơn đã bán; chạy riêng pass và các lượt full sau56/56, không sửa test/app hoặc tăng timeout. Lượt thứhai chức năng pass nhưng audit mới chặn8moderate do minimatch; giữ log thất bại.
+- Đã pin minimatch11.0.1 chỉ trong dependency subtree ExcelJS, giữ ExcelJS4.4.0 và API. Theo GHSA-g3hv-75wg-m249; compatibility test nén glob chọn2file+XLSX write/read giữ SKU/lượng/tiền, bản cuối1/1 pass. Root/server audit --omit=dev đều0; không tuyên bố audit toàn bộ dev dependencies sạch. Package-lock được cập nhật; không audit fix --force/downgrade ExcelJS/ẩn cảnh báo.
+- Build LOCAL exit0; native Electron source thật qua signed HTTPS/MySQL test exit0 (.local/session-lifetime-native-20261103.*):giả lập mất liên lạc2phút/30phút/4giờ bằng last_seen, giữ cùng token/deadline/form; ngắt upstream API thật rồi bật lại, không login và giữ form;deadline thật hết thì login. Native relogin source5vòng đúng1request/vòng,401 muộn/logout mạng lỗi cũng exit0. Không cho máy phát triển sleep hoặc truy cập máy/DB khách.
+- PS installer parse pass, thêm cấu hình mặc định cho cài mới; update cũ không cần edit config. Chưa EXE/installer/ZIP hoặc thay release29/10; cần API+migration013 trước rồi app các máy để nhận cả fixes30/10. Không commit/push. Tồn dự kiến vẫn chờ khách xác nhận.
+
+### 2026-10-30 — Bổ sung lỗi phải đăng nhập nhiều lần
+
+- Đọc lại/đối chiếu AUTH-01/02/03, USER-02, UI-01, ORDER-01, DB-03 và các quy tắc đang có. Tiền/tồn/quyền/chứng từ/schema không đổi. Chi tiết bổ sung ở docs/SESSION-DISCONNECT-2026-10-30.md.
+- Request LOCAL trước sửa có thể nhận401 cũ rồi xóa token mới, hoặc workspace cũ tải muộn đưa dữ liệu phiên trước lên màn hình. Logout cũ cũng luôn xóa token khi kết thúc; logout mạng lỗi khiến UI còn màn làm việc nhưng token đã mất và promise không bắt lỗi.
+- Sửa request giữ token lúc gửi, SESSION_STALE bỏ kết quả cũ, không đụng token mới. Login không gửi Bearer cũ/không phụ thuộc token cũ bị clear trong lúc chờ. Logout chỉ clear token của mình; UI luôn đóng trong finally, gọi qua run và khóa nút khi busy, giữ xác nhận bỏ giỏ.
+- Verify exit0:58data/56UI/Electron smoke/TypeScript/build/audit0 (.local/session-relogin-verify-20261030.*). Ca mới bổ sung sau lượt data được chạy lại riêng toàn bộ nhóm5/5 exit0 (.local/session-relogin-races-20261030.*), thực thi client source transpile/VM với transport mock, không mirror helper. Server unit+auth mock9/9 exit0; cùng device login ngay, khác device active vẫn409.
+- Build LOCAL và native Electron staff exit0 (.local/session-relogin-local-build-20261030.*; session-relogin-native-20261030.*):5vòng logout/login, mỗi vòng đúng1request login; chủ động giữ401 cũ đến sau login mới và chờ response hoàn tất, heartbeat mới vẫn hợp lệ;logout lỗi mạng vẫn thoát local và login lại đúng1lần. Không giao dịch kho/đơn hoặc dùng account/DB khách.
+- Chưa build lại EXE/ZIP hoặc thay release29/10. Đây là các lỗi đã tái hiện/sửa trong source; cần cập nhật app để khách nhận. Chưa có log thực tế để khẳng định từng lần khách bị do cùng nguyên nhân hoặc giải thích giờ17h.
+
+### 2026-10-30 — Điều tra app quay về đăng nhập gần 17h
+
+- Đối chiếu AUTH-01/02/03, USER-01/02, UI-01, ORDER-01 và DB-03; đọc lại quy tắc/checklist, không thay nghiệp vụ tiền/tồn/đơn/chứng từ. Chi tiết docs/SESSION-DISCONNECT-2026-10-30.md.
+- Tái hiện callback cũ: SERVER_UNAVAILABLE/AbortError/HTTP_500 cũng setData(null) như SESSION_REQUIRED. Sửa heartbeat chỉ expiry rõ ràng mới về login, lỗi mạng giữ form/giỏ và thử lại. Chặn overlap/kết quả phiên cũ sau cleanup. Electron backgroundThrottling=false.
+- Không thấy lịch thoát17h trong source. Auth chạy clock/DB mock trước/sau17h và09h/23h có cùng lease90s; 25/89s hợp lệ, 91s bị401. Backup default23h/Drive mỗi giờ không stop API; tác vụ thực tế khách chưa được truy cập.
+- npm.cmd run verify exit0:54data/56UI/Electron smoke/TypeScript/build/audit0. Server unit+auth expiry8/8 exit0, không skip. Build LOCAL exit0. Logs .local/session-fix-verify-20261030.* và session-fix-server-20261030.*.
+- BAT diagnostic parse/chạy trên máy phát triển đạt, không thay task/config/DB hoặc đọc token. Có thêm metadata WLAN/NetworkProfile và adapter không SSID/IP/MAC. Bộ chẩn đoán riêng E:\outputt\Oufeidun-ChanDoan-DangXuat-20261030.zip chỉ BAT+script, không app/config/DB.
+- Native LOCAL Electron đạt exit0 (.local/session-fix-native-final-20261030.*): thu nhỏ thật >90s vẫn >=4 heartbeat; API mock503/500/network/timeout giữ form chưa lưu và tự phục hồi;401 về login; không mutation. Lượt đầu test đọc sai getLastWebPreferences, sửa harness dùng getBackgroundThrottling được khai báo Electron API, không đổi app/giảm assertion; cleanup destroy cửa sổ test tránh prompt đơn chưa lưu. Giữ log thất bại cũ.
+- Khách xác nhận đúng1máy chủ+1máy nhân viên; chỉ nhân viên out. Chưa build EXE/ZIP app, release29/10 chưa có sửa30/10; chưa truy cập máy/dữ liệu khách hoặc xác định tác nhân đúng17h. Ưu tiên chạy diagnostic trên máy nhân viên rồi đối chiếu máy chủ cùng thời điểm.
+
+### 2026-10-29 — Đóng gói LOCAL 0.1.1 theo yêu cầu gửi khách
+
+- Đã đối chiếu checklist và BA mới về AUTH/USER/PRODUCT/PRICE/STOCK/ORDER/REPORT/AUDIT/IMAGE/EXCEL/UI/DB-03. Không sửa logic sau hai lượt verify source cuối đạt 52 data/56 UI mỗi lượt. Cập nhật guide đúng quyền/alias/pending vốn/chi tiết report/migrations 011–012, giữ version 0.1.1.
+- LOCAL/Forge Squirrel make đạt. Package audit đúng profile/version/discovery/lookup và không source/tests/private config. EXE vừa build qua HTTPS/MySQL test đạt quyền mới/default/cấp-thu hồi/nhập lượng/Excel/pending/bán-tặng-mẫu/Excel chi tiết; Admin/staff report/customer/mã/màu/11 biến động; chỉnh tồn/history/audit/Excel; đổi mã/alias/nháp/PNG/XLSX. Installer cài đè cùng version exit 0, installed asar khớp package; default launcher đúng app mới trong profile test.
+- Đã thay E:\outputt\Oufeidun-Local-0.1.1 và ZIP. Audit 1.167 checksum/từng entry ZIP trước/sau promotion, API/source/migrations/setup/asar/PowerShell và guide ba nơi khớp. Không config/DB/chứng chỉ riêng. Bộ cũ nguyên vẹn tại E:\outputt\_BACKUP\Oufeidun-0.1.1-before-permissions-20261029-130649, hash ZIP cũ 84292CB412D6FA1809DA309BF68734D18A75669A32A54D39570DE6B3165662C2; 0.2.18 không đổi.
+- ZIP 373.913.857 byte, SHA256 DDA8B5F36212B662C5FB0A97B2CAF6BEEA3CD058695D0D18724982979E830C5B. Setup 174.969.344 byte, SHA256 BE7CF5853FDEADC6966454C602BDF644B6B385F3195C322CD3B7BADD0F401ABF. Logs .local/release-011-*-20261029.* exit cuối 0, metadata artifacts JSON/progress có PASS.
+- Cập nhật API/migration trước rồi app mọi máy, giữ data/config; không clean/reset/nhập lại DB. Chưa DB/hai máy vật lý/router/UAC/reboot/OAuth khách, installer chưa ký thương mại. Chi tiết docs/RELEASE-0.1.1-2026-10-29.md.
+
+### 2026-10-29 — Phân quyền tài khoản, nhập lượng không vốn và chi tiết bán sản phẩm
+
+- Đã đọc lại checklist và đối chiếu AUTH-01/02/03, USER-01/02, PRODUCT-01..04, PRICE-01..04, STOCK-01..04, CUSTOMER-01..03, ORDER-01..11, IMAGE-01/02/03, EXCEL-01, REPORT-01..08, AUDIT-01, UI-01/02 và DB-03. Quy tắc mới đầu BA-SPEC/checklist ưu tiên hơn lịch sử quyền 17/10.
+- Admin cấp bảy quyền theo account, version/audit, API kiểm từng request/replay; staff mới cơ bản, legacy giữ nghiệp vụ trừ quản trị tài khoản chỉ Admin. Nhập staff một mã/Excel hai cột không vốn, bảo toàn giá/vốn cũ; mã mới pending vốn, chưa chốt bán trước Admin thiết lập. MySQL 012 bổ sung quyền/version/cost_configured; không đổi role/tiền/tồn/config.
+- Chi tiết từng sản phẩm theo ID, nhãn snapshot/current, từng đơn/Sales/khách/bán-tặng-mẫu/đặt-giao-trả-net/giá/thành tiền; phân trang 200 và xuất đủ kỳ. API đối chiếu 204 dòng = 200+4, export đủ, net doanh thu khớp tổng hợp, loại nháp, giao thiếu/giao bổ sung/trả/đổi mã, staff không vốn/lợi nhuận. Đọc cùng snapshot.
+- Đã sửa lỗi report reset theo polling workspace 10 giây và xuất khi busy: tách dependency tải report khỏi dữ liệu polling, refresh report có revision riêng, khóa xuất khi chưa sẵn sàng. Test thật qua 11 giây dùng MutationObserver và đọc workbook; không tăng timeout hoặc bỏ test màu/Excel đã phát hiện lỗi.
+- **Hai lượt cuối đầy đủ đều exit 0**: mỗi lượt verify 52 data/56 UI/Electron smoke/TypeScript/build/root production audit 0, server unit 7, MySQL integration cũ + API quyền/report mới không skip, LAN, LOCAL build và bốn bộ Electron nguồn HTTPS/MySQL (quyền/nhập/Excel chi tiết; report/khách/mã/màu; chỉnh tồn; đổi SKU). Đã xem ảnh popup rộng/đủ cột/staff không vốn. Server audit cuối 0.
+- Backup thật cả hai lượt có SQL/ảnh/config/checksum, cột/dữ liệu quyền và cờ vốn/alias/snapshot; mock upload lỗi vẫn giữ local hoàn tất. CLEAN cả hai lượt preview/rollback/bảng lạ/chạy lại và giữ mọi trường account/quyền/version/session/migrations. Thêm hai bảng alias vào allowlist CLEAN cho schema mới; không chạy dọn trên DB khách.
+- Logs `.local/staff-permissions-final-*-20261029.*`: mọi exit bằng 0, progress có ALL TWO ROUNDS PASS. Dist cuối LOCAL. Chưa thay EXE/ZIP ngày 24/10 (hash cũ giữ nguyên), chưa installer/DB khách/Supabase online/hai máy vật lý/OAuth/restore DB. Hướng dẫn, bằng chứng và giới hạn: docs/STAFF-PERMISSIONS-AND-PRODUCT-REPORT-2026-10-29.md.
+
+### 2026-10-28 — Đổi mã sau bán, alias và nhãn chứng từ
+
+- Đã đọc lại checklist/đối chiếu PRODUCT-01/02/03, AUTH-03, PRICE-01..04, ORDER-01/02/03/06/07, STOCK-01..04, REPORT-01..07, AUDIT-01, IMAGE-01/02/03, EXCEL-01 và DB-03. Áp dụng phương án A đã duyệt; quy tắc mới và phạm vi ở đầu BA-SPEC/checklist.
+- MySQL 011 thêm alias/lịch sử, seed tên hiện tại và snapshot NULL, không hồi tố tiền/tồn hoặc ghi đè nhãn có sẵn. Nháp/đơn/chứng từ giữ mã cũ, danh mục/dòng mới dùng mã mới; alias resolve cho tìm kiếm và cả hai loại Excel; chống trùng tên/ID, rollback/concurrency/idempotency. Quyền vốn/nhập giữ nguyên.
+- Verify exit 0: 51 data/54 UI/Electron smoke/TypeScript/build/audit production 0; server unit 7/7; MySQL thật không skip đạt. LOCAL build và Electron nguồn + HTTPS/discovery/MySQL Admin/staff, native workbook/PNG, alias/nháp/lịch sử/tồn/giá/vốn đạt. Đã xem ảnh native staff không có vốn.
+- Backup thật chứa alias/lịch sử/snapshot, SQL/ảnh/config/checksum; giả lập cloud lỗi vẫn giữ local hoàn tất. Không thử OAuth khách/restore DB lần này. Bộ regression và ca mới chi tiết tại docs/PRODUCT-RENAME-TEST-2026-10-28.md.
+- Đã trả dist về LOCAL. Chưa thay EXE/ZIP bàn giao 24/10 hoặc DB máy khách, không Supabase online. Khi phát hành cần API/migration và mọi client; chưa ép phiên bản client tối thiểu. Mật khẩu bảo vệ là yêu cầu riêng chưa triển khai.
+
+### 2026-10-24 — Điều chỉnh số lượng tồn có lý do
+
+- Đã đọc lại checklist, đối chiếu STOCK-01/04, PRODUCT-01, PRICE-01/04, ORDER-01/02/03/05/07, AUTH-03, AUDIT-01, REPORT-01..07, EXCEL-01, IMAGE-01/02/03 và DB-03. Chi tiết ảnh hưởng/thiết kế: docs/STOCK-ADJUSTMENT-2026-10-24.md.
+- Đưa nút Điều chỉnh tồn lên đầu trang, thêm Chỉnh tồn từng mã. Giảm/tăng/tồn thực tế, xem trước/sau, bắt buộc lý do. Dùng adjustment/stock_version/idempotency hiện có, không ghi thẳng tồn qua form sửa sản phẩm. API đọc thêm lý do trong history/report và audit nhận adjustment; Excel thêm cột lý do thứ 8, giữ mã đơn cột 7. Không migration MySQL mới.
+- MySQL integration thật 1/1 không skip đạt: giảm/tăng/0, lý do trống/khoảng trắng, số âm/lẻ/quá giới hạn, thiếu/stale stock_version, retry không lặp, hai yêu cầu đồng thời chỉ một thành công, thiếu tồn chặn bán/rollback, tăng đủ bán nháp cũ được; giá/vốn/price_version/đơn/nháp/doanh thu giữ nguyên. History/audit/report đủ lý do/người; nhân viên điều chỉnh được nhưng không nhập hàng hoặc xem vốn.
+- `npm.cmd run verify` exit 0: 50 data/53 UI/Electron smoke/TypeScript/build/audit production 0. UI Admin/staff giảm 48→45, tăng 47, kiểm kê 0, reload, reason/history/audit và workbook thật đạt. Đã xem ảnh form; không tràn. Server unit 7/7 và audit server 0.
+- Audit phát hiện cảnh báo thư viện mới: pin Zod 4.6.6 rồi chạy lại verify; server multer 2.5.0/body-parser 2.4.0 rồi chạy lại unit/MySQL/upload thật/ảnh giả. Cả root và server audit production 0; không `audit fix --force` hoặc cập nhật hàng loạt.
+- Build LOCAL/Forge Squirrel đạt; native HTTPS/discovery/MySQL Admin/staff điều chỉnh phụ kiện 10→7→9→0, chặn thiếu lý do/vượt tồn, history/audit/Excel thật có lý do, giữ giá/vốn và mọi mã không liên quan. Native report regression vẫn đúng 7 đơn synthetic/9.740.000đ/phí 30.000, mã/màu/11 biến động, khách 0/An-Ân và quyền. Lượt đầu fixture native dùng SKU viết thường trong khi API chuẩn hóa hoa; sửa fixture, chạy lại đủ assertions cả hai vai trò đạt.
+- Installer cài đè cùng 0.1.1 exit 0, installed asar khớp package; default launcher mở đúng app mới, profile test riêng. Logs `.local/stock-adjustment-*-20261024.*` và `.local/release-011-*-20261024.*`; các lượt cuối bắt buộc bằng 0. Không thử trên DB/hai máy vật lý khách, không OAuth Google thực tế.
+- Đã thay folder/ZIP E:\outputt\Oufeidun-Local-0.1.1. Audit đủ 1.162 checksum file folder/ZIP/source/API/migrations/asar/installer/PowerShell, không config riêng, ba guide khớp nguồn. ZIP 373.905.305 byte, SHA256 84292CB412D6FA1809DA309BF68734D18A75669A32A54D39570DE6B3165662C2; Setup 174.963.712 byte, SHA256 D4A62266ABCA518905E7A7258AA7A975D8AFB6D516304989EBD85C638CB7C6B5.
+- Giữ folder/ZIP 23/10 tại E:\outputt\_BACKUP\Oufeidun-0.1.1-before-stock-adjustment-20261024-144708, hash ZIP cũ không đổi; 0.2.18 giữ nguyên. Hướng dẫn mới ngày 24/10: cập nhật API trước rồi app mọi máy, không reset/config lại. Chi tiết docs/RELEASE-0.1.1-2026-10-24.md.
+
+### 2026-10-23 — Đóng gói lại LOCAL 0.1.1 sau sửa doanh thu
+
+- Đã đọc lại checklist và đối chiếu REPORT-01..07, ORDER-01/02/03/05/06/07/09/10, STOCK-01, AUTH-03, EXCEL-01, IMAGE-01/02/03, PRODUCT-01 và DB-03. Verify 48 data/51 UI/Electron/build/audit 0, server 7/7, MySQL integration và cả hai ca ghi xen kẽ report/workspace đều đạt như nhật ký trước.
+- Build LOCAL/Forge Squirrel đạt. Native Admin/staff HTTPS/discovery/MySQL kiểm khách số 0/An-Ân, mã đơn/màu/quyền, 11 biến động và XLSX khớp DB. Thêm kiểm doanh thu/Excel theo ngày đặt sau hủy/trả/giao bổ sung: 7 đơn synthetic/9.740.000đ/phí 30.000, không cộng hai lần hoặc theo tiền thu. Đọc/xuất giữ toàn bộ tồn/vốn. Đã xem ảnh Admin/staff, staff không vốn/lợi nhuận.
+- Screenshot đầu timeout do cửa sổ test ẩn; harness bật background rendering/show trước capture, chạy lại sau installer đạt cả hai vai trò. Lần đầu gọi PS vướng execution policy; gọi lại process riêng `-ExecutionPolicy Bypass` đạt, không thay policy hệ thống. Không sửa nghiệp vụ hoặc bỏ assertion để vượt test.
+- Installer silent cài đè cùng 0.1.1 exit 0, installed asar khớp package; default Update.exe mở đúng app 0.1.1 với profile test riêng. Tất cả lượt cuối `.local/release-011-*-20261023.exit` bằng 0.
+- Đã thay E:\outputt\Oufeidun-Local-0.1.1 và ZIP. Audit 1.162 checksum từng file folder/ZIP, source API/migrations/asar/installer, PowerShell parse, không cấu hình riêng và ba bản guide khớp đạt. ZIP 373.891.813 byte, SHA256 9C94B1C9A7D2C19BA6CEDF96118314103299443B45C95753AA2B4628A57E8F2D; Setup 174.964.224 byte, SHA256 2E404D91FB8E09138B21B2ADEF726B45993E95C871F63BE592179E18ADE2FB99.
+- Giữ folder/ZIP trước tại E:\outputt\_BACKUP\Oufeidun-0.1.1-before-revenue-20261023-115243, ZIP cũ không đổi hash; 0.2.18 không thay. Cập nhật API máy chủ trước rồi app mọi máy dù cùng version; giữ data/config. Chưa kiểm trực tiếp DB/máy vật lý/OAuth Google khách. Chi tiết docs/RELEASE-0.1.1-2026-10-23.md.
+
+### 2026-10-23 — Rà chéo các phần tính tiền/ngày và dữ liệu đọc đồng thời
+
+- Đã đọc lại checklist và đối chiếu ORDER-01/02/03/05/06/07/09/10, PRICE-04, STOCK-01, IMAGE-01/02, EXCEL-01, REPORT-01..07, AUDIT-01, AUTH-03 và DB-03; chi tiết docs/CROSS-MODULE-AUDIT-2026-10-23.md.
+- Sửa thêm report và workspace đọc cùng snapshot chỉ đọc (`REPEATABLE READ`, `WITH CONSISTENT SNAPSHOT, READ ONLY`), commit/rollback/release ở mọi nhánh. Trước đó tổng đơn/số đơn/phí/tồn/dòng hàng/thu tiền có thể thuộc những thời điểm khác nhau khi hai máy cùng thao tác. Không đổi các transaction ghi hoặc dữ liệu/config khách.
+- Period chặn ngày lịch không tồn tại và tối đa366 ngày tính đủ2đầu (trước có thể367). Giữ ngày đặt cho doanh thu/chứng từ và ngày thao tác thực tế cho sổ kho/lịch sử.
+- MySQL integration thật 1/1 không skip đạt: cố ý bán một đơn3dòng giữa các SELECT report; cố ý giao bổ sung/thu đủ giữa SELECT workspace; lần đọc giữ nguyên trạng thái cũ đầy đủ và lần sau thấy đủ thay đổi. Đối chiếu mọi đơn/nháp: tổng dòng+phí, tiền thu+còn thu, lịch sử giao; nháp không xuất kho, từng mã đầu+tăng-giảm=cuối. Giữ đầy đủ các ca hồi quy cũ.
+- `npm.cmd run verify` exit0:48data/51UI/Electron smoke/TypeScript/build/audit0. Server unit7/7 đạt, gồm ngày không nhuận/rollover/đảo/366vs367ngày. Logs `.local/cross-audit-*-20261023.*`.
+- Chưa có thêm lỗi cộng nháp/lấy tiền thu làm doanh thu trong các ca đã rà. Chứng từ gốc vẫn giữ tổng gốc khi có trả; báo cáo thuần và sổ kho theo hai mốc ngày có chủ đích. Danh sách tối đa500 đơn không phải nguồn cộng tổng báo cáo.
+- Chưa tạo lại EXE/ZIP, chưa truy cập dữ liệu/máy vật lý khách; cập nhật cần API và app, giữ config/data.
+
+### 2026-10-23 — Doanh thu đúng ngày đặt, loại nháp, không theo tiền thực nhận
+
+- Đã đọc lại checklist và đối chiếu REPORT-01/02/03/04/06/07, ORDER-03/05/06/07/09/10, AUTH-03, STOCK-01 và DB-03. Không đổi dữ liệu lịch sử/config/migration MySQL hoặc bộ phát hành cũ.
+- Nguyên nhân: report dùng confirmed_at trong khi danh sách dùng ordered_at; cùng một ngày lọc hai tập đơn khác nhau. Thẻ doanh thu cũ không bao gồm phí. Chưa có DB khách để kết luận đơn nháp cụ thể có bị đổi trạng thái hay không; nháp chưa xác nhận vốn NULL confirmed_at.
+- API và demo thống nhất ngày đặt, trạng thái xác nhận rõ ràng, doanh thu gồm sản phẩm thực giao sau trả và phí một lần. App/Excel dùng chung tổng tương thích API cũ, không cộng phí lặp. Không truy vấn tiền đã thu để tính doanh thu.
+- `npm.cmd run verify` exit 0: 48/48 data, 51/51 UI, Electron smoke, TypeScript/build, audit 0 vulnerabilities. Đã build:local lại sau verify, runtime local-mysql. MySQL integration thật 1/1 không skip và server unit 6/6 đạt; logs `.local/report-fix-*-20261023.*`.
+- MySQL tái hiện bằng 8 đơn synthetic theo số tiền trong ảnh = 11.050.000đ + nháp ngày mai; nháp cùng ngày/xóa, 0đ/mẫu/thiếu/phí, ba mức thanh toán, ngày VN biên 00:00/23:59, đơn bán ngày mai, lọc hai ngày, sửa ngày, hủy/trả/giao bổ sung, quyền Admin/staff và bất biến tồn/đơn đều đạt. Không sử dụng DB thật của khách.
+- UI tải/đọc workbook thật đối chiếu số đơn/tiền sản phẩm/phí/tổng chính xác; ngày mai có nháp vẫn 0. Đã xem screenshot `test-results/report-business-date.png`, bố cục rõ, không tràn.
+- Không đóng gói EXE/ZIP trong lần này. Bộ 0.1.1 ngày 21/10 chưa có sửa này; cần đóng gói và cập nhật API + app để khách nhận đủ. Chi tiết: docs/REPORT-REVENUE-2026-10-23.md.
+
+### 2026-10-21 — Build 0.1.1 theo yêu cầu, giữ nguyên 0.2.18
+
+- Đổi metadata app/API/lockfiles sang 0.1.1, giữ toàn bộ sửa lỗi hiện tại và dữ liệu/config. Không đổi migration nghiệp vụ. Readiness cần khớp phiên bản kể cả số thấp: dùng capability discovery để nhận diện API hiện đại, giữ fallback cho legacy thật; kiểm discovery dựa trường health thay mốc 0.2.13. Tests/server-health-version.ps1 có bảy tình huống và deployment-config đạt.
+- Verify 46 dữ liệu/50 UI/Electron/build/audit đạt; MySQL integration, make LOCAL và package audit đạt. EXE cả Admin/staff trên HTTPS/discovery/MySQL kiểm khách 0/An-Ân, danh sách chia sẻ, 11 biến động và Excel/mã/màu/quyền/tồn/vốn đạt. Log .local/release-011-*-20261021.* exit 0.
+- Installer 0.1.1 cài đè 0.2.18 thành công, installed asar khớp package; đường mở Update.exe mặc định chạy đúng app-0.1.1. Lượt test launcher đầu chịu ELECTRON_RUN_AS_NODE của môi trường công cụ; bỏ flag riêng trong fixture rồi kiểm lại đạt, không sửa app. Chưa kiểm trên máy vật lý/dữ liệu khách.
+- Tạo riêng folder/ZIP E:\outputt\Oufeidun-Local-0.1.1, 1.162 checksum folder/ZIP đúng source API/migrations/setup/asar, PowerShell parse/private config và ba hướng dẫn đạt. Bộ 0.2.18 không đổi, ZIP vẫn hash 8E1AF631BFF5BB849220D306E7D5778670B6DE89260AE0846F951EE72589945C.
+- ZIP 373.887.050 byte, SHA256 ED5BCDCFE643D6DAC8C4B6ACAA4B8F79ED119B18C7262C707893C5130A05B7D5. Setup 174.961.664 byte, SHA256 C8C85A4CE6B794F7E8B7E64185544111D07069DAFD6B34123CBDC3BB54F2D1D3. Khách cập nhật API máy chủ trước rồi app, giữ config/DB. Chi tiết docs/RELEASE-0.1.1-2026-10-21.md.
+
+### 2026-10-21 — Kiểm thử lại toàn bộ sau khi bàn giao, theo yêu cầu khách
+
+- Không sửa logic app hoặc thay ZIP. Verify chạy lại đạt 46 dữ liệu/50 UI/Electron/build/audit; API syntax/unit 6/6, MySQL integration thật và LAN 1/1, server audit 0 lỗ hổng. Các luồng khách 0/khôi phục/rerun migration, giá/quyền/nháp/bán-tặng-mẫu/giao thiếu/trả/hủy/chứng từ đều được chạy lại.
+- Packaged Admin qua HTTPS/MySQL đạt luồng bán/tặng/mẫu/giữ giỏ/nháp cũ, ngày/phí/ghi chú/model, PNG/Excel thật/Cancel, tồn, nhập catalog 3/9 cột và giá chung/thử lại sau lỗi mạng. Packaged staff đạt sửa mã giữ vốn, giá chung, chốt/trả/đổi đơn Admin, đủ trang, không nhập/tồn đầu/đọc vốn; đã xem ảnh kho/báo cáo staff. EXE hai role kiểm riêng khách 0/An-Ân và chia sẻ danh sách, 11 biến động báo cáo khớp XLSX/DB, giữ mã/màu/quyền và toàn bộ tồn/vốn.
+- Backup SQL/ảnh/config/checksum và cloud hook lỗi đạt; rclone filesystem remote thật, retry/khóa/chống backup hỏng/không xóa cloud đạt. Setup Drive OAuth/task mock đạt. Cấu hình/relocation/copy/ACL và các ca lỗi/hủy/rollback/clean orchestration đều đạt trong fixture. Cài đè 0.2.18 đạt, installed asar khớp package.
+- Harness cũ trùng cổng 8787 với dịch vụ cũ và thiếu cờ tạo chi phí: chuyển test sang 8798, bật LAN và ORDER_DETAILS=1 cho đúng fixture; không thay app hoặc dừng dịch vụ cũ để vượt test. Console lỗi mạng/checksum/upload trong ca giả lập là dự kiến, không phải lỗi chưa xử lý.
+- Tất cả lượt cuối `.local/full-retest-20261021-*.exit` bằng 0. Audit 1.162 file folder/ZIP đạt; ZIP vẫn SHA256 8E1AF631BFF5BB849220D306E7D5778670B6DE89260AE0846F951EE72589945C. Không kiểm tài khoản Drive/hai máy vật lý/dữ liệu thực khách. Báo cáo đầy đủ: docs/FULL-RETEST-2026-10-21.md.
+
+### 2026-10-21 — Bàn giao lại LOCAL 0.2.18, sửa danh mục khách hàng
+
+- Đã ghi đè E:\outputt\Oufeidun-Local-0.2.18 và ZIP, giữ version theo bộ hiện tại. Bộ 20/10 nằm ở E:\outputt\_BACKUP\Oufeidun-0.2.18-before-customer-identity-20261021-173959; backup folder và ZIP đối chiếu checksum đạt. Bộ 0.2.17 không đổi.
+- Verify 46 dữ liệu/50 UI/Electron/build/audit exit 0 (.local/customer-identity-verify-20261021.log); MySQL integration phục hồi An/Ân, migration chạy lại và bảo toàn đơn/tiền/tồn/vốn đạt. Make LOCAL maker-squirrel exit 0 (.local/release-20261021-make.log).
+- Package audit đúng LOCAL/version/discovery/lookup, không source/test/private config. tests/local-report.electron.cjs --customers kiểm EXE mới trên HTTPS/discovery/MySQL thật cả Admin/staff: ba khách cùng 0 được tách kể cả An/Ân, staff thấy khách Admin mới tạo; đọc Excel thực tế, 11 biến động kho, mã đơn, màu SKU và quyền vốn/tồn không đổi đều đạt (.local/release-20261021-customers.log exit 0). Cài đè cùng 0.2.18 exit 0, installed asar khớp package (.local/release-20261021-installer.log).
+- Audit 1.162 file staging/folder/ZIP, source API/migration 010/setup/asar khớp build; parse PowerShell, loại private config và ba hướng dẫn khớp nguồn đều đạt (.local/release-20261021-stage.log exit 0). Hướng dẫn yêu cầu backup/cập nhật API và migration 010 trên máy chủ trước, rồi app mọi máy; giữ config, không reset dữ liệu. Không thử trên dữ liệu/máy vật lý khách.
+- ZIP 373.888.902 byte, SHA256 8E1AF631BFF5BB849220D306E7D5778670B6DE89260AE0846F951EE72589945C. Setup 174.961.664 byte, SHA256 A1EA9E4216516B86881114D02A7873E37933182EE35FD0E67AFC77BFF5942A5A.
+
+### 2026-10-21 — Sửa khách hàng dùng số điện thoại 0
+
+- ID ảnh hưởng CUSTOMER-01/02/03, ORDER-01/08, PRICE-03, AUTH-03, DB-03, UI-01. Unique phone/upsert cũ ghi đè khách cùng 0. MySQL 010 dùng khóa nhận diện tên+phone cho số toàn 0 (phân biệt dấu Việt), phone thật giữ nhận diện cũ; cập nhật theo ID đúng, tranh chấp cùng khách không trùng và khách khác không gộp. Khách hàng tự tải khi mở/mỗi 10 giây, giữ guard busy/modal/hidden.
+- Recovery bảo thủ: nhiều tên trên đơn chưa xóa cùng customer_id tạm 0 còn active mới phục hồi từ snapshot/latest address và sửa liên kết. Giữ ID đơn/snapshot/tiền/tồn/vốn/version/updated_at; không làm sống khách chủ động xóa, không sao chép giá riêng hoặc tự đoán phone thật. Không tự phục hồi tên cũ chỉ vì người dùng chủ động đổi tên hồ sơ. Migration chạy lại sau gián đoạn đạt. Demo parity SQL riêng, không áp dụng Supabase online.
+- Unit dữ liệu riêng và MySQL integration thật exit 0: tái hiện gộp khách 0, phục hồi cả An/Ân, nhiều khách/lưu lại nháp/đổi khách trên nháp/sửa trực tiếp hồ sơ, phone thật, cạnh tranh cùng/khác tên, staff, hai lần chạy migration và so toàn bộ số tiền/version/thời gian/tồn/vốn. Log .local/customer-identity-data-20261021.log và customer-identity-mysql-20261021.log. API syntax và unit 6/6 đạt.
+- Verify cuối exit 0: 46 dữ liệu/50 UI/Electron/TypeScript/build/audit 0 lỗ hổng (.local/customer-identity-verify-20261021.log). Ca UI mới kiểm ba khách 0, An/Ân, lưu nhiều lần, reload, staff và nháp; lượt đầu script gặp selector Khách mới và toast cũ khi lưu lần hai, sửa script chọn Đơn mới và chờ hết busy trước thao tác tiếp, không sửa guard lưu giỏ để vượt test.
+- Chỉ dùng database test tự tạo; không truy cập DB khách. Hướng dẫn 21/10 nêu API/migration 010 trước rồi app mọi máy, không đổi config/reset dữ liệu. Tình trạng đóng gói và hash sẽ được ghi ở mục bàn giao khi hoàn tất.
+
+### 2026-10-20 — Cập nhật bộ bàn giao 0.2.18 và ZIP
+
+- Đã đọc lại checklist và đối chiếu các mục báo cáo/màu mã hàng, AUTH-03, ORDER-07/08, IMAGE-03, REPORT-03/04/06/07, UI-01 và DB-03. Giữ 0.2.18 theo yêu cầu cập nhật bộ hiện có; không thay đổi logic sau verify 45 dữ liệu/49 UI/Electron/build/audit exit 0 ở .local/recheck-20261020-verify.log.
+- Make LOCAL maker-squirrel đạt (.local/release-20261020-make.log). App đúng profile LOCAL/discovery/lookup, không chứa source/test/private config. Kiểm lại chính package mới bằng tests/local-report.electron.cjs: Admin và staff qua HTTPS/MySQL, đối chiếu 11 biến động trong XLSX thật, mã 899 và mã chữ/số 0 đầu, màu chữ, quyền vốn, giữ toàn bộ tồn/vốn đều đạt (.local/release-20261020-packaged-report.log). 899 là dữ liệu tự tạo trên DB test, không truy cập DB khách.
+- Installer cài đè cùng version 0.2.18 exit 0; installed app.asar khớp package (.local/release-20261020-installer.log). Không sửa DB/config/dịch vụ khách. Hướng dẫn 20/10 ghi rõ máy chủ cập nhật API trước, sau đó xuất bộ client và cập nhật app mọi máy; riêng báo cáo/màu chữ không thêm migration mới.
+- Đã ghi đè E:\outputt\Oufeidun-Local-0.2.18 và ZIP; giữ bộ trước tại E:\outputt\_BACKUP\Oufeidun-0.2.18-before-report-colors-20261020-173946. Backup folder/ZIP đối chiếu hash đạt. Audit staging/folder và đủ 1.161 entry ZIP khớp checksum/source API/migrations/setup/asar, PowerShell parse và loại private config đạt (.local/release-20261020-stage.log, exit 0). Bộ 0.2.17 giữ nguyên. Ba hướng dẫn trong bộ khớp nguồn.
+- ZIP 373.889.894 byte, SHA256 8DAA8CA300A95D01578EE601A4F6D1E6978E03D59FF516F79BF236129B67488A. Setup 174.964.736 byte, SHA256 97B3A1044717EE63F859111FD7D8FBD0D79C14048F351FBC00AE1AEC9E38E579. Chưa kiểm trên dữ liệu/hai máy vật lý của khách; cần cập nhật đủ máy chủ/client tại cửa hàng.
+
+### 2026-10-20 — Kiểm tra lại lần hai theo phản hồi khách
+
+- Đã đọc lại checklist và đối chiếu AUTH-03, PRODUCT-03/04, ORDER-07/08, IMAGE-03, REPORT-03/04/06/07, UI-01, DB-03. Không phát hiện thêm lỗi nghiệp vụ trong các ca bổ sung; thay đổi lần này là kiểm thử và tài liệu, không đổi schema/data/config khách.
+- Verify chạy lại exit 0: 45 dữ liệu/49 UI, Electron, TypeScript/build và audit 0 lỗ hổng (.local/recheck-20261020-verify.log). UI bổ sung tài khoản staff kiểm màu trên thẻ sản phẩm/kho/báo cáo và đọc XLSX không vốn. API unit 6/6, LAN 1/1, server audit 0 lỗ hổng.
+- MySQL integration thật exit 0 (.local/recheck-20261020-mysql.log): thêm 000899, DH-CUSTOM-899 và mã có dấu/nháy đơn/dấu gạch chéo; đối chiếu từng biến động với database, không mất/trùng dòng; giữ 899 trên giao đầu/giao bổ sung/trả, hủy đúng mã và legacy null dự phòng đúng DH.
+- Build LOCAL + electron-forge package phục vụ kiểm thử, package audit đạt: runtime LOCAL, không private config/source/test. tests/local-report.electron.cjs chạy packaged app qua HTTPS/discovery/MySQL thật, cả Admin/staff đều exit 0 (.local/recheck-20261020-packaged-report.log). Đối chiếu chính xác 11 dòng kho gồm tồn đầu/giao đầu/giao bổ sung/hủy/trả với XLSX tải từ EXE; mã có số 0 đầu giữ kiểu String trong Excel, 899 không đổi, màu CSS/XLSX đúng, staff không có cột vốn; toàn bộ tồn/vốn trước và sau xem/xuất giữ nguyên. Lượt đầu script chờ toast tải báo cáo không tồn tại; đã sửa script chờ file và mở XLSX thực tế, không sửa hành vi app để vượt test.
+- EXE kiểm thử ở out/Oufeidun-win32-x64, app.asar SHA256 0A5ADD15FD25E5F842E3B1589A832C220F4D91C2049B2914B6E1918FECB83E22. Chưa make installer, thử cài nâng cấp hoặc thay bộ khách. ZIP E:\outputt\Oufeidun-Local-0.2.18.zip vẫn hash 8BF5CB3CA40B2EB037F2901327E33043921169EC6B12A999B501D0CBC73FB8DD; chưa có sửa ngày 20/10. Chưa nghiệm thu trên dữ liệu/hai máy vật lý của khách.
+
+### 2026-10-20 — Mã đơn báo cáo và màu chữ trong app
+
+- Đọc lại checklist sau code; đối chiếu PRODUCT-03/04, ORDER-07/08, IMAGE-03, REPORT-03/04/06/07, AUTH-03, UI-01 và DB-03. Mã 899 không còn bị thay bằng DH nội bộ trong báo cáo LOCAL; bổ sung liên kết đơn cho biến động trả hàng. Không migration hoặc sửa dữ liệu/config khách.
+- Màu SKU trong thẻ sản phẩm, giỏ, kho, chi tiết đơn, giao/trả và báo cáo dùng chung Full viền đen/CNT vàng đậm/Không viền xanh; áp dụng cả Excel báo cáo. Giữ tiền/tồn/thứ tự và quyền vốn. Đã xem ảnh bản in test-results/order-category-colors-pdf.png.
+- MySQL integration thật cô lập 1/1 đạt: mã tự nhập trên bán/giao bổ sung/trả/hủy, nhập kho không gắn đơn, legacy null dự phòng DH, Admin/staff không lộ vốn; kiểm tra tồn/doanh thu không đổi. API syntax/unit 6/6 đạt. UI riêng đọc XLSX thật và CSS/canvas/PDF đạt.
+- npm.cmd run verify exit 0: 45 dữ liệu, 49 UI, Electron smoke, TypeScript/build và audit 0 lỗ hổng; .local/verify-20261020-report-colors.log. Lượt đầu gặp thiếu bộ nhớ V8; giới hạn test-concurrency=2 rồi chạy lại toàn bộ đạt, không bỏ test.
+- Chưa đóng gói lại EXE/folder/ZIP 0.2.18. Khi phát hành cần cả API máy chủ và client; giữ DB/account/config. Xem docs/REPORT-CODE-APP-COLORS-2026-10-20.md.
+
+### 2026-10-19 — Google Drive và màu chứng từ, build lại 0.2.18
+
+- Đã đối chiếu lại checklist và các ID IMAGE-01/02/03, EXCEL-01, ORDER-01/02/07/08, DB-03/04, AUTH-03, UI-01. Giữ version 0.2.18 theo yêu cầu; bộ trước được backup trước khi thay. Màu từ loại danh mục dùng chung Excel/PNG/PDF, không đổi tiền/tồn/thứ tự. Đã xem ảnh thực `test-results/order-category-colors-pdf.png`.
+- Verify exit 0: 44 dữ liệu, 49 UI, Electron demo, TypeScript/build và audit 0 lỗ hổng; `.local/verify-018-drive-colors.log`. UI mới đọc lại font trong XLSX thật, bắt màu chữ canvas khi xuất PNG, kiểm tra bản in/PDF; tổng 77.000đ giữ đúng.
+- Rclone chính thức v1.75.2 đã tải/kiểm SHA256/chạy thật. `tests/drive-backup.ps1` exit 0: copy/check tới remote filesystem cô lập, chỉ bản hoàn tất, checksum sai/traversal/link giả bị chặn, mất mạng/quota/token giả lập không đánh dấu thành công, retry khôi phục, khóa chạy trùng, giữ cloud-only và upload bản hợp lệ dù có backup cũ hỏng. `tests/drive-setup.ps1` exit 0: mặc định/link, đăng nhập no-output, task SYSTEM theo giờ, copy hook, chạy lại giữ account/config; OAuth và đăng ký task Windows dùng mock, không đăng nhập Google thật.
+- Backup MySQL test thật gồm SQL/ảnh/config/checksum và PassThru đạt; thêm hook upload exit 1 vẫn tạo đủ bản local và trả đúng một object. PowerShell parse và cấu hình đổi folder/hostname/port đạt. Không chạy đăng ký task, OAuth hay upload dữ liệu khách.
+- Hồi quy MySQL phát hiện deadlock khi hai máy tạo cùng mã do SELECT LOWER/FOR UPDATE quét rộng. Bỏ khóa ở bước kiểm tra trước; unique index migration 009 vẫn là chốt chống trùng. INSERT/UPDATE thua cạnh tranh trả ORDER_CODE_EXISTS/409. Bổ sung 12 cặp đồng thời (cùng/khác sản phẩm, khác hoa/thường) và chạy 4 lượt integration liên tiếp đều đạt; log `.local/drive-colors-mysql.log` và `drive-colors-race-1/2/3.log`. API syntax/unit 6/6 và LAN 1/1 đạt; không thêm migration mới.
+- Đã build LOCAL/maker-squirrel, package audit, EXE mới HTTPS/MySQL kiểm màu XLSX/PNG/PDF và kho giữ nguyên khi nháp; packaged staff hồi quy quyền/giá chung/xác nhận/trả/đổi/báo cáo không vốn đạt. Log `.local/packaged-018-document-colors.log`, `packaged-018-drive-colors-staff.log` exit 0. Installer cài đè cùng version exit 0 và installed asar khớp package; `.local/installer-018-drive-colors.log`.
+- Đã ghi đè folder/ZIP `E:\outputt\Oufeidun-Local-0.2.18`; bản trước giữ tại `E:\outputt\_BACKUP\Oufeidun-0.2.18-before-drive-colors-20261019-223335` (folder và ZIP). Audit 1.161 hash folder và từng entry ZIP, API/migration/installer/asar, PS parse, không private config/rclone token đạt; `.local/stage-018-drive-colors.log` exit 0. Hướng dẫn đủ ba BAT và bước chạy Google consent một lần, giữ DB/config/ảnh/account.
+- ZIP 373.888.195 byte, SHA256 `8BF5CB3CA40B2EB037F2901327E33043921169EC6B12A999B501D0CBC73FB8DD`. Setup 174.964.224 byte, SHA256 `55AF24CDECC58E4F2DA8755928FED6E9F03B055E2FCB1CDB771566E676D4B527`. Bộ 0.2.17 giữ nguyên. Google consent/tải tới tài khoản khách, UAC/task SYSTEM/reboot/hai máy vật lý cần kiểm tra tại cửa hàng; kiểm thử không dùng tài khoản/dữ liệu khách và không đăng ký task thật.
+
+### 2026-10-19 — Bàn giao LOCAL 0.2.18
+
+- Theo yêu cầu tăng version app/API lên 0.2.18; giữ nguyên bộ 0.2.17. Đã đọc lại toàn bộ checklist, đối chiếu PRODUCT-01/03, ORDER-01/02/08, STOCK-01, AUTH-03, DB-03 và hồi quy toàn bộ bảng chức năng. Hướng dẫn riêng `deployment/customer/BAT-DAU-0.2.18.txt` có hai sửa lỗi, bắt buộc cập nhật máy chủ/migration 009 rồi app mọi máy, giữ dữ liệu/config/account/ảnh.
+- Verify với version mới exit 0: 43 dữ liệu, 48 UI, Electron demo, TypeScript/build và audit 0 lỗ hổng; `.local/release-018-verify.log`. MySQL integration thật không skip exit 0, gồm hai sửa lỗi, dữ liệu cũ, migration chạy lại và tranh chấp mã; `.local/release-018-mysql.log`.
+- Build LOCAL/maker-squirrel và package audit đạt, đúng version/lookup/discovery, không chứa source/test/private config. `.local/release-018-make.log` exit 0. Packaged staff HTTPS/discovery/MySQL đạt quyền dùng chung, giá chung/sửa sản phẩm giữ vốn, xác nhận/trả/đổi nháp Admin, báo cáo Excel không vốn, không nhập/tồn đầu; `.local/release-018-packaged-staff.log` exit 0.
+- Packaged Admin hồi quy bán/tặng/mẫu đúng nhóm và vị trí, lưu/detail/mở nháp, xác nhận nháp cũ giữ giỏ khác, PNG/read Excel/Cancel, xác nhận/tồn, Excel 3/9 cột và lưu giá chung đạt; `.local/release-018-packaged-admin.log` exit 0. Lỗi fetch giả lập là ca cố ý kiểm tra giữ modal/giỏ rồi thử lại, không phải lỗi phát sinh ngoài dự kiến.
+- Installer silent nâng lên 0.2.18 exit 0, installed app.asar khớp package; `.local/release-018-installer.log`. Không sửa DB/dịch vụ khách; chưa nghiệm thu hai máy vật lý, Wi-Fi/router/UAC/reboot tại cửa hàng; installer chưa ký Authenticode thương mại.
+- Folder `E:\outputt\Oufeidun-Local-0.2.18`, ZIP cùng tên. Audit 1.154 checksum và từng entry ZIP, API/migration/installer/asar khớp source/build, parse PowerShell, loại config riêng đạt; `.local/release-018-stage.log` exit 0. ZIP 373.869.792 byte, setup 174.958.080 byte. ZIP 0.2.17 giữ nguyên hash trước phát hành.
+- ZIP SHA256 `8F80808119FE44C2B5B855D1815F2D3B8D0999116C6A627D84DFE32B78DF5671`; setup SHA256 `55205E2248A171828A34E0D035B28EA74EE4913C00AD73A5A06ABFABE26160D6`.
 
 ### 2026-10-17 — Bản final LOCAL 0.2.17, đủ ba nhóm quyền nhân viên
 

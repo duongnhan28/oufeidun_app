@@ -1,12 +1,13 @@
 import { saveDownload } from "./download";
 import { InputError } from "./input-error";
 import {orderItemsForDisplay} from './order-item-order';
+import {orderProductColor} from './order-product-color';
 
 export type ExcelCell = string | number | Date | null | undefined;
 
 export async function downloadWorkbook(
   filename: string,
-  sheets: { name: string; columns: string[]; rows: ExcelCell[][] }[],
+  sheets: { name: string; columns: string[]; rows: ExcelCell[][]; skuColors?: string[] }[],
 ) {
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
@@ -18,6 +19,8 @@ export async function downloadWorkbook(
     ws.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
     ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF008C9E" } };
     sheet.rows.forEach((row) => ws.addRow(row));
+    const skuColumn=sheet.columns.indexOf('Mã kính')+1;
+    if(skuColumn && sheet.skuColors)sheet.skuColors.forEach((color,index)=>{ws.getCell(index+2,skuColumn).font={color:{argb:'FF'+color.replace('#','')}};});
     ws.views = [{ state: "frozen", ySplit: 1 }];
     ws.columns.forEach((column) => {
       let width = 12;
@@ -35,7 +38,7 @@ export async function downloadWorkbook(
   return saveDownload(blob, filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`);
 }
 
-export async function readInventoryWorkbook(file: File) {
+export async function readInventoryWorkbook(file: File, quantitiesOnly=false) {
   if (file.size > 10 * 1024 * 1024) throw new InputError("File nhập kho tối đa 10 MB.");
   if (!/\.xlsx$/i.test(file.name)) throw new InputError("Vui lòng lưu file dưới dạng Excel .xlsx trước khi nhập kho.");
   const { default: ExcelJS } = await import("exceljs");
@@ -52,7 +55,11 @@ export async function readInventoryWorkbook(file: File) {
       sheet.getRow(row).eachCell((cell, index) => {
         for (const key of ["sku", "quantity", "price"] as const) if (aliases[key].includes(normalize(cell.text))) columns[key] = index;
       });
-      if (columns.sku && columns.quantity && columns.price) { header = { sheet, row, ...columns }; break; }
+      if(quantitiesOnly&&columns.sku&&columns.quantity){
+        if(columns.price||sheet.getRow(row).cellCount!==2)throw new InputError('File nhân viên chỉ được có hai cột Mã kính và Số lượng, không có giá/vốn.');
+        header={sheet,row,...columns};break;
+      }
+      if (!quantitiesOnly && columns.sku && columns.quantity && columns.price) { header = { sheet, row, ...columns }; break; }
     }
     if (header) break;
   }
@@ -74,13 +81,13 @@ export async function readInventoryWorkbook(file: File) {
   const seen = new Set<string>();
   header.sheet.eachRow((row, index) => {
     if (index <= header!.row) return;
-    const cells = [header!.sku, header!.quantity, header!.price].map(column => row.getCell(column));
+    const cells = [header!.sku, header!.quantity, quantitiesOnly?header!.quantity:header!.price].map(column => row.getCell(column));
     if (cells.every(cell => !cell.text.trim() && (cell.value == null || typeof cell.value === "string"))) return;
     const sku = cells[0].text.trim().toUpperCase();
     if (!sku) throw new InputError(`Dòng ${index}: chưa nhập Mã kính.`);
     if (sku.length > 50) throw new InputError(`Dòng ${index}: Mã kính tối đa 50 ký tự.`);
     const quantity = numberValue(cells[1], index, "Số lượng");
-    const purchasePrice = numberValue(cells[2], index, "Giá nhập");
+    const purchasePrice = quantitiesOnly?0:numberValue(cells[2], index, "Giá nhập");
     if (quantity < 1 || quantity > 1000000) throw new InputError(`Dòng ${index}: Số lượng phải từ 1 đến 1.000.000.`);
     if (purchasePrice > 999999999999999) throw new InputError(`Dòng ${index}: Giá nhập vượt giới hạn cho phép.`);
     if (seen.has(sku)) throw new InputError(`Dòng ${index}: mã kính ${sku} bị lặp. Vui lòng gộp thành một dòng.`);
@@ -106,6 +113,7 @@ export type OrderExcelData = {
   extraCostNote?: string;
   items: {
     product_id?: string;
+    glassType?: string;
     sku: string;
     name: string;
     quantity: number;
@@ -161,6 +169,7 @@ export async function downloadOrderWorkbook(data: OrderExcelData) {
     const missing = item.missingQuantity ?? Math.max(0, item.quantity - delivered);
     const description = [item.sku, item.kind && item.kind!=="sale" ? (item.kind==="gift"?"Hàng tặng":"Hàng mẫu") : "", item.models?.length ? `Dùng chung: ${item.models.join(', ')}` : '', item.note ? `Ghi chú: ${item.note}` : ''].filter(Boolean).join('\n');
     const row = sheet.addRow([index + 1, description, item.unit === 'sản phẩm' ? 'Sản phẩm' : 'Tấm', item.quantity, delivered, missing, item.unitPrice, delivered * item.unitPrice]);
+    row.getCell(2).font = {color:{argb:'FF'+orderProductColor(item.glassType,item.sku).slice(1)}};
     row.height = Math.max(24, 15 * (description.split('\n').reduce((sum,line) => sum + Math.max(1,Math.ceil(line.length/38)),0)));
     row.getCell(1).alignment = { horizontal: "center" };
     row.getCell(4).alignment = { horizontal: "center" };

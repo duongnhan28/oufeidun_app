@@ -83,7 +83,6 @@ test('all admin and staff pages render without crashes, overflow or unnamed cont
     ['Kho hàng', 'Kho hàng'],
     ['Khách hàng','Khách hàng'],
     ['Báo cáo','Báo cáo'],
-    ['Nhân viên','Nhân viên'],
     ['Lịch sử thao tác','Lịch sử thao tác'],
   ] as const;
   for (const [navigation, heading] of staffPages) {

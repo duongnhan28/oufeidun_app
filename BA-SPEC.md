@@ -1,5 +1,99 @@
 ﻿# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
 
+## Tồn dự kiến được duyệt — 03/11/2026
+
+- Người dùng duyệt triển khai và đóng ZIP trước, cập nhật qua web để sau. Tồn dự kiến = tồn hiện tại - toàn bộ số lượng trong đơn nháp đang lưu của mọi người, không giới hạn500đơn UI, không lọc ngày nháp. Chỉ cảnh báo/cho phép âm, không giữ hàng hoặc trừ kho khi lưu.
+- Tính cùng ID sản phẩm, gộp bán/tặng/mẫu; nháp xóa không tính. Mở sửa nháp loại snapshot đã lưu của chính nháp đó trước khi tính giỏ đang sửa, tránh trừ hai lần. Giỏ chưa lưu chỉ tính trên máy đang soạn. Xác nhận vẫn khóa/kiểm tồn thực tế, không dựa số dự kiến để trừ kho.
+- Kho có chế độ Tồn dự kiến với số thực tế/trong nháp/dự kiến/Hàng đã giao theo kỳ mặc định hôm nay, Excel riêng. Hàng đã giao là tổng lượng xuất bán thực tế trong kỳ (gồm giao bổ sung), trước hoàn/hủy, theo ngày sổ kho; chỉ theo dõi, không trừ lại. Hoàn/hủy xem báo cáo kho cũ. Không bỏ đơn thiếu/giao bổ sung.
+- API đọc snapshot nhất quán, chỉ số lượng cho Admin/staff, không cần quyền báo cáo/vốn. Bán hàng có nhãn dự kiến, giỏ cảnh báo mềm; bộ lọc/đơn vị/tìm kiếm giữ trước. Không migration mới riêng cho tồn dự kiến; bộ phát hành gồm migration013 của phiên.
+
+## Phiên LOCAL chịu gián đoạn mạng — 03/11/2026
+
+- Được người dùng cho làm trước; tồn dự kiến chưa được duyệt, không triển khai trong thay đổi này.
+- Thay quy tắc90s phía dưới: SESSION_IDLE_SECONDS (mặc định90) chỉ nhận biết đang hoạt động khi đăng nhập từ device khác. Token có deadline tuyệt đối SESSION_MAX_SECONDS mặc định43200giây (12h) kể từ login, không theo giờ17h, không tự kéo dài qua heartbeat. Config mới tùy chọn, nhận số nguyên300–86400; config cũ không cần sửa.
+- Mất mạng/sleep quá90s vẫn dùng lại token nếu còn deadline/chưa thu hồi; cùng device login lại được ngay. Device khác bị chặn khi phiên còn hoạt động; quá presence lease thì được claim, tạo token mới vô hiệu token trước. Hết12h, logout, khóa/xóa/reset mật khẩu vẫn yêu cầu login. Không lưu mật khẩu/auto login khi mở lại app và không replay giao dịch.
+- MySQL013 thêm app_users.session_expires_at nullable. Phiên cũ NULL login một lần sau cập nhật, không tự kéo dài phiên không rõ tuổi. Không đổi account/password/permissions/tồn/tiền/đơn. Re-run migration không reset deadline/dữ liệu.
+- LOCAL API/client; không thay Supabase online hoặc demo. Cập nhật máy chủ/migration trước rồi app mọi máy để nhận cả sửa30/10. Chưa đóng gói EXE/ZIP. Chi tiết docs/SESSION-LIFETIME-2026-11-03.md.
+
+## Gián đoạn kết nối không đồng nghĩa đăng xuất — 30/10/2026
+
+- Bổ sung phản hồi phải login nhiều lần: request LOCAL gắn token tại lúc gửi, phản hồi của token cũ không được xóa token mới hoặc đưa workspace cũ lên UI. Login bằng mật khẩu không gửi Bearer cũ/không bị lỗi phiên cũ hủy kết quả; logout cũ chỉ được xóa đúng token của nó. Logout chủ động luôn đóng màn hình local kể cả request mất mạng, có xử lý lỗi/busy; không coi đây là xác nhận máy chủ đã nhận logout.
+
+- Kiểm tra phiên 25 giây: chỉ về đăng nhập khi có SESSION_REQUIRED/SESSION_REPLACED/ACCOUNT_DISABLED/UNAUTHENTICATED. Lỗi mạng, timeout, 5xx và lỗi chưa xác định giữ màn hình/giỏ đang nhập, thông báo một lần mỗi đợt và thử lại. Không gửi lại giao dịch bán/kho/thu tiền.
+- Chống gọi heartbeat chồng và bỏ kết quả phiên cũ sau khi effect đã hủy. Electron tắt backgroundThrottling để không làm chậm heartbeat khi thu nhỏ; không ngăn Windows sleep hoặc thay cấu hình điện.
+- Giữ lease server mặc định 90 giây và chính sách một phiên/tài khoản. Mất liên lạc quá lease, sleep hoặc phiên bị thu hồi vẫn có thể phải đăng nhập lại; không tự tăng timeout hoặc bỏ kiểm tra API.
+- Chưa có bằng chứng lịch thoát cố định 17h; backup mặc định 23h, Drive theo giờ và không chủ động ngắt API. BAT CHAN-DOAN-DANG-XUAT chỉ thu metadata tác vụ/sự kiện/điện ở máy khách, không lấy config/token/DB. Cần log đúng thời điểm để kết luận tác nhân gần 17h.
+- Không đổi DB/schema/quyền nghiệp vụ; lần này chưa thay EXE/ZIP bàn giao. Chi tiết kiểm tra tại docs/SESSION-DISCONNECT-2026-10-30.md.
+
+## Phân quyền từng nhân viên và báo cáo từng giao dịch sản phẩm — 29/10/2026
+
+- Người dùng/khách đã duyệt: giữ hai role Admin/staff, thêm quyền riêng theo tài khoản. Admin toàn quyền và độc quyền cấp/thu hồi quyền, quản trị tài khoản khác, xem/sửa vốn/giá nhập/lợi nhuận.
+- Nhân viên mới mặc định chỉ bán hàng/nháp, xem/xử lý nghiệp vụ bán cơ bản, chứng từ, khách hàng và tra cứu tồn. Các quyền Admin cấp thêm: nhập hàng/Excel số lượng; chỉnh tồn/xuất/lỗi; danh mục sản phẩm; giá chung; trả/đổi/hủy; báo cáo; lịch sử thao tác. Không giới hạn số nhân viên hoặc hardcode ba tài khoản.
+- Tài khoản cũ giữ quyền nghiệp vụ như trước nâng cấp, trừ quản trị tài khoản chuyển về Admin. NULL permissions là chính sách legacy; API tạo mới lưu {} rõ ràng. Cấp/thu hồi có version chống ghi đè và audit; API đọc quyền mới mỗi request, kể cả retry request đã thành công.
+- Nhân viên được nhập chỉ gửi số lượng/lý do và SKU/ID; không có giá nhập/vốn, không nhận Excel danh mục chín cột. Mẫu riêng hai cột Mã kính/Số lượng; chặn file chứa thêm cột, Admin vẫn dùng mẫu cũ. Hàng cũ giữ vốn/giá; hàng mới chờ Admin thiết lập vốn, không coi vốn 0 mặc định là đã hoàn tất. Chặn chốt bán mã chưa thiết lập vốn; Admin có thể xác nhận vốn 0 hợp lệ. Báo cáo Admin cảnh báo giá trị tồn chưa đầy đủ khi còn mã chưa thiết lập vốn.
+- Báo cáo tổng hợp có nút Chi tiết theo ID sản phẩm, kể cả sản phẩm đã đổi mã/xóa mềm. Chi tiết ngày VN/mã đơn khách nhập/khách/Sales/mã trên đơn/loại bán-tặng-mẫu/lượng đặt-giao-trả-net/đơn giá/thành tiền. Cùng kỳ/trạng thái/cách trừ trả với báo cáo tổng hợp; loại nháp/xóa/hủy, không phụ thuộc thu tiền, không phân bổ phí toàn đơn vào sản phẩm.
+- Chi tiết hiển thị 200 dòng/trang; xuất Excel toàn bộ kỳ, không âm thầm cắt; trên 100.000 dòng yêu cầu thu hẹp kỳ. Đọc summary/rows cùng snapshot read-only. Staff có quyền báo cáo vẫn không nhận vốn/lợi nhuận ở API hoặc Excel.
+- Migration MySQL 012 thêm permissions/permissions_version và cost_configured, không đổi role, tiền/tồn/đơn hoặc config. LOCAL/demo, không triển khai Supabase online. Đã đóng lại bộ EXE/ZIP 0.1.1 ngày 29/10 sau hai lượt nghiệm thu source và kiểm thử package/installer/audit 1.167 file; bộ cũ giữ backup. Cập nhật API/migration và mọi app, xem docs/RELEASE-0.1.1-2026-10-29.md. Mật khẩu dùng chung bảo vệ màn hình không nằm trong thay đổi đã duyệt.
+
+## Đổi mã sản phẩm đã bán — quyết định mới 28/10/2026
+
+- LOCAL/demo cho Admin/Nhân viên đổi SKU kể cả từng bán, hủy hoặc trả; giữ nguyên product_id, tồn, giá và liên kết nghiệp vụ. Thay khóa SKU sau bán của 19/10; giữ quyền vốn/nhập hàng.
+- Danh mục/dòng mới dùng tên hiện tại; dòng đã chọn/lưu nháp và đơn bán giữ sku_snapshot, kể cả xác nhận sau đổi tên. Nháp hiện thêm mã hiện tại. Thêm cùng hàng theo tên cũ/mới gộp theo ID + bán/tặng/mẫu, giữ nhãn và giá dòng cũ.
+- Lưu chuỗi tên cũ, tìm ở Bán hàng/Kho/Mã dùng chung; Excel danh mục/nhập kho nhận tên cũ về cùng ID. Hai tên cùng ID trong file bị từ chối toàn bộ; tên cũ không cấp lại cho sản phẩm khác kể cả xóa mềm.
+- PNG/Excel/PDF đơn giữ snapshot; tổng hợp báo cáo dùng mã hiện tại + mã cũ; sổ kho giữ mã giao dịch + mã hiện tại. Audit lưu mã trước/sau/người/thời gian. Không tính lại doanh thu/vốn/tồn khi đổi tên.
+- Migration MySQL 011 thêm bảng tên/audit; chỉ điền snapshot NULL bằng nhãn hiện có khi nâng cấp, không tái dựng lịch sử đã mất. Cập nhật API và mọi app; không triển khai Supabase online. Mật khẩu bảo vệ là yêu cầu riêng, chưa triển khai.
+
+## Điều chỉnh tồn có lý do — 24/10/2026
+
+- Kho hàng có nút Điều chỉnh tồn ở đầu trang và Chỉnh tồn theo từng mã. Giảm/tăng theo số lượng hoặc nhập tồn thực tế; xem tồn trước/sau, bắt buộc lý do, không cho tồn âm/số lẻ/no-op.
+- Dùng nghiệp vụ inventory adjustment hiện có: client tính tồn đích từ snapshot đang xem, API khóa sản phẩm/kiểm stock_version, ghi chênh lệch và lý do cùng transaction. Retry cùng key không áp dụng hai lần; máy khác đổi tồn thì báo xung đột.
+- Admin/nhân viên được điều chỉnh như quyền đã chốt, nhân viên vẫn không nhập hàng/tồn đầu kỳ/import hoặc xem/sửa vốn. Giá bán/vốn/snapshot đơn/doanh thu không đổi; nháp giữ nguyên lượng, lúc bán kiểm lại tồn hiện tại.
+- Lý do/người thực hiện hiện ở lịch sử từng mã; điều chỉnh xuất hiện trong Lịch sử thao tác và báo cáo kho/Excel có cột lý do cuối cùng. Không thay vị trí cột mã đơn cũ, không migration MySQL hoặc reset/config lại dữ liệu.
+- Đã đóng gói lại folder/ZIP 0.1.1 ngày 24/10 sau verify 50 data/53 UI, MySQL, native Admin/staff, installer và audit 1.162 file. Bản 23/10 giữ làm dự phòng; cần cập nhật API trước rồi app mọi máy. Hash/path/giới hạn tại docs/RELEASE-0.1.1-2026-10-24.md.
+
+## Báo cáo theo ngày đặt đơn, không theo thu tiền — 23/10/2026
+
+- LOCAL và demo lọc cùng ngày đặt `ordered_at` như danh sách đơn, dự phòng ngày xác nhận/tạo cho dữ liệu cũ. Chỉ đơn đã xác nhận bán, gồm trả một phần/đã trả; loại nháp, nháp đã xóa và đơn hủy.
+- Doanh thu thuần = giá trị sản phẩm đã giao sau trả hàng + chi phí khác của các đơn trong kỳ. Không phụ thuộc chưa thanh toán/thanh toán một phần/đủ; không lấy tiền thực nhận. Giá trị hàng chưa giao tiếp tục chưa được tính, đồng nhất `total_amount` hiện có.
+- Doanh thu chính và tổng gồm phí trên app/Excel thống nhất, phí cộng đúng một lần. Có `product_revenue` riêng để đối chiếu từng mã; client tương thích API cũ. Ngày sổ kho/giao/thu/hoàn thực tế giữ nguyên và có thể khác ngày đặt.
+- Không schema/migration MySQL mới, không sửa config hoặc dữ liệu khách. Đã đóng gói lại 0.1.1 ngày 23/10 sau verify, EXE Admin/staff, installer và audit 1.162 file folder/ZIP. Cần cập nhật API trước rồi app mọi máy; hash/bản dự phòng tại docs/RELEASE-0.1.1-2026-10-23.md.
+- Rà soát bổ sung: một yêu cầu báo cáo đọc cùng snapshot MySQL chỉ đọc, tránh lệch giữa doanh thu/số đơn/phí/tồn khi máy khác xác nhận đơn đồng thời. Ngày không tồn tại bị từ chối; giới hạn 366 ngày tính cả ngày đầu/cuối.
+- Workspace dùng cùng snapshot chỉ đọc cho danh mục/đơn/dòng hàng/giao/thu/trả, tránh ghép tổng cũ với tiền thu mới khi máy khác giao bổ sung. Không thay cơ chế ghi, tồn, quyền hoặc version.
+
+## Phiên bản bàn giao 0.1.1 theo yêu cầu — 21/10/2026
+
+- Người dùng yêu cầu build số 0.1.1, giữ toàn bộ chức năng/sửa lỗi mới nhất, không quay lại source cũ. App/API và lockfiles cùng phiên bản; bundle riêng Oufeidun-Local-0.1.1, giữ nguyên 0.2.18.
+- Đã verify 46 dữ liệu/50 UI, MySQL, EXE Admin/staff và cài đè 0.2.18; đường mở app mặc định chạy đúng 0.1.1. Readiness không bỏ qua version/discovery vì số thấp; legacy thật sự giữ tương thích. Không schema mới riêng cho đổi phiên bản, vẫn migrations đến 010 và giữ config/data.
+- Chi tiết/hash: docs/RELEASE-0.1.1-2026-10-21.md và FEATURE-CHECKLIST.md.
+
+## Không ghi đè khách dùng số 0 — 21/10/2026
+
+- Đã ghi đè folder/ZIP 0.2.18 ngày 21/10 sau verify 46 dữ liệu/50 UI, EXE Admin/staff qua HTTPS/MySQL, cài đè và audit 1.162 file. Bộ 20/10 được backup; hash/path tại FEATURE-CHECKLIST.md. DB khách chưa được truy cập trong kiểm thử; migration 010 chạy khi cửa hàng cập nhật máy chủ.
+- Phone chỉ gồm số 0 là số tạm, nhận diện thêm tên không phân biệt hoa/thường nhưng phân biệt dấu (An/Ân). Phone thật giữ cách nhận diện hiện có. Lưu lại nháp giữ customer_id; thay tên khách số 0 trên nháp không ghi đè hồ sơ cũ. Sửa trực tiếp hồ sơ theo ID, xung đột phone thật báo rõ và không ghi đè khách khác.
+- Migration MySQL 010 đổi unique phone sang identity_key, chạy lại an toàn sau gián đoạn. Khôi phục thông tin từ snapshot khi nhiều tên trên đơn chưa xóa bị dồn cùng customer_id số 0 đang hoạt động; không làm sống khách chủ động xóa, không tự đoán phone/giá riêng, không hồi tố tiền/tồn/nội dung/thời gian/version đơn. Demo parity riêng, không áp dụng Supabase online.
+- Trang Khách hàng tự tải khi mở và mỗi 10 giây lúc visible, không busy/modal. Phát hành vẫn 0.2.18, cập nhật máy chủ/API/migration trước rồi app mọi máy, giữ config và backup trước cập nhật.
+
+## Mã đơn trong báo cáo và màu mã hàng trong app — 20/10/2026
+
+- Đã cập nhật folder/ZIP LOCAL 0.2.18 ngày 20/10 sau verify, kiểm EXE Admin/staff qua HTTPS/MySQL, cài đè cùng version và audit đủ 1.161 checksum. Giữ version theo yêu cầu; bộ 19/10 được backup. Máy khách cần cập nhật cả API và app, không đổi config/reset dữ liệu. Hash và đường dẫn ở FEATURE-CHECKLIST.md.
+- Báo cáo/Excel chi tiết kho dùng mã khách nhập (ví dụ 899) như danh sách đơn, chỉ dùng DH-xxxxx khi đơn cũ không có mã nhập. Giao đầu/giao bổ sung/hủy/trả liên kết đúng đơn; nhập kho không tự gán mã đơn. Không sửa dữ liệu lịch sử hoặc schema MySQL.
+- Tên SKU trên thẻ bán hàng, giỏ, kho, chi tiết/giao/trả và báo cáo trong app dùng cùng màu chứng từ: Full viền đen, CNT vàng đậm, Không viền xanh nước biển. Giá/số lượng giữ màu và cách tính cũ. Báo cáo Excel cũng giữ màu SKU; phụ kiện mặc định đen.
+
+## Bổ sung Google Drive và màu chứng từ — 19/10/2026, giữ version 0.2.18
+
+- Bộ BAT máy chủ tự tải rclone chính thức, xác minh SHA256, dùng đăng nhập Google/cấp quyền một lần. Mặc định tạo Oufeidun-Backup/tên cửa hàng; có thể dán link thư mục có sẵn một lần. Cấu hình/token nằm trong folder dữ liệu bảo vệ ACL, không trong bộ gửi khách/Git. Chạy lại giữ cấu hình.
+- Chỉ tải backup local hoàn tất có manifest SHA256 hợp lệ; rclone copy/check một chiều, không xóa backup trên Drive. Lỗi mạng/quota/token không làm hỏng backup local; task SYSTEM thử lại mỗi giờ và sau backup, chống chạy trùng, lưu trạng thái/log. Không tự đăng nhập hoặc tải dữ liệu thật lên Google khi kiểm thử.
+- Chữ mã hàng trên Excel/PNG/PDF: Full viền đen, CNT vàng đậm dễ đọc (#D6A000), Không viền xanh nước biển (#0070C0). Dùng loại kính trong danh mục; dữ liệu xuất cũ không có loại mới suy từ SKU. Không đổi tiền/số lượng/thứ tự/giá, tặng/mẫu dùng cùng màu nhóm mã.
+- Theo yêu cầu đã ghi đè bộ 0.2.18 sau backup bộ trước; verify 44 data/49 UI, test tool, packaged/installer và audit 1.161 file folder/ZIP đạt. Hash/bản dự phòng ở FEATURE-CHECKLIST.md; khách đăng nhập Google/cấp quyền và kiểm tra upload thử trên máy chủ.
+
+## Sửa mã chưa bán và tái sử dụng mã nháp đã xóa — 19/10/2026
+
+- Đã phát hành bộ LOCAL 0.2.18 ngày 19/10/2026 sau verify, packaged smoke Admin/Nhân viên, installer và audit ZIP; giữ nguyên 0.2.17. Cập nhật máy chủ chạy migration 009 trước rồi app mọi máy, không đổi config hoặc reset dữ liệu. Nhật ký/hash tại FEATURE-CHECKLIST.md.
+- Cho đổi SKU khi chỉ nhập kho/tồn đầu kỳ, đang ở nháp hoặc nháp đã xóa. Chỉ khóa đổi mã nếu sản phẩm từng xác nhận bán (gồm đã hủy/đã trả); vẫn cho sửa các thuộc tính khác. Dùng cùng product ID, không thay tồn, giá, vốn, model hoặc snapshot mã trên phiếu nhập/chứng từ cũ.
+- Nháp xóa mềm không chiếm mã đơn nữa; đơn đang tồn tại kể cả đơn đã hủy/đã trả vẫn chiếm mã và so trùng không phân biệt hoa/thường. Giữ nguyên mã gốc, ID, dòng hàng và audit của nháp đã xóa, không xóa vĩnh viễn hay đổi mã sang chuỗi giả.
+- MySQL 009 thêm khóa duy nhất trên mã đơn còn hiệu lực qua generated column; thay khóa cũ, không xóa dữ liệu. Migration chạy lại an toàn khi bị ngắt giữa chừng. Tương đương demo bằng partial unique index; không tự áp dụng Supabase online.
+- Phạm vi sửa source LOCAL API/client và demo, kiểm thử DB cô lập; chưa cập nhật bộ 0.2.17 đã gửi nếu chưa có nhật ký build/bàn giao mới.
+
 ## Quyền LOCAL chốt ngày 17/10/2026 — ưu tiên hơn các mục phân quyền cũ
 
 - Yêu cầu bản final: giữ bộ 0.2.17 theo folder đang bàn giao, build lại cả API/client và ZIP sau kiểm thử. Ba nhóm quyền cần có cho staff: giá chung cho mọi máy/đơn sau; trả/đổi/hủy đơn bán; khách hàng/báo cáo/nhân viên/lịch sử. Chi tiết lịch sử trả có Tạo đơn đổi, mở lại đơn liên kết nếu đã tạo; giỏ chưa lưu vẫn qua xác nhận lưu/bỏ thay đổi trước khi mở.

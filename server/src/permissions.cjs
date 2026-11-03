@@ -1,4 +1,6 @@
 const { assert } = require('./core.cjs');
+const {allowed,permissions,keys}=require('./capabilities.cjs');
+function requirePermission(actor,key){requireOperator(actor);assert(allowed(actor,key),'FORBIDDEN',403);}
 
 function requireOperator(actor) {
   assert(actor && ['admin','staff'].includes(actor.role), 'FORBIDDEN', 403);
@@ -15,4 +17,4 @@ function rejectCostWrite(actor, payload) {
   if (actor.role !== 'admin')
     assert(!Object.keys(payload).some(key=>costFields.has(key)), 'COST_ACCESS_DENIED', 403);
 }
-module.exports = {requireOperator,visibleData,rejectCostWrite};
+module.exports = {requireOperator,visibleData,rejectCostWrite,requirePermission,allowed,permissions,keys};

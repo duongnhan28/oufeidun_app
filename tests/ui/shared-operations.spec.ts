@@ -14,7 +14,7 @@ test('staff manages products and customers, sees operational pages, but cannot r
  await expect(dialog.locator('[name="fixed_cost"], [name="initial_quantity"]')).toHaveCount(0);await dialog.getByRole('button',{name:'Lưu sản phẩm',exact:true}).click();await expect(page.getByRole('status')).toContainText('Đã lưu sản phẩm');await expect(page.locator('tbody tr').filter({hasText:'STAFF-NEW-SKU'})).toContainText('0 tấm');
  await page.getByRole('button',{name:'Bảng giá đồng loạt',exact:true}).click();dialog=page.getByRole('dialog');await expect(dialog.locator('[name="fixed_cost"]')).toHaveCount(0);await dialog.getByRole('button',{name:'Đóng',exact:true}).click();
  await page.getByRole('button',{name:'Khách hàng',exact:true}).click();await expect(page.getByRole('button',{name:'Thêm khách hàng',exact:true})).toBeVisible();
- await page.getByRole('button',{name:'Nhân viên',exact:true}).click();const admin=page.locator('tbody tr').filter({hasText:'Admin'});await expect(admin).toBeVisible();await expect(admin.getByRole('button')).toHaveCount(0);await expect(page.getByRole('button',{name:'Thêm nhân viên',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Nhân viên',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Thêm nhân viên',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Báo cáo',exact:true}).click();await expect(page.getByRole('button',{name:'Tải báo cáo Excel',exact:true})).toBeEnabled();
  for(const name of ['Giá vốn','Tổng vốn','Lợi nhuận'])await expect(page.getByRole('columnheader',{name,exact:true})).toHaveCount(0);
  await expect(page.locator('.stat').filter({hasText:'Lãi gộp'})).toHaveCount(0);

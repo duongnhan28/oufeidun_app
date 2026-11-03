@@ -65,6 +65,7 @@ api.post('/auth/login', asyncRoute(async (req, res) => {
 api.post('/session/touch', auth, asyncRoute(async (_req, res) => res.json({ ok: true })));
 api.post('/auth/logout', auth, asyncRoute(async (req, res) => { await logout(req.actor); res.json({ ok: true }); }));
 api.get('/workspace', auth, asyncRoute(async (req, res) => res.json(await workspace(req.actor))));
+api.post('/stock/forecast', auth, asyncRoute(async (req,res)=>res.json(await require('./stock-forecast.cjs').stockForecast(req.actor,req.body))));
 api.post('/query', auth, asyncRoute(async (req, res) => {
   if (req.body.action !== 'history') throw appError('VALIDATION_ERROR');
   res.json(await history(req.actor, req.body));
@@ -78,6 +79,7 @@ api.post('/products/bulk-price', auth, asyncRoute(async (req, res) => res.json(a
 api.post('/products/delete', auth, asyncRoute(async (req, res) => res.json(await deleteProduct(req.actor, req.body))));
 api.post('/staff', auth, asyncRoute(async (req, res) => res.json(await manageStaff(req.actor, req.body))));
 api.post('/reports', auth, asyncRoute(async (req, res) => res.json(await report(req.actor, req.body))));
+api.post('/reports/product', auth, asyncRoute(async (req, res) => res.json(await require('./product-report.cjs').productReport(req.actor,req.body))));
 api.post('/images', auth, upload.single('image'), asyncRoute(async (req, res) => res.json(await saveImage(req.actor, req.file))));
 api.get(/^\/images\/(.+)$/, auth, asyncRoute(async (req, res) => sendFile(res, decodeURIComponent(req.params[0]))));
 api.delete(/^\/images\/(.+)$/, auth, asyncRoute(async (req, res) => res.json(await deleteImage(req.actor, decodeURIComponent(req.params[0])))));

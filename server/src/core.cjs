@@ -13,6 +13,10 @@ function required(name) {
   return value;
 }
 
+const sessionMaxSeconds = Number(process.env.SESSION_MAX_SECONDS || 43200);
+if (!Number.isSafeInteger(sessionMaxSeconds) || sessionMaxSeconds < 300 || sessionMaxSeconds > 86400)
+  throw new Error('CONFIG_REQUIRED:SESSION_MAX_SECONDS');
+
 const config = {
   host: process.env.OUFEIDUN_HOST || '127.0.0.1',
   port: Number(process.env.OUFEIDUN_PORT || 8787),
@@ -30,6 +34,7 @@ const config = {
     password: process.env.ADMIN_PASSWORD || '',
   },
   sessionIdleSeconds: Math.max(60, Number(process.env.SESSION_IDLE_SECONDS || 90)),
+  sessionMaxSeconds,
   allowedOrigins: new Set(String(process.env.OUFEIDUN_ALLOWED_ORIGINS || 'shop://app,http://127.0.0.1:5178').split(',').map(v => v.trim()).filter(Boolean)),
 };
 
@@ -113,6 +118,21 @@ async function transaction(work) {
     throw error;
   } finally { connection.release(); }
 }
+// All parts of a screen/export must represent the same committed state even
+// when other workstations post sales or payments between its SELECTs.
+async function readSnapshot(work) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+    await connection.query('START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY');
+    const result = await work(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally { connection.release(); }
+}
 async function audit(db, actorId, action, detail = '') {
   await db.execute('INSERT INTO audit_logs(id,actor_id,action,detail) VALUES (?,?,?,?)', [newId(), actorId, action, String(detail)]);
 }
@@ -132,6 +152,6 @@ function jsonArray(value) {
   if (Array.isArray(value)) return value;
   try { return JSON.parse(value || '[]'); } catch { return []; }
 }
-function publicUser(row) { return { id: row.id, display_name: row.display_name, role: row.role, active: Boolean(row.active) }; }
+function publicUser(row) { return { id: row.id, display_name: row.display_name, role: row.role, active: Boolean(row.active), permissions:require('./capabilities.cjs').permissions(row),permissions_version:Number(row.permissions_version||1) }; }
 
-module.exports = { config, pool, appError, assert, uuid, newId, cleanText, moneyValue, positiveInt, canonical, hashToken, passwordHash, passwordMatches, transaction, audit, moveStock, jsonArray, publicUser };
+module.exports = { config, pool, appError, assert, uuid, newId, cleanText, moneyValue, positiveInt, canonical, hashToken, passwordHash, passwordMatches, transaction, readSnapshot, audit, moveStock, jsonArray, publicUser };
