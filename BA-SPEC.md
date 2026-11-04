@@ -1,5 +1,11 @@
 ﻿# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
 
+## Cảnh báo hết tồn dự kiến — 04/11/2026
+
+- Tồn thực tế bằng 0 có nhãn Hết hàng. Tồn thực tế còn nhưng nháp dùng hết/vượt có nhãn đỏ Hết tồn dự kiến/Thiếu tồn dự kiến ngay trên thẻ bán hàng.
+- Thêm hàng bán/tặng/mẫu hoặc tăng số lượng làm vượt tồn dự kiến phải xác nhận Vẫn thêm vào đơn; đóng/hủy giữ nguyên giỏ. Dùng tổng cùng product_id và loại chính nháp đang sửa như công thức 03/11. Chỉ chạm mức 0 chưa vượt thì không hỏi; thẻ cảnh báo nháp vẫn hiển thị khi nháp đã lưu dùng hết.
+- Giữ cảnh báo mềm, không tự giữ hàng/trừ kho hoặc đổi kiểm tra tồn thực tế khi xác nhận bán. Không migration/config mới. Giữ CI/CD hiện có: main build/kiểm tra, tag v trùng version mới publish hosting.
+
 ## Tồn dự kiến được duyệt — 03/11/2026
 
 - Người dùng duyệt triển khai và đóng ZIP trước, cập nhật qua web để sau. Tồn dự kiến = tồn hiện tại - toàn bộ số lượng trong đơn nháp đang lưu của mọi người, không giới hạn500đơn UI, không lọc ngày nháp. Chỉ cảnh báo/cho phép âm, không giữ hàng hoặc trừ kho khi lưu.

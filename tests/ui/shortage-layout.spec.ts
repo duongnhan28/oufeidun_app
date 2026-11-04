@@ -11,7 +11,11 @@ test('checkout derives missing SKUs and quantities and offers larger product pho
   await page.getByRole('button', { name: 'Chọn IP15-TR', exact: true }).click();
   await page.getByRole('button', { name: 'Chọn IP15-CNT', exact: true }).click();
   await page.getByLabel('Số lượng IP15-TR').fill('50');
+  await expect(page.getByRole('dialog')).toContainText('dự kiến thiếu 2 tấm');
+  await page.getByRole('button', { name: 'Vẫn thêm vào đơn', exact: true }).click();
   await page.getByLabel('Số lượng IP15-CNT').fill('26');
+  await expect(page.getByRole('dialog')).toContainText('dự kiến thiếu 2 tấm');
+  await page.getByRole('button', { name: 'Vẫn thêm vào đơn', exact: true }).click();
   const missing = page.getByLabel('Sản phẩm còn thiếu', { exact: true });
   await expect(missing).toHaveValue('IP15-TR: thiếu 2 tấm (đặt 50, tồn 48)\nIP15-CNT: thiếu 2 tấm (đặt 26, tồn 24)');
   await expect(missing).toHaveAttribute('readonly', '');

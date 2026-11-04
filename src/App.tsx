@@ -923,13 +923,27 @@ export default function App() {
       ),
     });
   }
-  function add(p: Product, kind: Item["item_kind"] = "sale") {
+  function confirmForecast(p: Product, requested: number, proceed: () => void) {
+    if (p.draft_quantity === undefined) return false;
+    const estimate = estimateForCart(p, cart, data?.orders.find(o=>o.id===draft?.id)||draft);
+    const remaining = p.on_hand - estimate.otherDrafts - requested;
+    if (remaining >= 0) return false;
+    setModal({
+      title: "Cảnh báo tồn dự kiến",
+      body: <><p><b>{p.sku}</b></p><p>Tồn thực tế: {p.on_hand} {productUnit(p)}. Các nháp khác đã đặt: {estimate.otherDrafts} {productUnit(p)}.</p><p>Đơn này cần {requested} {productUnit(p)}; dự kiến thiếu <b>{-remaining} {productUnit(p)}</b>.</p><p>Hàng còn trong kho có thể đã được đặt hết trong các đơn nháp. Bạn có muốn tiếp tục? Thao tác này chưa giữ hàng hoặc trừ kho.</p></>,
+      submit: "Vẫn thêm vào đơn",
+      onSubmit: async () => { proceed(); },
+    });
+    return true;
+  }
+  function add(p: Product, kind: Item["item_kind"] = "sale", forecastConfirmed = false) {
     if (busy) return;
     const selected = reservedQuantity(cart,p.id);
     if (fulfillmentStatus === "complete" && selected >= p.on_hand) {
       setToast(`${p.sku} chỉ còn ${p.on_hand} ${productUnit(p)} trong kho.`);
       return;
     }
+    if (!forecastConfirmed && confirmForecast(p, selected + 1, () => add(p, kind, true))) return;
     setCart((old) => {
       const found = old.find((i) => i.product_id === p.id && (i.item_kind||"sale")===kind);
       return found
@@ -954,7 +968,7 @@ export default function App() {
     });
     setDirty(true);
   }
-  function changeQty(id: string, quantity: number) {
+  function changeQty(id: string, quantity: number, forecastConfirmed = false) {
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000000)
       return;
     const item = cart.find((i) => lineKey(i) === id);
@@ -968,6 +982,7 @@ export default function App() {
       setToast(`${product.sku} chỉ còn ${product.on_hand} ${productUnit(product)} trong kho.`);
       return;
     }
+    if (product && item && quantity > item.quantity && !forecastConfirmed && confirmForecast(product, quantity + reservedQuantity(cart,product.id) - item.quantity, () => changeQty(id, quantity, true))) return;
     setCart((c) =>
       c.map((i) => (lineKey(i) === id ? { ...i, quantity } : i)),
     );
@@ -2688,6 +2703,8 @@ export default function App() {
                           >
                             Tồn: {p.on_hand} {productUnit(p)}
                           </span>
+                          {p.on_hand === 0 && <span className="badge red">Hết hàng</span>}
+                          {p.on_hand > 0 && p.draft_quantity !== undefined && p.on_hand-p.draft_quantity <= 0 && <span className="badge red product-stock-warning">{p.on_hand===p.draft_quantity?'Hết tồn dự kiến':'Thiếu tồn dự kiến'} — {p.draft_quantity} {productUnit(p)} đang trong đơn nháp</span>}
                           {p.draft_quantity!==undefined&&<small className="product-forecast">Trong nháp: {p.draft_quantity} · Dự kiến: {p.on_hand-p.draft_quantity} {productUnit(p)}</small>}
                           <div className="product-price">
                             <span><b>{money(suggestedPrice(p))}</b><small>{suggestedPriceLabel(p)}</small></span>

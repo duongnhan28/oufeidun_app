@@ -73,6 +73,14 @@ File này là nguồn đối chiếu bắt buộc sau mỗi lần phát triển 
 - Các chức năng cũ không bị lỗi lại.
 - File xuất Excel mở được và chứa đúng dữ liệu thực tế.
 
+## Nhật ký xác minh 04/11/2026 — cảnh báo tồn dự kiến rõ ràng
+
+- ID ảnh hưởng: STOCK-04/05, ORDER-01/02/07 và UI-01. Thẻ bán hàng có nhãn đỏ khi hết/thiếu dự kiến và nhãn Hết hàng khi tồn thực tế 0. Thêm hoặc tăng lượng vượt dự kiến hỏi xác nhận; hủy không thay giỏ; bán/tặng/mẫu tính chung và loại phần của chính nháp đang sửa.
+- Không sửa API/schema/config, công thức báo cáo hoặc Excel. Người dùng đã duyệt phát hành online sau kiểm thử; tăng version 0.1.4, push main qua CI rồi tag v0.1.4 để publish bằng workflow hiện có. Trạng thái thực tế trong docs/RELEASE-0.1.4-2026-11-04.md.
+- Đã đọc lại checklist, đối chiếu các ID trên và luồng báo cáo/Excel/quyền. npm.cmd run verify đạt exit 0: 69 unit, 61 UI, Electron smoke, TypeScript/build và production audit 0 lỗ hổng. Log .local/stock-warning-verify-final-20261104.log/.exit. Ca tồn đúng 19/nháp 19 chạy cho Admin/staff; đóng hộp thoại không thêm, tăng/hủy giữ số cũ, bán/tặng/mẫu cộng chung; nhãn không tràn. Đã xem ảnh thẻ và hộp thoại thực tế.
+- Bộ kiểm tra an toàn CI/CD scripts/release/release.test.cjs đạt 7/7. Một lượt verify đầu dừng vì test đặt thiếu chưa xác nhận hộp thoại mới; cập nhật test theo hành vi đã duyệt, giữ nguyên assertion số lượng/Excel/layout; rerun toàn bộ đạt. Chưa đóng bộ cài hoặc publish thay đổi này; version giữ 0.1.3 cho source, khi phát hành cần version cao hơn feed.
+- Build LOCAL đạt, dist đúng local/API. Electron source qua HTTPS/MySQL test thật đạt exit 0: nháp người khác, xác nhận cảnh báo rồi lưu, loại phần chính nháp, đọc workbook thật, xác nhận/xóa và refresh không trừ hàng đã giao hai lần; log .local/stock-warning-native-pass-20261104.log/.exit. Helper điền ngày đặt VN rõ ràng khi dùng clock giả. Không chạy dữ liệu hoặc hai máy vật lý của khách. Chi tiết docs/STOCK-WARNINGS-2026-11-04.md.
+
 ## Danh sách chức năng chuẩn
 
 | ID | Chức năng cần giữ đúng | Tiêu chí kiểm tra | Trạng thái nền |

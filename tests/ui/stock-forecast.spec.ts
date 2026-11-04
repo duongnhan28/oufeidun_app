@@ -7,10 +7,37 @@ for(const role of [/Chủ cửa hàng/,/Nguyễn An/])test(`draft forecast stays
  await nav('Thêm IP15-TR');await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill('45');await nav('Thêm hàng tặng IP15-TR');await page.locator('.cart-item').first().getByRole('button',{name:'Thêm hàng mẫu IP15-TR',exact:true}).click();
  await nav('Lưu bản nháp');await expect(page.getByRole('status')).toContainText('Đã lưu');await expect(page.getByRole('button',{name:'Lưu bản nháp',exact:true})).toBeEnabled();
  await nav('Đơn mới');await page.getByLabel('Mã đơn hàng',{exact:true}).fill('FORECAST-NEW');await page.getByLabel('Tên khách hàng',{exact:true}).fill('Khách mới');await page.getByLabel('Số điện thoại',{exact:true}).fill('0');await nav('Thêm IP15-TR');await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill('3');
+ await expect(page.getByRole('dialog')).toContainText('dự kiến thiếu 2 tấm');await nav('Vẫn thêm vào đơn');
  await expect(page.locator('.cart-items')).toContainText('Dự kiến thiếu 2 tấm');await nav('Lưu bản nháp');await expect(page.getByRole('button',{name:'Lưu bản nháp',exact:true})).toBeEnabled();
  await expect(page.locator('.cart-items')).toContainText('Dự kiến sau đơn này: -2 tấm');
  await nav('Kho hàng');await nav('Tồn dự kiến');const panel=page.getByRole('region',{name:'Tồn dự kiến'}),row=panel.locator('tbody tr').filter({hasText:'IP15-TR'});
  await expect(row).toContainText('50');await expect(row.locator('td').nth(2)).toHaveText('48');await expect(row.locator('td').nth(4)).toHaveText('-2');
  const dl=page.waitForEvent('download');await panel.getByRole('button',{name:'Tải Excel tồn dự kiến'}).click();const book=new ExcelJS.Workbook();await book.xlsx.readFile((await(await dl).path())!);const values=book.worksheets[0].getSheetValues();expect(JSON.stringify(values)).toContain('-2');expect(book.worksheets).toHaveLength(2);
  await page.screenshot({path:`test-results/stock-forecast-${role.source.includes('An')?'staff':'admin'}.png`});
+});
+for(const role of [/Chủ cửa hàng/,/Nguyễn An/])test(`fully drafted stock warns before adding and cancellation preserves cart (${role})`,async({page})=>{
+ await page.goto('/');await page.getByRole('button',{name:role}).click();
+ const click=async(name:string)=>page.getByRole('button',{name,exact:true}).click();
+ await expect(page.locator('.product-card').first()).toBeVisible({timeout:45000});
+ await click('Kho hàng');await click('Điều chỉnh tồn IP15-TR');
+ const adjustment=page.getByRole('dialog');await adjustment.getByLabel('Cách điều chỉnh',{exact:true}).selectOption('count');await adjustment.getByLabel('Tồn thực tế sau kiểm kê',{exact:true}).fill('19');await adjustment.getByLabel('Lý do / ghi chú',{exact:true}).fill('Tái hiện phản hồi 19 tấm');await adjustment.getByRole('button',{name:'Xác nhận ghi kho',exact:true}).click();await expect(adjustment).toHaveCount(0);await click('Bán hàng');
+ await page.getByLabel('Mã đơn hàng',{exact:true}).fill('ALL-DRAFTED');await page.getByLabel('Tên khách hàng',{exact:true}).fill('Chờ xác nhận');await page.getByLabel('Số điện thoại',{exact:true}).fill('0');
+ const card=page.locator('.product-card').filter({hasText:'IP15-TR'});const stock=Number((await card.locator('.badge').first().innerText()).match(/\d+/)![0]);
+ await click('Thêm IP15-TR');await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill(String(stock));
+ await expect(page.getByRole('dialog')).toHaveCount(0);await click('Lưu bản nháp');await expect(page.getByRole('status')).toContainText('Đã lưu');
+ await expect(card).toContainText('Hết tồn dự kiến');await expect(card).toContainText(`Tồn: ${stock} tấm`);
+ expect(stock).toBe(19);expect(await card.locator('.product-stock-warning').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ // Editing our saved draft must exclude its previous quantities, including after decreases.
+ await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill(String(stock-1));await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill(String(stock));await expect(page.getByRole('dialog')).toHaveCount(0);
+ await click('Lưu bản nháp');await expect(page.getByRole('button',{name:'Lưu bản nháp',exact:true})).toBeEnabled();await click('Đơn mới');await click('Thêm IP15-TR');
+ const dialog=page.getByRole('dialog');await expect(dialog).toContainText(`Các nháp khác đã đặt: ${stock} tấm`);await expect(dialog).toContainText('dự kiến thiếu 1 tấm');
+ await page.screenshot({path:`test-results/stock-warning-dialog-${role.source.includes('An')?'staff':'admin'}.png`});
+ await dialog.getByRole('button',{name:'Đóng',exact:true}).click();await expect(page.locator('.cart-item')).toHaveCount(0);
+ await click('Thêm IP15-TR');await click('Vẫn thêm vào đơn');await expect(page.locator('.cart-item')).toHaveCount(1);
+ await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill('3');await expect(dialog).toContainText('dự kiến thiếu 3 tấm');await dialog.getByRole('button',{name:'Đóng',exact:true}).click();await expect(page.getByLabel('Số lượng IP15-TR',{exact:true})).toHaveValue('1');
+ await page.getByLabel('Số lượng IP15-TR',{exact:true}).fill('3');await click('Vẫn thêm vào đơn');
+ await click('Thêm hàng tặng IP15-TR');await expect(dialog).toContainText('Đơn này cần 4 tấm');await click('Vẫn thêm vào đơn');
+ await page.locator('.cart-item').first().getByRole('button',{name:'Thêm hàng mẫu IP15-TR',exact:true}).click();await expect(dialog).toContainText('Đơn này cần 5 tấm');await click('Vẫn thêm vào đơn');
+ await expect(page.locator('.cart-items')).toContainText('Dự kiến thiếu 5 tấm');await expect(card).toContainText(`Tồn: ${stock} tấm`);
+ await page.screenshot({path:`test-results/stock-warning-${role.source.includes('An')?'staff':'admin'}.png`});
 });

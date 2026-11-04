@@ -191,6 +191,7 @@ table{font-size:14px;line-height:1.45}th{font-size:13px;color:#52677e}td button{
 .product-report-detail td small{display:block;margin-top:4px;color:#75879a}
 .product-report-detail .actions{margin-top:12px;flex-wrap:wrap}
 .product-forecast{display:block;color:#61758c;margin:5px 0;font-size:12px}
+.product-stock-warning{white-space:normal;max-width:100%;margin-top:6px;line-height:1.5;overflow-wrap:anywhere}
 .forecast-short{color:#b42318}
 .app-update-notice{position:relative;z-index:6;margin-top:14px}
 .app-update-notice>button{width:100%;background:#fff8df;border:1px solid #dfbd61;color:#664500;border-radius:12px;padding:8px 12px;font-size:12px}
