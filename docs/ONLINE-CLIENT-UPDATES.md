@@ -70,4 +70,5 @@ Không đưa migration DB vào installer máy nhân viên. Server/database đư�
 - Website: route test, typecheck, lint và production build local đạt; workflow website được kích hoạt bằng commit endpoint riêng.
 - Endpoint website đã deploy và probe HTTPS đạt tại release `a71f85d0ca4fd2332eece069edd53c854b79e623-41745196219-1`; workflow `41745196219` CI/deploy success. Hai feed chưa công bố đều trả 404 body rỗng đúng thiết kế; đường dẫn installer không hợp lệ bị chặn. Homepage/DB health tốt.
 - Đã tạo identity ký cập nhật: private key `C:\Users\duong\.ssh\oufeidun_update_signing.pem` nằm ngoài repo, public key trong `electron/update-config.json`. Chưa ký/công bố installer khách. Người vận hành phải sao lưu private key an toàn.
-- Chưa chọn version mới, chưa build bộ cài khách, chưa thử nâng hai installer trên máy Windows staging, chưa thử tải EXE lớn qua hosting. Không coi các phần này đã nghiệm thu.
+- Người dùng đã xác nhận khách dùng 0.1.1; đã build và công bố LOCAL 0.1.2 sau ASAR audit, packaged smoke, kiểm tra hash trên host và tải đầy đủ EXE qua HTTPS bằng chính updater. Xem `RELEASE-0.1.2-2026-11-04.md` để lấy link/hash và phạm vi nghiệm thu.
+- Chưa thử cài nâng hai installer trên Windows VM/máy khách; không coi packaged smoke là bằng chứng đã cài thực tế. Không có migration DB/server trong bản này.

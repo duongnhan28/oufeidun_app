@@ -1,0 +1,10 @@
+Oufeidun 0.1.2 — cập nhật ứng dụng qua Internet
+
+- Tự kiểm tra bản mới khi mở ứng dụng; có nút kiểm tra thủ công.
+- Nhấn Tải bản cập nhật để tải bộ cài, xem tiến độ và xác minh file.
+- Không tự đóng ứng dụng hoặc tự chạy bộ cài. Hãy lưu công việc và đóng app trước khi cài.
+- Giữ nguyên cấu hình kết nối, dữ liệu bán hàng và máy chủ hiện có.
+- Bản này chỉ cập nhật ứng dụng máy khách, không yêu cầu migration database mới.
+
+Khách đang dùng 0.1.1 cần cài 0.1.2 một lần để có chức năng kiểm tra/tải cập nhật cho những lần tiếp theo.
+Chỉ dùng bộ cài LOCAL này với hệ thống máy chủ LOCAL hiện có. Không cài lại MySQL, không reset dữ liệu, không xóa cấu hình kết nối.
