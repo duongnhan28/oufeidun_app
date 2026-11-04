@@ -5,7 +5,7 @@ Ngày triển khai source: 04/11/2026. Phạm vi v1: kiểm tra phiên bản, kh
 ## Luồng và cấu hình
 
 - Electron main process phụ trách kết nối mạng, kiểm tra chữ ký Ed25519 và SHA256/size, lưu file vào thư mục `app-updates` trong userData. Renderer chỉ có IPC cố định; không được truyền URL/path/lệnh shell.
-- Bản Windows đóng gói tự kiểm tra sau 10 giây rồi mỗi 12 giờ; mạng lỗi không cản bán hàng. Có nút kiểm tra thủ công ở góc dưới phải, dùng được trước đăng nhập.
+- Bản Windows đóng gói tự kiểm tra sau 10 giây rồi mỗi 12 giờ; mạng lỗi không cản bán hàng. Có nút kiểm tra thủ công trong màn hình đăng nhập và cuối sidebar sau đăng nhập, không nổi đè nút lên đơn.
 - Chỉ tải khi khách bấm. Có tiến độ; file tải dở/sai checksum bị loại bỏ. Không gửi cookie/login/database credential tới website cập nhật.
 - Tách feed `local-mysql-win32-x64.json` và `production-mysql-win32-x64.json`. Không đưa app LOCAL sang cấu hình PRODUCTION hoặc ngược lại.
 - URL gốc và public key cố định trong `electron/update-config.json`. Private key không được đưa vào app, Git, hosting hay log.
@@ -68,5 +68,6 @@ Không đưa migration DB vào installer máy nhân viên. Server/database đư�
 - `npm.cmd run verify`: thành công trên source cuối; 69 test nghiệp vụ/unit, 59 test UI, Electron smoke gồm update IPC, TypeScript/Vite build; production audit 0 vulnerabilities. Có cảnh báo bundle/PGlite từ build demo hiện có, không phải lỗi build.
 - Test UI cập nhật chứng minh không tải trước khi bấm và không mở file/cài đặt tự động; unit test kiểm tra chữ ký, hash, profile, lỗi mạng và giữ file cấu hình.
 - Website: route test, typecheck, lint và production build local đạt; workflow website được kích hoạt bằng commit endpoint riêng.
+- Endpoint website đã deploy và probe HTTPS đạt tại release `a71f85d0ca4fd2332eece069edd53c854b79e623-41745196219-1`; workflow `41745196219` CI/deploy success. Hai feed chưa công bố đều trả 404 body rỗng đúng thiết kế; đường dẫn installer không hợp lệ bị chặn. Homepage/DB health tốt.
 - Đã tạo identity ký cập nhật: private key `C:\Users\duong\.ssh\oufeidun_update_signing.pem` nằm ngoài repo, public key trong `electron/update-config.json`. Chưa ký/công bố installer khách. Người vận hành phải sao lưu private key an toàn.
 - Chưa chọn version mới, chưa build bộ cài khách, chưa thử nâng hai installer trên máy Windows staging, chưa thử tải EXE lớn qua hosting. Không coi các phần này đã nghiệm thu.

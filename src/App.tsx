@@ -7,6 +7,7 @@ import {StockAdjustmentFields} from './components/StockAdjustmentFields';
 import {stockAdjustmentTarget} from './lib/stock-adjustment';
 import {hasPermission,permissionLabels,type Permission} from './lib/permissions';
 import ProductReportDetails from './components/ProductReportDetails';
+import AppUpdateNotice from './components/AppUpdateNotice';
 import StockForecastPanel from './components/StockForecastPanel';
 import {estimateForCart} from './lib/stock-forecast';
 import {startSessionHeartbeat} from './lib/session-heartbeat';
@@ -2432,6 +2433,7 @@ export default function App() {
             </div>
             <h2>Chào mừng trở lại</h2>
             <p>Đăng nhập để bắt đầu ca bán hàng.</p>
+            <AppUpdateNotice />
             {window.oufeidun?.apiBaseUrl?.startsWith('shop:') && (
               <div>
                 <button type="button" disabled={busy||findingServer} onClick={async()=>{
@@ -2565,6 +2567,7 @@ export default function App() {
               ))}
             </nav>
             <div className="sidebar-bottom">
+              <AppUpdateNotice />
               {demo && (
                 <div className="demo-chip">Dữ liệu mẫu · bản xem thử</div>
               )}

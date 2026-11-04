@@ -22,4 +22,7 @@ test('client update UI checks, downloads on click and never auto-installs', asyn
   await panel.getByRole('button', { name: 'Mở thư mục tải' }).click();
   expect(await page.evaluate(() => (window as unknown as { updateShowCalls: number }).updateShowCalls)).toBe(1);
   await expect(panel.getByRole('button', { name: /Cài đặt/ })).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Cập nhật ứng dụng', exact: true }).click();
+  await page.getByRole('button', { name: /Nguyễn An/ }).click();
+  await expect(page.locator('.sidebar-bottom').getByRole('complementary', { name: 'Cập nhật ứng dụng' })).toBeVisible();
 });
