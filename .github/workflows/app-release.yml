@@ -31,9 +31,16 @@ jobs:
         run: node scripts/release/ci.cjs guard
       - name: Install locked dependencies
         run: npm ci
+      - name: Install dependencies needed by pure server date unit test
+        run: npm ci --prefix server --ignore-scripts
       - name: Test release safety
         run: node --test scripts/release/release.test.cjs
       - name: Verify unit, UI, Electron, typecheck, build and production audit
+        env:
+          MYSQL_USER: ci-unused
+          MYSQL_PASSWORD: ci-no-database-connection
+          OUFEIDUN_SERVER_ENV: ${{ runner.temp }}/unit-test-no-server.env
+          OUFEIDUN_DATA_DIR: ${{ runner.temp }}/unit-test-server-data
         run: npm run verify
       - name: Generate public LOCAL profile
         run: node scripts/release/ci.cjs local-env
