@@ -1,12 +1,27 @@
 # LOCAL 0.1.3 — bản thử cập nhật 04/11/2026
 
+## Bản đang phát hành: chỉnh nút xuống dưới cùng
+
+Theo yêu cầu sau đợt thử, giữ version 0.1.3 và chuyển Cập nhật ứng dụng thành phần tử cuối của login-card (sau login-foot), cuối sidebar-bottom (sau Đăng xuất). Bỏ margin dưới, dùng margin trên 14px. Ghi chú thử 0.1.3 vẫn giữ nguyên; không đổi logic cập nhật/DB/server.
+
+- Bộ cài hiện tại: **175270400 byte**.
+- SHA256: `e8974981b439cae159665b9703b6c5f3bee9443b299b2e32243243a942436755`.
+- [Tải bản 0.1.3 chỉnh vị trí nút](https://oufeidun.vn/app-updates/files/e8974981b439cae159665b9703b6c5f3bee9443b299b2e32243243a942436755.exe).
+- Notes: `UPDATE-NOTES-0.1.3-layout.txt`; gói ký local `.local/update-release-0.1.3-layout`.
+- `npm run verify` đạt 69 unit, 59 UI, Electron/build/audit 0; UI test thêm assert last-child và tọa độ nút nằm sau login-foot/Đăng xuất. Packaged runtime xác minh vị trí cuối login-card.
+- Make LOCAL/ASAR audit, chữ ký manifest, SHA/size trên host, HTTPS GET/PE header, live feed và DB health đạt. Backup feed cũ trước atomic rename; giữ cả installer cũ và mới theo hash.
+- Probe version: 0.1.2 → available; 0.1.3 → current. Đây là rebuild cùng version, KHÔNG ép máy đã cài 0.1.3 tự tải. Nếu đã tải gói cũ từ app 0.1.2, đóng/mở app rồi kiểm tra lại để lấy metadata mới. Máy đã cài 0.1.3 cần dùng link bộ cài mới; chưa nghiệm thu cài đè cùng version trên máy khách, có thể cần một version lớn hơn nếu installer không thay thế.
+- Bản local mới: `E:\outputt\Oufeidun-Setup-0.1.3-layout.exe`; giữ nguyên bản local trước đó. Không chạy bộ cài trên máy vận hành/khách trong lượt này.
+
+Thông tin đợt thử comment ban đầu bên dưới là lịch sử, không phải hash đang phát hành.
+
 Theo yêu cầu người dùng, thêm một ghi chú hiển thị trong Cập nhật ứng dụng:
 
 > Ghi chú 0.1.3: Bổ sung dòng xác nhận để kiểm thử cập nhật online.
 
 Không thay đổi nghiệp vụ, server, schema, dữ liệu hoặc cấu hình kết nối. Giữ nguyên key ký cập nhật của 0.1.2; không tạo identity mới.
 
-## Phát hành
+## Phát hành đầu tiên — lịch sử trước chỉnh layout
 
 - Version `0.1.3`, Windows x64, profile LOCAL/API.
 - Bộ cài: 175269888 byte.

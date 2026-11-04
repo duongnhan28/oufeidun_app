@@ -2433,7 +2433,6 @@ export default function App() {
             </div>
             <h2>Chào mừng trở lại</h2>
             <p>Đăng nhập để bắt đầu ca bán hàng.</p>
-            <AppUpdateNotice />
             {window.oufeidun?.apiBaseUrl?.startsWith('shop:') && (
               <div>
                 <button type="button" disabled={busy||findingServer} onClick={async()=>{
@@ -2533,6 +2532,7 @@ export default function App() {
             <p className="login-foot">
               <LockKeyhole size={13} /> Quyền truy cập được cấp bởi chủ cửa hàng
             </p>
+            <AppUpdateNotice />
           </div>
         </div>
       ) : (
@@ -2567,7 +2567,6 @@ export default function App() {
               ))}
             </nav>
             <div className="sidebar-bottom">
-              <AppUpdateNotice />
               {demo && (
                 <div className="demo-chip">Dữ liệu mẫu · bản xem thử</div>
               )}
@@ -2588,6 +2587,7 @@ export default function App() {
               >
                 <LogOut size={19} /> Đăng xuất
               </button>
+              <AppUpdateNotice />
             </div>
           </aside>
           <main className={`app-main app-main-${page}`}>
