@@ -28,6 +28,7 @@ export default function AppUpdateNotice() {
     </button>
     {open && <div className="app-update-details">
       <strong>Oufeidun · {status.currentVersion}</strong>
+      <p>Ghi chú 0.1.3: Bổ sung dòng xác nhận để kiểm thử cập nhật online.</p>
       <p role="status">{status.phase === 'disabled' ? 'Kênh cập nhật chưa được cấu hình.' :
         status.phase === 'unpublished' ? 'Chưa có bản cập nhật được công bố.' :
         status.phase === 'checking' ? 'Đang kiểm tra phiên bản…' :
