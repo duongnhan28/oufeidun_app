@@ -65,7 +65,7 @@ Không đưa migration DB vào installer máy nhân viên. Server/database đư�
 
 ## Nhật ký xác minh — 04/11/2026
 
-- `npm.cmd run verify`: thành công; 68 test nghiệp vụ/unit, 59 test UI, Electron smoke, TypeScript/Vite build; production audit 0 vulnerabilities. Có cảnh báo bundle/PGlite từ build demo hiện có, không phải lỗi build.
+- `npm.cmd run verify`: thành công trên source cuối; 69 test nghiệp vụ/unit, 59 test UI, Electron smoke gồm update IPC, TypeScript/Vite build; production audit 0 vulnerabilities. Có cảnh báo bundle/PGlite từ build demo hiện có, không phải lỗi build.
 - Test UI cập nhật chứng minh không tải trước khi bấm và không mở file/cài đặt tự động; unit test kiểm tra chữ ký, hash, profile, lỗi mạng và giữ file cấu hình.
 - Website: route test, typecheck, lint và production build local đạt; workflow website được kích hoạt bằng commit endpoint riêng.
 - Đã tạo identity ký cập nhật: private key `C:\Users\duong\.ssh\oufeidun_update_signing.pem` nằm ngoài repo, public key trong `electron/update-config.json`. Chưa ký/công bố installer khách. Người vận hành phải sao lưu private key an toàn.
