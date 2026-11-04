@@ -31,6 +31,7 @@ async function main() {
     const config = require('../../electron/update-config.json');
     const release = validateEnvelope(JSON.parse(fs.readFileSync(envelopeFile)), config.publicKey, new URL('local-mysql-win32-x64.json', config.feedBaseUrl).href, 'x64', 'local-mysql');
     ssh(`umask 077; mkdir -p ${quote(ROOT + '/.ci-incoming')}; mkdir ${quote(stage)}`);
+    let completed = false;
     try {
       put('scripts/release/remote.cjs', 'remote.cjs');
       put('electron/app-updates.cjs', 'app-updates.cjs');
@@ -39,9 +40,12 @@ async function main() {
       ssh(`${quote(NODE)} ${quote(stage + '/remote.cjs')} prepare ${quote(id)}`);
       put(`.local/signed/files/${release.sha256}.exe`, 'installer.exe');
       ssh(`${quote(NODE)} ${quote(stage + '/remote.cjs')} commit ${quote(id)}`);
+      completed = true;
     } finally {
-      // Unique staging path validated above; never recurse outside this exact run.
-      ssh(`rm -rf -- ${quote(stage)}`);
+      // A disconnected SSH process may still be publishing remotely. Retain its
+      // staging on failure rather than deleting files from underneath it.
+      if (completed) ssh(`rm -rf -- ${quote(stage)}`);
+      else console.error(`Publication interrupted; inspect remote staging ${stage} before cleanup or retry.`);
     }
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 }

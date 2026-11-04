@@ -46,7 +46,7 @@ Khóa ký Ed25519 phải khớp `electron/update-config.json` và các app đã 
 - Cài public key pin tại `app-updates/trusted-public-key.pem`; khác khóa sẽ dừng. Private key không lên hosting.
 - Đưa installer vào tên hash bất biến trước; sao lưu feed `.before-*`, đổi feed bằng rename cuối cùng. Nếu public feed hoặc trang chủ lỗi ngay sau đổi thì phục hồi feed trước đó.
 - Cleanup của website giữ các bộ cài đang được feed hiện tại/lịch sử gần nhất tham chiếu. File không được tham chiếu có thời gian chờ; xem `docs/HOSTING-RETENTION.md` ở repo web. Không xóa toàn bộ thư mục `files`.
-- Nếu runner bị hủy đột ngột, có thể còn staging hoặc lock. Kiểm tra chắc chắn không còn lượt deploy đang chạy trước khi dọn đúng staging/lock; không tự ý xóa khóa đang hoạt động. Sửa lỗi rồi rerun tag, không đổi tag sang commit khác.
+- Nếu SSH lỗi, runner bị hủy hoặc phát hành thất bại, staging được giữ để tránh xóa file khi tiến trình remote vẫn chạy; có thể còn lock. Kiểm tra chắc chắn không còn lượt deploy đang chạy trước khi dọn đúng staging/lock; không tự ý xóa khóa đang hoạt động. Sửa lỗi rồi rerun tag, không đổi tag sang commit khác.
 - Nếu cần quay về mã nguồn cũ sau một phát hành thành công, tạo **phiên bản cao hơn** chứa bản sửa/hoàn nguyên; updater không hạ phiên bản tự động.
 
 ## Chi phí và kiểm chứng
