@@ -69,6 +69,14 @@ jobs:
         run: node scripts/smoke-electron.cjs --packaged --production
       - name: Stage installer and proof
         run: node scripts/release/ci.cjs stage
+      - name: Retain failed UI diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: failed-ui-diagnostics
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 3
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: local-installer
