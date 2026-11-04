@@ -26,6 +26,13 @@ const path = require('node:path');
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
 
+    const updateStatus = await page.evaluate(() => window.oufeidun?.updateStatus?.());
+    if (!updateStatus?.currentVersion || !updateStatus.phase) throw new Error('Electron update IPC is not available.');
+    const updatePanel = page.getByRole('complementary', { name: 'Cập nhật ứng dụng' });
+    await updatePanel.getByRole('button', { name: 'Cập nhật ứng dụng', exact: true }).click();
+    await updatePanel.getByRole('button', { name: 'Kiểm tra phiên bản', exact: true }).waitFor();
+    await updatePanel.getByRole('button', { name: 'Cập nhật ứng dụng', exact: true }).click();
+
     const lookup = await page.evaluate(() => window.oufeidun?.lookupGlass('A12'));
     if (!lookup?.items?.length) throw new Error('Electron shared-product lookup returned no results.');
     const lookupImage = lookup.items.find((item) => item.images?.length)?.images?.[0];

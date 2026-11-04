@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, protocol, net, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, protocol, net, ipcMain, shell } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 protocol.registerSchemesAsPrivileged([
@@ -48,7 +48,7 @@ function loadServerConfig() {
     }
   }
   if(lanConnection)apiBaseUrl='shop://app/api/app/v1';
-  return { lookupApiUrl, apiBaseUrl, bakedApiBaseUrl };
+  return { lookupApiUrl, apiBaseUrl, bakedApiBaseUrl, updateProfile: config.backend !== 'api' ? null : config.environment === 'local' ? 'local-mysql' : config.environment === 'production' ? 'production-mysql' : null };
 }
 function createWindow() {
   const win = new BrowserWindow({ show:!process.env.APP_TEST_DATA||process.env.APP_TEST_VISIBLE==='1',width: 1500, height: 960, minWidth: 1000, minHeight: 700, backgroundColor: '#f4f7fa', autoHideMenuBar: true, title: 'Oufeidun • Quản lý bán hàng', icon: path.resolve(__dirname, '../assets/app-icon.ico'), webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false, zoomFactor: DEFAULT_UI_ZOOM, preload: path.resolve(__dirname, 'preload.cjs') } });
@@ -69,7 +69,28 @@ app.on('second-instance',()=>{
 });
 if(ownInstance)app.whenReady().then(()=>{
   const root=path.resolve(__dirname,'../dist');
-  const {lookupApiUrl,apiBaseUrl,bakedApiBaseUrl}=loadServerConfig();
+  const {lookupApiUrl,apiBaseUrl,bakedApiBaseUrl,updateProfile}=loadServerConfig();
+  const { AppUpdates } = require('./app-updates.cjs');
+  const updateConfig = require('./update-config.json');
+  const updates = new AppUpdates({ version: app.getVersion(), profile: updateProfile, config: {
+    feedUrl: new URL(`${updateProfile}-win32-${process.arch}.json`, updateConfig.feedBaseUrl).href,
+    publicKey: updateProfile && process.platform === 'win32' ? updateConfig.publicKey : '',
+  }, directory: path.join(app.getPath('userData'), 'app-updates') });
+  const trustedUpdateSender = event => {
+    if (event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== 'shop://app/index.html') throw Error('Forbidden');
+  };
+  ipcMain.handle('app-update-status', event => { trustedUpdateSender(event); return updates.snapshot(); });
+  ipcMain.handle('app-update-check', event => { trustedUpdateSender(event); return updates.check(); });
+  ipcMain.handle('app-update-download', event => { trustedUpdateSender(event); return updates.download(); });
+  ipcMain.handle('app-update-show-file', async event => {
+    trustedUpdateSender(event);
+    try { const file = await updates.verifiedFile(); if (!file) return false; shell.showItemInFolder(file); return true; }
+    catch { return false; }
+  });
+  if (app.isPackaged && process.platform === 'win32' && !process.env.APP_TEST_DATA) {
+    setTimeout(() => void updates.check(), 10000).unref();
+    setInterval(() => void updates.check(), 12 * 60 * 60 * 1000).unref();
+  }
   if(process.argv.includes('--check-server')){
     if(!lanConnection)throw Error('Missing store server profile');
     return lanConnection.connect().then(status=>{
