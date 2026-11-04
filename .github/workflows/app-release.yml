@@ -35,13 +35,30 @@ jobs:
         run: npm ci --prefix server --ignore-scripts
       - name: Test release safety
         run: node --test scripts/release/release.test.cjs
-      - name: Verify unit, UI, Electron, typecheck, build and production audit
+      - name: Unit tests with isolated server configuration
+        timeout-minutes: 5
         env:
           MYSQL_USER: ci-unused
           MYSQL_PASSWORD: ci-no-database-connection
           OUFEIDUN_SERVER_ENV: ${{ runner.temp }}/unit-test-no-server.env
           OUFEIDUN_DATA_DIR: ${{ runner.temp }}/unit-test-server-data
-        run: npm run verify
+        run: npm run test
+      - name: UI tests with disposable demo database
+        timeout-minutes: 15
+        env:
+          VITE_DEMO_MODE: 'true'
+          VITE_SERVER_ENV: test
+        run: npm run test:ui
+      - name: Electron smoke with disposable demo database
+        timeout-minutes: 4
+        env:
+          VITE_DEMO_MODE: 'true'
+          VITE_SERVER_ENV: test
+        run: npm run test:electron
+      - name: Typecheck and default build
+        run: npm run build
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
       - name: Generate public LOCAL profile
         run: node scripts/release/ci.cjs local-env
       - name: Build LOCAL Windows installer
