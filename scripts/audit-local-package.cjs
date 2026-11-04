@@ -7,6 +7,7 @@ assert.deepEqual(bad,[]);
 const config=JSON.parse(asar.extractFile(archive,'dist/server-config.json'));
 assert.equal(config.environment,'local');assert.equal(config.backend,'api');
 assert.equal(config.lookupApiUrl,'https://oufeidun.vn/api/glass-lookup');
+if(process.env.CI) assert.equal(config.apiBaseUrl,'https://oufeidun.home.arpa/api/app/v1');
 assert.equal(JSON.parse(asar.extractFile(archive,'package.json')).version,require('../package.json').version);
 assert.ok(files.includes('/electron/lan-connection.cjs'));
 console.log('PASS: package LOCAL, correct version, discovery module, no private config/source/tests');

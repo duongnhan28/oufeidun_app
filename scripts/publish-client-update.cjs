@@ -33,7 +33,10 @@ async function main() {
     version, notes: fs.readFileSync(notesFile, 'utf8').trim(), size: stat.size, sha256,
     requiresServerUpdate: false, url: `https://oufeidun.vn/app-updates/files/${sha256}.exe` };
   const payload = JSON.stringify(release);
-  const privateKey = crypto.createPrivateKey(fs.readFileSync(keyFile));
+  const keyMaterial = keyFile === 'ENV:APP_UPDATE_SIGNING_KEY'
+    ? process.env.APP_UPDATE_SIGNING_KEY : fs.readFileSync(keyFile);
+  if (!keyMaterial) throw Error('Missing signing key');
+  const privateKey = crypto.createPrivateKey(keyMaterial);
   if (privateKey.asymmetricKeyType !== 'ed25519') throw Error('Expected Ed25519 signing key');
   const envelope = { payload, signature: crypto.sign(null, Buffer.from(payload), privateKey).toString('base64') };
   const config = require('../electron/update-config.json');

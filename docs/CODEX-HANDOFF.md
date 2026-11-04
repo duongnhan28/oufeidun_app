@@ -1,5 +1,14 @@
 # Bàn giao ngữ cảnh Codex — Oufeidun
 
+## Cập nhật 04/11/2026 — phát hành app tự động theo tag
+
+- Thông tin cũ bên dưới là lịch sử. Package hiện tại là **0.1.3**, không phải 0.2.17 hoặc 0.1.1. Feed LOCAL đang công bố bộ cài 0.1.3 đã đưa nút cập nhật xuống cuối; SHA256 `e8974981b439cae159665b9703b6c5f3bee9443b299b2e32243243a942436755`.
+- Repository app thực tế: `E:\AppBanHang`, `duongnhan28/oufeidun_app`. Website production riêng: `E:\Oufeidun_web`, `duongnhan28/oufeidun_web1`; không nhầm với bản web cũ `E:\mhpGroup`.
+- Đọc [APP-RELEASE-CICD.md](APP-RELEASE-CICD.md) trước khi phát hành. Main chỉ kiểm thử/build/ký thử; push tag khớp package mới được upload hosting. Không tạo tag 0.1.3 để thử và không tự tăng version chỉ để kiểm tra CI.
+- Khóa Ed25519 giữ nguyên tại `%USERPROFILE%\.ssh\oufeidun_update_signing.pem`, public key trong `electron/update-config.json`. SSH key `%USERPROFILE%\.ssh\oufeidun_github_deploy`; host key pin trong `oufeidun_hosting_known_hosts`. Không chép nội dung khóa vào chat/Git/tài liệu. Secrets mã hóa ở environment GitHub `app-production`.
+- Workflow chỉ phát hành client LOCAL; không migrate DB, không cài server, không chạy bộ kiểm thử thay password admin thật. Cập nhật DB/API cửa hàng phải lập kế hoạch riêng và giữ tương thích.
+- Host lưu app ở `/home/hwqrwrir/app-updates`, dùng chung `.deploy-lock` của website khi công bố manifest. Không xóa khóa của lượt deploy khác. Công bố installer trước và feed cuối; có kiểm tra hash, quota, phiên bản, public feed và phục hồi feed khi kiểm tra sau công bố thất bại.
+
 ## Bản bàn giao mới nhất03/11/2026 — đã đóng ZIPLOCAL0.1.1
 
 - Hoàn tất E:\outputt\Oufeidun-Local-0.1.1.zip,374.526.066byte SHA256 A0F14CF1FB72740A2EFCDAC9E30B883E1DB20C8F1A49BB689A0534449B37930F. Setup175.265.792byte SHA256 F4A861EAA5CC40C43BDB7A33793E45D63530F4581118FFF5677DB57CEE9ABE54. Gồmforecast +session12h/migration013 +fixes cũ;webupdater hoãn, chưađụngweb. Cửa hàngAPItrước rồiapp,giữdata/config/loginlại1lần.

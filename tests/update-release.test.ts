@@ -31,5 +31,12 @@ test('release preparation signs fixtures, enforces package version and refuses k
     assert.equal(release.version, '0.1.2');
     assert.equal(readFileSync(join(root, 'out/files', release.sha256 + '.exe'), 'utf8'), 'fixture bytes - not executable');
     assert.equal(run('prepare', 'fixture.exe', '0.1.2', 'local-mysql', 'notes.txt', key, 'out').status, 1);
+    const ci = spawnSync(process.execPath, [join(root, 'scripts/publish-client-update.cjs'), 'prepare', 'fixture.exe', '0.1.2', 'local-mysql', 'notes.txt', 'ENV:APP_UPDATE_SIGNING_KEY', 'ci-out'], {
+      cwd: root, encoding: 'utf8', env: { ...process.env, APP_UPDATE_SIGNING_KEY: originalKey },
+    });
+    assert.equal(ci.status, 0, ci.stderr);
+    assert.equal(ci.stdout.includes('PRIVATE KEY-----'), false);
+    const ciEnvelope = JSON.parse(readFileSync(join(root, 'ci-out/stable/local-mysql-win32-x64.json'), 'utf8'));
+    assert.equal(validateEnvelope(ciEnvelope, config.publicKey, 'https://oufeidun.vn/app-updates/stable/local-mysql-win32-x64.json', 'x64').sha256, release.sha256);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
