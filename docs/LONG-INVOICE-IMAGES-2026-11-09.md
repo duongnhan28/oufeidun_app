@@ -17,4 +17,4 @@ Yêu cầu mới nhất của khách thay thế phương án chia trang: giữ *
 - Test đơn dài kiểm tra đủ 36 STT (34 mã + tặng/mẫu), một canvas, một PNG, tổng số lượng và tiền đúng, không còn hậu tố `trang-N-M`.
 - Log `.local/compact-invoice-ui.log`, `.local/compact-invoice-sample.log`.
 
-Người dùng đã chốt ảnh mẫu và yêu cầu phát hành: đưa thay đổi này vào client **0.1.5**, dùng tag `v0.1.5` và CI/CD hiện có. Không ghi đè bộ cài 0.1.4. Trạng thái phát hành thực tế phải kiểm tra trong GitHub Actions và feed công khai. Các sửa đổi server/tài liệu có sẵn trong workspace được giữ nguyên.
+Người dùng đã chốt ảnh mẫu và yêu cầu phát hành. Tag 0.1.5 chưa được công bố do test CI phụ thuộc toast tự tắt; giữ nguyên tag để truy vết. Bản phát hành chuyển sang **0.1.6**, giữ nguyên renderer đã duyệt, cải thiện các kiểm tra kết quả lưu và cho phép một retry trên CI. Không ghi đè bộ cài 0.1.4. Trạng thái phát hành thực tế phải kiểm tra trong GitHub Actions và feed công khai. Các sửa đổi server/tài liệu có sẵn trong workspace được giữ nguyên.

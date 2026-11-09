@@ -31,7 +31,7 @@ test('sale groups pair gifts, orphan gifts follow and samples stay last across c
  const drawn:string[]=await page.evaluate(()=>(window as any).drawn);const lines=drawn.map((text,index)=>({text,index})).filter(row=>['IP14PM','IP15-TR','IP16P-TR'].includes(row.text));
  expect(lines.map((row,index)=>`${row.text}:${drawn.slice(row.index+1,lines[index+1]?.index).some(text=>text.includes('Hàng mẫu'))?'sample':drawn.slice(row.index+1,lines[index+1]?.index).some(text=>text.includes('Hàng tặng'))?'gift':'sale'}`)).toEqual(expected);
  await expect(page.locator('.cart-summary .total')).toContainText('55.000đ');
- await page.getByRole('button',{name:'Xác nhận bán',exact:true}).click();await page.getByRole('button',{name:'Xác nhận và trừ kho',exact:true}).click();await expect(page.getByRole('status')).toContainText('Đã xác nhận');
+ await page.getByRole('button',{name:'Xác nhận bán',exact:true}).click();await page.getByRole('button',{name:'Xác nhận và trừ kho',exact:true}).click();await expect(page.getByRole('dialog',{name:'Xác nhận bán hàng'})).toHaveCount(0);
  await expect(page.locator('.product-card').filter({hasText:'IP14PM'})).toContainText('Tồn: 33');await expect(page.locator('.product-card').filter({hasText:'IP15-TR'})).toContainText('Tồn: 45');await expect(page.locator('.product-card').filter({hasText:'IP16P-TR'})).toContainText('Tồn: 31');
  await page.getByRole('button',{name:'Đơn hàng',exact:true}).click();await page.getByRole('button',{name:'Chi tiết',exact:true}).click();await expect.poll(detailOrder).toEqual(expected);await page.screenshot({path:'test-results/sorted-lines-detail.png'});
  // Exporting the saved sale uses snapshots rather than the active cart.

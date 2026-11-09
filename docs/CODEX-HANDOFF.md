@@ -1,8 +1,9 @@
 # Bàn giao ngữ cảnh Codex — Oufeidun
 
-## Cập nhật 09/11/2026 — client 0.1.5, ảnh đơn hàng một PNG
+## Cập nhật 09/11/2026 — client 0.1.6, ảnh đơn hàng một PNG
 
-- Người dùng duyệt mẫu bảng gọn và yêu cầu phát hành 0.1.5. Đọc `docs/releases/0.1.5.md` và `docs/LONG-INVOICE-IMAGES-2026-11-09.md`. Ảnh gốc rộng 2400 px, giữ một file, không chia trang. Bản mẫu đơn 954: 34 mã, 470 tấm, 3.525.000đ, 2400 × 3792 px.
+- Người dùng duyệt mẫu bảng gọn và yêu cầu phát hành bản mới. Đọc `docs/releases/0.1.6.md` và `docs/LONG-INVOICE-IMAGES-2026-11-09.md`. Ảnh gốc rộng 2400 px, giữ một file, không chia trang. Bản mẫu đơn 954: 34 mã, 470 tấm, 3.525.000đ, 2400 × 3792 px.
+- Tag 0.1.5 giữ nguyên để truy vết, chưa phát hành vì CI bị lỗi kiểm tra toast tự tắt. 0.1.6 giữ nguyên code ảnh, dùng kiểm tra dữ liệu đã lưu thay toast ở các test bị ảnh hưởng và một retry riêng trên CI; mọi kiểm tra nghiệp vụ vẫn còn.
 - Source sửa ở `src/lib/order-image.ts`, phần cuộn xem trước trong App/CSS; thêm test `tests/ui/long-order-image.spec.ts`. Không thay server/migration cho tính năng ảnh. Workspace có các sửa đổi server và tài liệu 0.1.4 khác chưa commit; không gom vào bản phát hành ảnh.
 - Phiên bản đang phục vụ phải kiểm tra feed `https://oufeidun.vn/app-updates/stable/local-mysql-win32-x64.json`, không suy ra chỉ từ package hoặc tag. Các phiên bản 0.1.3, 0.1.4 phía dưới là lịch sử.
 

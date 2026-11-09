@@ -16,7 +16,7 @@ test('Excel creates new glass codes, survives reload and displays SKU instead of
  sheet.addRow(['Mã kính','Số lượng','Giá nhập']);sheet.addRow([' excel-new-ui ',4,12000]);sheet.addRow(['IP15-TR',2,15000]);
  await page.getByLabel('Chọn file Excel đã điền').setInputFiles({name:'new-skus.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(await workbook.xlsx.writeBuffer())});
  await page.getByRole('button',{name:'Nhập file Excel',exact:true}).click();
- await expect(page.getByRole('status')).toContainText('Đã cập nhật kho');
+ await expect(page.getByRole('dialog')).toHaveCount(0);
  const row=page.locator('tbody tr').filter({hasText:'EXCEL-NEW-UI'});
  await expect(row).toContainText('4 sản phẩm');await expect(row).toContainText('12.000đ');
  await page.reload();await page.getByRole('button',{name:/Chủ cửa hàng/}).click();
