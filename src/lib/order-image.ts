@@ -1,24 +1,12 @@
-import type { OrderExcelData } from "./excel";
-import { saveDownload } from "./download";
-import {quantitySummary} from './catalog';
-import {orderItemsForDisplay} from './order-item-order';
-import {orderProductColor} from './order-product-color';
+import type { OrderExcelData } from './excel';
+import { saveDownload } from './download';
+import { quantitySummary } from './catalog';
+import { orderItemsForDisplay } from './order-item-order';
+import { orderProductColor } from './order-product-color';
 
-const formatNumber = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
-const safeFilename = (value: string) => value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, "-").replace(/\s+/g, "-") || "don-hang";
-
-function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, width, height, radius);
-}
-
-function fitText(ctx: CanvasRenderingContext2D, value: string, maxWidth: number) {
-  if (ctx.measureText(value).width <= maxWidth) return value;
-  let text = value;
-  while (text.length > 1 && ctx.measureText(`${text}…`).width > maxWidth) text = text.slice(0, -1);
-  return `${text}…`;
-}
-
+const number = (value: number) => new Intl.NumberFormat('vi-VN').format(value);
+const money = (value: number) => `${number(value)}đ`;
+const safeFilename = (value: string) => value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '-').replace(/\s+/g, '-') || 'don-hang';
 export type GeneratedOrderImage = { blob: Blob; filename: string };
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, width: number): string[] {
@@ -29,10 +17,9 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, width: number): s
       const candidate = line ? `${line} ${word}` : word;
       if (ctx.measureText(candidate).width <= width) { line = candidate; continue; }
       if (line) { lines.push(line); line = ''; }
-      // Keep normal words intact; split only identifiers longer than a full line.
-      for (const char of word) {
-        if (line && ctx.measureText(line + char).width > width) { lines.push(line); line = ''; }
-        line += char;
+      for (const character of word) {
+        if (line && ctx.measureText(line + character).width > width) { lines.push(line); line = ''; }
+        line += character;
       }
     }
     lines.push(line);
@@ -40,169 +27,137 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, width: number): s
   return lines;
 }
 
-export async function createOrderImage(data: OrderExcelData): Promise<GeneratedOrderImage> {
-  data={...data,items:orderItemsForDisplay(data.items)};
-  const width = 1200;
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Không thể tạo ảnh đơn hàng trên thiết bị này.");
-  const ink = '#19334b', muted = '#536a7d', teal = '#008799';
-  const left = 64, innerWidth = width - left * 2;
-  const cardWidth = (innerWidth - 24) / 2;
-  const font = (size: number, bold = false) => { ctx.font = `${bold ? '700' : '400'} ${size}px Arial, sans-serif`; };
-  const lines = (text: string, available: number, size = 21, bold = false) => {
+// Compact spreadsheet layout: one image, full data, no repeated cards or unit
+// subrows. Render at 2x for sharp original files instead of enlarging a bitmap.
+export async function createOrderImage(input: OrderExcelData): Promise<GeneratedOrderImage> {
+  const data = { ...input, items: orderItemsForDisplay(input.items) };
+  const width = 1200, scale = 2, left = 12, inner = width - left * 2;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Không thể tạo ảnh đơn hàng trên thiết bị này.');
+  const font = (size = 18, bold = false) => { ctx.font = `${bold ? 700 : 400} ${size}px Arial, sans-serif`; };
+  const wrapped = (text: string, available: number, size = 18, bold = false) => {
     font(size, bold); return wrapText(ctx, text, available);
   };
-  // Measure with the same font used to render, including long customer/address/SKU values.
-  const customerFields = [
-    {label:'Khách hàng', value:data.customerName},
-    {label:'Số điện thoại', value:data.phone},
-    {label:'Địa chỉ', value:data.address || 'Chưa cập nhật'},
-  ];
-  const orderFields = [
-    {label:'Mã đơn hàng', value:data.orderNo},
-    {label:'Ngày giờ đặt đơn', value:data.orderedAt},
-    {label:'Nhân viên bán hàng', value:data.sales},
-  ];
-  const measureFields = (fields: typeof customerFields) => fields.map(field => ({...field, lines:lines(field.value,cardWidth-48,22,true)}));
-  const customer = measureFields(customerFields), order = measureFields(orderFields);
-  const fieldsHeight = (fields: typeof customer) => fields.reduce((sum,field)=>sum+30+field.lines.length*30+18,0);
-  const infoTop = 154;
-  const infoHeight = 74 + Math.max(fieldsHeight(customer),fieldsHeight(order));
-  const shortage = data.missingSummary ? lines(`Còn thiếu: ${data.missingSummary}`,innerWidth-48) : [];
-  const statusTop = infoTop + infoHeight + 18;
-  const statusHeight = 62 + shortage.length*29;
-  const tableTop = statusTop + statusHeight + 26;
-  const skuLines = data.items.map(item=>lines(item.sku,462,23,true));
-  const details = data.items.map(item => lines([`Đơn vị: ${item.unit || 'tấm'}`,item.kind && item.kind!=='sale' ? (item.kind==='gift'?'Hàng tặng · 0đ':'Hàng mẫu · 0đ') : '',item.models?.length ? `Dùng chung: ${item.models.join(', ')}` : '', item.note ? `Ghi chú: ${item.note}` : ''].filter(Boolean).join('\n'),462,20));
-  const rowHeights = details.map((detail,index) => 36 + skuLines[index].length*30 + (detail[0] ? 10+detail.length*28 : 0));
-  const rowsHeight = rowHeights.reduce((a,b)=>a+b,0);
-  const noteLines = data.note ? lines(data.note,cardWidth-48) : [];
-  const feeLines = data.extraCostNote ? lines(data.extraCostNote,cardWidth-48) : [];
-  const summaryTop = tableTop + 56 + rowsHeight + 24;
-  const notesHeight = Math.max(102,62+noteLines.length*29) + (feeLines.length ? 62+feeLines.length*29 : 0);
-  const summaryHeight = Math.max(222,notesHeight);
-  const height = summaryTop + summaryHeight + 108;
-  canvas.height = height;
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillStyle = teal;
-  ctx.fillRect(left, 38, innerWidth, 8);
-  ctx.fillStyle = ink;
-  font(38,true);
-  ctx.fillText("OUFEIDUN", left, 101);
-  font(28,true);
-  ctx.textAlign = "right";
-  ctx.fillText("XÁC NHẬN ĐƠN HÀNG", width - left, 96);
-  font(19);ctx.fillStyle=muted;
-  ctx.fillText('Thông tin gửi khách kiểm tra',width-left,126);
-  ctx.textAlign = "left";
-
-  const drawCard = (x: number, title: string, fields: typeof customer) => {
-    ctx.fillStyle='#f4f8fa';roundedRect(ctx,x,infoTop,cardWidth,infoHeight,14);ctx.fill();
-    ctx.fillStyle=teal;font(19,true);ctx.fillText(title,x+24,infoTop+36);
-    let y=infoTop+74;
-    fields.forEach(field=>{
-      ctx.fillStyle=muted;font(19);ctx.fillText(field.label,x+24,y);
-      ctx.fillStyle=ink;font(22,true);
-      field.lines.forEach((line,index)=>ctx.fillText(line,x+24,y+30+index*30));
-      y+=30+field.lines.length*30+18;
-    });
-  }
-  drawCard(left,'THÔNG TIN KHÁCH HÀNG',customer);
-  drawCard(left+cardWidth+24,'THÔNG TIN ĐƠN HÀNG',order);
-  ctx.fillStyle=data.missingSummary ? '#fff7e8' : '#edf8f6';
-  roundedRect(ctx,left,statusTop,innerWidth,statusHeight,12);ctx.fill();
-  ctx.fillStyle=ink;font(21,true);ctx.fillText(`Tình trạng hàng: ${data.fulfillment}`,left+24,statusTop+38);
-  font(21);shortage.forEach((line,index)=>ctx.fillText(line,left+24,statusTop+68+index*29));
-
-  const tableX = left;
-  const columns = [60, 490, 140, 170, 212];
-  const headers = ["STT", "MÃ KÍNH", "GIAO/ĐẶT", "ĐƠN GIÁ", "THÀNH TIỀN"];
-  ctx.fillStyle = "#0f8797";
-  ctx.fillRect(tableX, tableTop, innerWidth, 56);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "700 18px Arial, sans-serif";
-  let cursor = tableX;
-  headers.forEach((header, index) => {
-    ctx.textAlign = index >= 2 ? "right" : index === 0 ? "center" : "left";
-    const x = index >= 2 ? cursor + columns[index] - 16 : index === 0 ? cursor + columns[index] / 2 : cursor + 14;
-    ctx.fillText(header, x, tableTop + 37);
-    cursor += columns[index];
+  const columns = [52, 390, 70, 100, 100, 100, 150, 214];
+  const headers = ['STT', 'MÃ KÍNH', 'ĐVT', 'SL ĐẶT', 'ĐÃ GIAO', 'CÒN THIẾU', 'ĐƠN GIÁ', 'THÀNH TIỀN'];
+  const split = Math.round(inner * 0.65);
+  const metadata = [
+    [`Khách hàng: ${data.customerName}`, `Sales: ${data.sales}`],
+    [`SĐT: ${data.phone}`, `Thời gian đặt: ${data.orderedAt}`],
+    [`Địa chỉ: ${data.address || 'Chưa cập nhật'}`, `Số: ${data.orderNo}`],
+    [`Tình trạng: ${data.fulfillment}`, `Còn thiếu: ${data.missingSummary || 'Không'}`],
+  ].map(fields => ({
+    lines: [wrapped(fields[0], split - 16, 18, true), wrapped(fields[1], inner - split - 16, 18, true)],
+  }));
+  const metadataHeights = metadata.map(row => Math.max(36, Math.max(...row.lines.map(lines => lines.length)) * 24 + 12));
+  const tableTop = 62 + metadataHeights.reduce((sum, height) => sum + height, 0);
+  const rows = data.items.map((item,index) => {
+    const sku = wrapped(item.sku, columns[1] - 16, 18);
+    const detail = [
+      item.kind === 'gift' ? 'Hàng tặng · 0đ' : item.kind === 'sample' ? 'Hàng mẫu · 0đ' : '',
+      item.models?.length ? `Dùng chung: ${item.models.join(', ')}` : '',
+      item.note ? `Ghi chú: ${item.note}` : '',
+    ].filter(Boolean).flatMap(text => wrapped(text, columns[1] - 16, 16));
+    const delivered=item.deliveredQuantity;
+    const missing=item.missingQuantity ?? (delivered===undefined?undefined:Math.max(0,item.quantity-delivered));
+    const values=[String(index+1),'',item.unit||'tấm',number(item.quantity),delivered===undefined?'—':number(delivered),missing===undefined?'—':number(missing),money(item.unitPrice),money((delivered??item.quantity)*item.unitPrice)];
+    const valueLines=values.map((value,column)=>wrapped(value,columns[column]-16,18));
+    return { sku, detail, values:valueLines, height: Math.max(42, sku.length * 24 + detail.length * 21 + 14,14+24*Math.max(...valueLines.map(lines=>lines.length))) };
   });
-
-  let y = tableTop + 56;
-  data.items.forEach((item, index) => {
-    const rowHeight = rowHeights[index];
-    ctx.fillStyle = index % 2 ? "#f7fafc" : "#ffffff";
-    ctx.fillRect(tableX, y, innerWidth, rowHeight);
-    ctx.strokeStyle = "#d8e2eb";
-    ctx.beginPath();ctx.moveTo(tableX, y + rowHeight);ctx.lineTo(width - left, y + rowHeight);ctx.stroke();
-    const delivered = item.deliveredQuantity ?? item.quantity;
-    const values = [String(index + 1), item.sku, delivered === item.quantity ? String(item.quantity) : `${delivered}/${item.quantity}`, `${formatNumber(item.unitPrice)}đ`, `${formatNumber(delivered * item.unitPrice)}đ`];
-    cursor = tableX;
-    values.forEach((value, column) => {
-      ctx.fillStyle = column===1 ? orderProductColor(item.glassType,item.sku) : ink;
-      font(column===1?23:21,column===1||column===4);
-      ctx.textAlign = column >= 2 ? "right" : column === 0 ? "center" : "left";
-      const x = column >= 2 ? cursor + columns[column] - 16 : column === 0 ? cursor + columns[column] / 2 : cursor + 14;
-      if(column===1) skuLines[index].forEach((line,j)=>ctx.fillText(line,x,y+35+j*30));
-      else ctx.fillText(fitText(ctx, value, columns[column] - 28), x, y + 35);
-      cursor += columns[column];
-    });
-    ctx.textAlign = 'left'; ctx.fillStyle = muted;font(20);
-    if (details[index][0]) details[index].forEach((line,j) => ctx.fillText(line,tableX+74,y+45+skuLines[index].length*30+j*28));
-    y += rowHeight;
-  });
-
-  const totalAmount = data.items.reduce((sum, item) => sum + (item.deliveredQuantity ?? item.quantity) * item.unitPrice, 0);
-  const notesX=left+24, summaryX=left+cardWidth+24;
-  ctx.textAlign='left';
-  ctx.fillStyle='#f4f8fa';roundedRect(ctx,left,summaryTop,cardWidth,summaryHeight,14);ctx.fill();
-  ctx.fillStyle=ink;font(21,true);ctx.fillText('GHI CHÚ ĐƠN HÀNG',notesX,summaryTop+36);
-  ctx.fillStyle=muted;font(21);
-  (noteLines.length ? noteLines : ['Không có ghi chú.']).forEach((line,j)=>ctx.fillText(line,notesX,summaryTop+69+j*29));
-  if(feeLines.length){
-    const feeTop=summaryTop+Math.max(102,62+noteLines.length*29);
-    ctx.fillStyle=ink;font(21,true);ctx.fillText('Nội dung chi phí khác',notesX,feeTop+29);
-    ctx.fillStyle=muted;font(21);feeLines.forEach((line,j)=>ctx.fillText(line,notesX,feeTop+60+j*29));
-  }
-  ctx.fillStyle='#edf8fa';roundedRect(ctx,summaryX,summaryTop,cardWidth,summaryHeight,14);ctx.fill();
-  const amountRight=width-left-24;
-  const amountRow = (label: string, value: string, y: number, grand = false) => {
-    ctx.textAlign='left';ctx.fillStyle=grand?teal:muted;font(grand?23:21,grand);ctx.fillText(label,summaryX+24,y);
-    ctx.textAlign='right';ctx.fillStyle=grand?teal:ink;font(grand?30:23,true);
-    ctx.fillText(fitText(ctx,value,grand?290:280),amountRight,y);ctx.textAlign='left';
-  }
-  amountRow('Số lượng',quantitySummary(data.items.map(item=>({quantity:item.deliveredQuantity??item.quantity,unit:item.unit}))),summaryTop+38);
-  amountRow('Tiền sản phẩm',`${formatNumber(totalAmount)}đ`,summaryTop+82);
-  amountRow('Chi phí khác',`${formatNumber(data.extraCost || 0)}đ`,summaryTop+126);
-  ctx.strokeStyle='#c7dfe4';ctx.beginPath();ctx.moveTo(summaryX+24,summaryTop+150);ctx.lineTo(amountRight,summaryTop+150);ctx.stroke();
-  amountRow('TỔNG TIỀN',`${formatNumber(totalAmount+(data.extraCost || 0))}đ`,summaryTop+194,true);
-  ctx.fillStyle = "#7890a8";
-  ctx.font = "17px Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("Vui lòng kiểm tra mã kính, số lượng và tổng tiền trước khi xác nhận.", width / 2, height - 43);
-
-  // Chromium can defer toBlob indefinitely when an Electron window is occluded.
-  // Encode directly so exporting an order never leaves the sale actions busy.
-  const encoded = canvas.toDataURL("image/png").split(",")[1];
-  if (!encoded) throw new Error("Không thể xuất ảnh đơn hàng.");
-  const bytes = Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0));
-  const blob = new Blob([bytes], { type: "image/png" });
-  return {
-    blob,
-    filename: `${safeFilename(data.orderNo)}-${safeFilename(data.customerName)}.png`,
+  const totalQuantity = (kind: 'ordered' | 'delivered' | 'missing') => {
+    if (kind !== 'ordered' && data.items.some(item => kind === 'delivered' ? item.deliveredQuantity === undefined : item.missingQuantity === undefined && item.deliveredQuantity === undefined)) return '—';
+    const entries = data.items.map(item => ({
+      unit: item.unit,
+      quantity: kind === 'ordered' ? item.quantity : kind === 'delivered' ? item.deliveredQuantity! : item.missingQuantity ?? Math.max(0, item.quantity - item.deliveredQuantity!),
+    }));
+    const units = new Set(entries.map(item => item.unit || 'tấm'));
+    return units.size === 1 ? number(entries.reduce((sum, item) => sum + item.quantity, 0)) : quantitySummary(entries);
   };
+  const productTotal = data.items.reduce((sum, item) => sum + (item.deliveredQuantity ?? item.quantity) * item.unitPrice, 0);
+  const notes = data.note ? wrapped(`Ghi chú: ${data.note}`, inner - columns[0] - 16, 18) : [];
+  const fee = wrapped(`Chi phí khác${data.extraCostNote ? `: ${data.extraCostNote}` : ''}`, inner - columns[0] - columns[7] - 16, 18);
+  const feeValue=wrapped(money(data.extraCost||0),columns[7]-16,18);
+  const grandValue=wrapped(money(productTotal+(data.extraCost||0)),columns[7]-16,21,true);
+  const feeHeight=Math.max(44,Math.max(fee.length,feeValue.length)*24+12);
+  const grandHeight=Math.max(50,grandValue.length*26+18);
+  const summaryHeight = Math.max(40, 12 + 24 * Math.max(...[totalQuantity('ordered'), totalQuantity('delivered'), totalQuantity('missing')].map((text, index) => wrapped(text, columns[index + 3] - 16, 17, true).length)));
+  const height = tableTop + 36 + rows.reduce((sum, row) => sum + row.height, 0) + summaryHeight + (notes.length ? notes.length * 24 + 12 : 0) + feeHeight + grandHeight + 14;
+  if (height * scale > 16000 || width * height * scale * scale > 40_000_000) throw new Error('Đơn quá dài để xuất an toàn trong một ảnh. Vui lòng dùng In / lưu PDF để giữ đầy đủ nội dung.');
+  canvas.width = width * scale; canvas.height = height * scale;
+  ctx.scale(scale, scale);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = '#82919b'; ctx.lineWidth = 0.75;
+  const cell = (x: number, y: number, w: number, h: number, background = '#ffffff') => {
+    ctx.fillStyle = background; ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  };
+  const text = (value: string, x: number, y: number, available: number, options: { bold?: boolean; color?: string; align?: CanvasTextAlign; size?: number } = {}) => {
+    font(options.size || 18, options.bold); ctx.fillStyle = options.color || '#111111'; ctx.textAlign = options.align || 'left';
+    const xText = options.align === 'right' ? x + available : options.align === 'center' ? x + available / 2 : x;
+    ctx.fillText(value, xText, y);
+  };
+  text('OUFEIDUN', left, 36, 160, { bold: true, size: 15, color: '#405461' });
+  text('THEO DÕI ĐƠN HÀNG', left, 41, inner, { bold: true, align: 'center', size: 32 });
+  let y = 62;
+  metadata.forEach((row, index) => {
+    const h = metadataHeights[index];
+    cell(left, y, split, h); cell(left + split, y, inner - split, h);
+    row.lines[0].forEach((line, n) => text(line, left + 8, y + 25 + n * 24, split - 16, { bold: true }));
+    row.lines[1].forEach((line, n) => text(line, left + split + 8, y + 25 + n * 24, inner - split - 16, { bold: true }));
+    y += h;
+  });
+  let x = left;
+  headers.forEach((header, index) => {
+    cell(x, y, columns[index], 36, '#dcecf4');
+    text(header, x + 5, y + 25, columns[index] - 10, { bold: true, align: 'center', size: 16 }); x += columns[index];
+  });
+  y += 36;
+  data.items.forEach((item, index) => {
+    const row = rows[index];
+    x = left;
+    row.values.forEach((lines, column) => {
+      cell(x, y, columns[column], row.height);
+      if (column === 1) {
+        row.sku.forEach((line, n) => text(line, x + 8, y + 27 + n * 24, columns[column] - 16, { color: orderProductColor(item.glassType, item.sku) }));
+        row.detail.forEach((line, n) => text(line, x + 8, y + 27 + row.sku.length * 24 + n * 21, columns[column] - 16, { size: 16 }));
+      } else {
+        lines.forEach((line, n) => text(line, x + 8, y + 27 + n * 24, columns[column] - 16, { align: column >= 3 ? 'right' : column === 0 ? 'center' : 'left' }));
+      }
+      x += columns[column];
+    });
+    y += row.height;
+  });
+  const summary = ['', 'Tiền sản phẩm', '', totalQuantity('ordered'), totalQuantity('delivered'), totalQuantity('missing'), '', money(productTotal)];
+  x = left;
+  summary.forEach((value, index) => {
+    cell(x, y, columns[index], summaryHeight, '#f3f7fa');
+    wrapped(value, columns[index] - 16, 17, true).forEach((line, n) => text(line, x + 8, y + 26 + n * 24, columns[index] - 16, { bold: true, color: '#9b2424', size: 17, align: index >= 3 ? 'right' : 'center' }));
+    x += columns[index];
+  });
+  y += summaryHeight;
+  if (notes.length) {
+    const h = notes.length * 24 + 12; cell(left, y, inner, h);
+    notes.forEach((line, n) => text(line, left + columns[0] + 8, y + 25 + n * 24, inner - columns[0] - 16)); y += h;
+  }
+  const labelWidth = inner - columns[0] - columns[7];
+  cell(left, y, columns[0], feeHeight); cell(left + columns[0], y, labelWidth, feeHeight); cell(width - left - columns[7], y, columns[7], feeHeight);
+  fee.forEach((line, n) => text(line, left + columns[0] + 8, y + 27 + n * 24, labelWidth - 16));
+  feeValue.forEach((line,n)=>text(line, width - left - columns[7] + 8, y + 27+n*24, columns[7] - 16, { align: 'right' })); y += feeHeight;
+  cell(left, y, columns[0], grandHeight); cell(left + columns[0], y, labelWidth, grandHeight); cell(width - left - columns[7], y, columns[7], grandHeight);
+  text('TỔNG TIỀN', left + columns[0] + 8, y + 33, labelWidth - 16, { bold: true, size: 21 });
+  grandValue.forEach((line,n)=>text(line, width - left - columns[7] + 8, y + 33+n*26, columns[7] - 16, { bold: true, align: 'right', size: 21 }));
+  // Synchronous encoding also works when an Electron window is occluded.
+  const encoded = canvas.toDataURL('image/png').split(',')[1];
+  if (!encoded) throw new Error('Không thể xuất ảnh đơn hàng.');
+  const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
+  canvas.width = 1; canvas.height = 1;
+  return { blob: new Blob([bytes], { type: 'image/png' }), filename: `${safeFilename(data.orderNo)}-${safeFilename(data.customerName)}.png` };
 }
 
 export async function downloadGeneratedOrderImage(image: GeneratedOrderImage) {
   return saveDownload(image.blob, image.filename);
 }
-
 export async function downloadOrderImage(data: OrderExcelData) {
   return downloadGeneratedOrderImage(await createOrderImage(data));
 }

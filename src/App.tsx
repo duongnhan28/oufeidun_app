@@ -3743,7 +3743,7 @@ export default function App() {
                 <X size={22} />
               </button>
             </div>
-            <img src={orderImagePreview.url} alt="Ảnh xác nhận đơn hàng sẽ gửi cho khách" />
+            <div className="order-confirmation-image-scroll"><img src={orderImagePreview.url} alt="Ảnh xác nhận đơn hàng sẽ gửi cho khách" /></div>
             <div className="order-confirmation-preview-actions">
               <button type="button" onClick={() => setOrderImagePreview(null)}>
                 Đóng
