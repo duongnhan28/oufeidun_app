@@ -73,13 +73,22 @@ File này là nguồn đối chiếu bắt buộc sau mỗi lần phát triển 
 - Các chức năng cũ không bị lỗi lại.
 - File xuất Excel mở được và chứa đúng dữ liệu thực tế.
 
+## Nhật ký xác minh 04/11/2026 — gói cập nhật server 0.1.4
+
+- ID DB-03, AUTH-01/02/03, STOCK-01/04/05, ORDER-01/02, UI-01. Xác nhận API thực đang chạy trên máy phát triển 0.2.17, chưa có draft forecast; thư mục cài chỉ có migrations 001–007. Không sửa dữ liệu/thư mục cài thật vì phiên thao tác không có Administrator.
+- Gói riêng Oufeidun-Server-Update-0.1.4: code API, deps/migrations, CAP-NHAT/KHOI-DONG-LAI/SAO-LUU và KIEM-TRA-TON-DU-KIEN, hướng dẫn/checksum. Health additive capabilities.stockForecast; không đổi config. Migration thiếu 008–013 vẫn cần áp dụng, không tuyên bố chỉ đổi client là đủ.
+- Đã đọc lại bảng checklist; npm run verify exit 0 (69 unit/61 UI/Electron/build/production audit 0). MySQL nâng schema007→latest hai lần đạt, giữ password/account/order/SKU/giá/tồn; code chạy trực tiếp từ gói đạt, 8 tồn + nháp8 + mới7 → dự kiến -7, thực vẫn8. Test DB dùng flag OUFEIDUN_UPGRADE_RESET_TEST_DB=1 rõ ràng, chỉ DB test từ server/.env.test.local; không chạm DB cửa hàng.
+- PowerShell orchestration cập nhật với OS/service mock trên thư mục test có dấu cách/& đạt success và backup-failure, giữ env/ảnh/app cũ. Backup MySQL test thật SQL/ảnh/checksum và hook Drive lỗi giữ local đạt. Không coi mock là nghiệm thu UAC/SYSTEM trên máy thật.
+- Audit folder/source/ZIP 1062 file khớp SHA256, PowerShell parse đạt, không chứa env/config/keys/data riêng. ZIP SHA256 156A85893AE1105BF00AEB7B578BAC0DCD61E3CB34999F949D0BCF1274FBAB58. Chi tiết và các bước chạy thật: docs/SERVER-UPDATE-0.1.4-2026-11-04.md.
+
 ## Nhật ký xác minh 04/11/2026 — cảnh báo tồn dự kiến rõ ràng
 
 - ID ảnh hưởng: STOCK-04/05, ORDER-01/02/07 và UI-01. Thẻ bán hàng có nhãn đỏ khi hết/thiếu dự kiến và nhãn Hết hàng khi tồn thực tế 0. Thêm hoặc tăng lượng vượt dự kiến hỏi xác nhận; hủy không thay giỏ; bán/tặng/mẫu tính chung và loại phần của chính nháp đang sửa.
-- Không sửa API/schema/config, công thức báo cáo hoặc Excel. Người dùng đã duyệt phát hành online sau kiểm thử; tăng version 0.1.4, push main qua CI rồi tag v0.1.4 để publish bằng workflow hiện có. Trạng thái thực tế trong docs/RELEASE-0.1.4-2026-11-04.md.
+- Không sửa API/schema/config, công thức báo cáo hoặc Excel. Đã phát hành online 0.1.4 qua main CI 41816522678 và tag CI 41818322494, cùng commit e78499f. Feed/chữ ký/tải đầy đủ/hash/updater 0.1.3 nhận bản mới và 0.1.4 không nhận lại đạt. Size/hash/link tại docs/RELEASE-0.1.4-2026-11-04.md.
 - Đã đọc lại checklist, đối chiếu các ID trên và luồng báo cáo/Excel/quyền. npm.cmd run verify đạt exit 0: 69 unit, 61 UI, Electron smoke, TypeScript/build và production audit 0 lỗ hổng. Log .local/stock-warning-verify-final-20261104.log/.exit. Ca tồn đúng 19/nháp 19 chạy cho Admin/staff; đóng hộp thoại không thêm, tăng/hủy giữ số cũ, bán/tặng/mẫu cộng chung; nhãn không tràn. Đã xem ảnh thẻ và hộp thoại thực tế.
 - Bộ kiểm tra an toàn CI/CD scripts/release/release.test.cjs đạt 7/7. Một lượt verify đầu dừng vì test đặt thiếu chưa xác nhận hộp thoại mới; cập nhật test theo hành vi đã duyệt, giữ nguyên assertion số lượng/Excel/layout; rerun toàn bộ đạt. Chưa đóng bộ cài hoặc publish thay đổi này; version giữ 0.1.3 cho source, khi phát hành cần version cao hơn feed.
 - Build LOCAL đạt, dist đúng local/API. Electron source qua HTTPS/MySQL test thật đạt exit 0: nháp người khác, xác nhận cảnh báo rồi lưu, loại phần chính nháp, đọc workbook thật, xác nhận/xóa và refresh không trừ hàng đã giao hai lần; log .local/stock-warning-native-pass-20261104.log/.exit. Helper điền ngày đặt VN rõ ràng khi dùng clock giả. Không chạy dữ liệu hoặc hai máy vật lý của khách. Chi tiết docs/STOCK-WARNINGS-2026-11-04.md.
+- Nghiệm thu bổ sung: npm run verify với CI=true đạt 69 unit/61 UI/Electron/build/audit 0. Job tag build LOCAL, audit và smoke packaged đạt. Sau khi người dùng mở app đã cài, trình diễn chính executable 0.1.4 trong cửa sổ/profile/DB test riêng: tồn 19/nháp 19/đơn mới cảnh báo thiếu 1, Đóng giữ giỏ rỗng, tồn thật vẫn 19; để hộp cảnh báo cho người dùng xem. Không can thiệp app/dữ liệu thật đang mở.
 
 ## Danh sách chức năng chuẩn
 
@@ -151,6 +160,12 @@ Mỗi lần làm xong một tính năng, người thực hiện phải tạo m�
 - [ ] Nếu bàn giao: đã tăng phiên bản, build lại, kiểm tra file cài và tạo SHA256.
 
 ## Nhật ký xác minh
+
+### 2026-11-12 — Đồng bộ gói server-update và handover lên Git
+
+- Rà soát gói server-update 0.1.4, capability stockForecast, wrapper kiểm tra và script staging trước commit. Kiểm cú pháp API đạt, 7 test server unit đạt, hai ca PowerShell cập nhật thành công/backup thất bại đạt.
+- Test MySQL nâng schema 007 lên mới nhất hai lần đạt trên DB QA đã cấu hình và không có kết nối đang dùng. Account QA không có CREATE DATABASE, dùng cờ OUFEIDUN_UPGRADE_RESET_TEST_DB=1 của harness cho DB test chuyên dụng. Đối chiếu giữ tài khoản/mật khẩu/SKU/giá/đơn/tồn, health 0.1.4 và dự kiến -7 khi tồn 8, nháp 8 rồi thêm nháp 7. Log .local/source-sync-server-integration-20261112.log.
+- Handover app/web đã kiểm tham chiếu source, SSH/host/feed/GitHub metadata và giá trị nhạy cảm. Bản desktop 0.1.7 có verify local 73 unit/63 UI và CI tag thành công; đợt này lưu source server/tài liệu vào main để CI kiểm tra lại theo workflow hiện có.
 
 ### 2026-11-12 — Thứ tự xuất báo cáo theo Book1.xlsx
 

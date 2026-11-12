@@ -1,0 +1,37 @@
+OUFEIDUN - CAP NHAT SERVER 0.1.4 CHO APP 0.1.4
+
+Chi chay tren MAY CHU, khong chay tren may nhan vien.
+Day la goi server; nut Cap nhat ung dung tren desktop chi cap nhat app.
+
+1. Dong app tren ca may chu va may nhan vien trong luc cap nhat.
+2. Giai nen ZIP ra folder MOI, nam NGOAI OufeidunServerData.
+   Khong chep app trong ZIP de len folder du lieu bang tay.
+3. Chay CAP-NHAT.bat, chap nhan quyen Administrator.
+   Neu hoi folder du lieu CU: chon folder co config\server.env.
+   Nhap DUONG DAN THUC TE da cai tren may chu dang cap nhat.
+4. Cho thong bao Cap nhat thanh cong. Chuong trinh backup SQL/anh/config,
+   giu ma server cu trong app-before-update-..., cap nhat API/migration
+   con thieu va khoi dong dich vu. Khong cai lai MySQL, khong reset data.
+   Neu server cu chua cap nhat tu thang 10, co the chay migrations 008-013:
+   bo sung cau truc; giu tai khoan, don hang, ton kho va cau hinh hien co.
+   Neu bao loi: dung lai va gui thong bao; khong xoa ban backup/app cu.
+5. Chay KIEM-TRA-TON-DU-KIEN.bat. Phai hien server 0.1.4 va
+   OK: API dang chay da ho tro ton du kien tu tat ca don nhap.
+6. Mo lai app 0.1.4. Dang nhap lai neu duoc yeu cau; bam Tai lai du lieu.
+   Tren the san pham phai co dong Trong nhap / Du kien.
+
+TU TEST TRUOC KHI GUI KHACH
+- Dung ma san pham THU rieng, ton thuc te 8 tam.
+- Tao don A, chon 8, bam Luu ban nhap; KHONG Xac nhan ban.
+- The san pham: Ton 8, Trong nhap 8, Du kien 0, nhan Het ton du kien.
+- Bam Don moi, chon cung ma: canh bao thieu 1 truoc khi them.
+- Chon Van them vao don, nhap so luong 7: canh bao thieu 7.
+- Bam Dong: giu so luong cu; bam Van them vao don moi nhan so luong 7.
+- Kho that van 8. Kiem tra nhap cua nguoi khac/may nhan vien cung tinh.
+- Neu khong co Trong nhap / Du kien: kiem tra lai server app dang ket noi;
+  dung tai lai app nhieu lan de thay cho cap nhat API.
+
+GUI KHACH SAU KHI TEST DAT
+Gui ZIP server nay cho may chu; moi may dung app 0.1.4 tu Cap nhat ung dung.
+Khong gui folder OufeidunServerData, file env, DB, tai khoan hay backup that.
+Sau cap nhat giu goi va backup cu den khi test app, don, kho, anh/Excel dat.

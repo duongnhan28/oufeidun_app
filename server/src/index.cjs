@@ -45,7 +45,7 @@ function clearLoginFailures(req) { attempts.delete(loginKey(req)); }
 
 app.get('/health', asyncRoute(async (_req, res) => {
   await pool.query('SELECT 1');
-  res.json({ ok: true, service: 'oufeidun-local-api', version: require('../package.json').version, discovery: Boolean(app.locals.lanDiscovery) });
+  res.json({ ok: true, service: 'oufeidun-local-api', version: require('../package.json').version, discovery: Boolean(app.locals.lanDiscovery), capabilities: { stockForecast: true } });
 }));
 app.get('/api/glass-lookup', asyncRoute(async (req, res) => res.json(await lookup(req.query.q, req.query.limit))));
 app.get('/api/images/:id', asyncRoute(async (req, res) => sendProductImage(res, req.params.id)));

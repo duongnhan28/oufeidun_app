@@ -5,6 +5,12 @@
 - Hai sheet Báo cáo bán hàng và Nhập xuất tồn theo 84 dòng Book1.xlsx khách gửi; mã ngoài mẫu nằm cuối và giữ thứ tự tương đối. Mã đã đổi tên có thể nhận diện qua alias, không đổi nhãn xuất.
 - Chỉ đổi thứ tự dòng và màu đi cùng mã; giữ số liệu, dòng theo mức giá, quyền ẩn vốn của staff, tổng quan và sổ giao dịch theo thời gian. Không thêm dữ liệu rỗng hoặc migration/API/config. Chi tiết docs/REPORT-PRODUCT-ORDER-2026-11-12.md; source chưa phát hành.
 
+## Gói nâng API máy chủ cho app 0.1.4 — 04/11/2026
+
+- Máy phát triển đang chạy API 0.2.17, migration đến 007, thiếu draft_quantity; chỉ cập nhật client online không nâng API. Bổ sung gói server riêng 0.1.4, CAP-NHAT.bat dùng luồng backup/config/migrate/start hiện có, không cài lại/reset MySQL.
+- /health thêm capabilities.stockForecast để BAT kiểm tra chỉ đọc xác nhận tính năng đang chạy, không chỉ nhìn version app. Gói không chứa env/config/dữ liệu riêng hoặc bộ cài desktop, không hardcode đường dẫn máy khách.
+- Cập nhật có thể áp dụng các migration 008–013 còn thiếu trên server cũ; giữ tài khoản, mật khẩu, đơn, giá/tồn và config. Cần đóng/lưu app các máy, chạy bằng Administrator trên máy chủ trước, rồi mở lại client 0.1.4 và kiểm thử trên dữ liệu của người dùng.
+
 ## Cảnh báo hết tồn dự kiến — 04/11/2026
 
 - Tồn thực tế bằng 0 có nhãn Hết hàng. Tồn thực tế còn nhưng nháp dùng hết/vượt có nhãn đỏ Hết tồn dự kiến/Thiếu tồn dự kiến ngay trên thẻ bán hàng.
