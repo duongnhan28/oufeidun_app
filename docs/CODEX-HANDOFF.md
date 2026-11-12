@@ -1,5 +1,11 @@
 # Bàn giao ngữ cảnh Codex — Oufeidun
 
+## Cập nhật 12/11/2026 — phát hành 0.1.7, thứ tự xuất Excel báo cáo
+
+- Khách gửi Book1.xlsx gồm 84 dòng và muốn mã/mẫu mới xuống cuối. Đã sửa hai sheet Báo cáo bán hàng/Nhập xuất tồn qua src/lib/report-sheets.ts, helper src/lib/report-product-order.ts và dữ liệu src/data/report-product-order.json. Fixture nguyên gốc tests/fixtures/report-product-order.xlsx; chi tiết docs/REPORT-PRODUCT-ORDER-2026-11-12.md.
+- Giữ số liệu, nhãn SKU, các dòng khác giá, quyền staff và màu đi cùng mã; không sửa bảng UI, thứ tự chứng từ đơn hàng hoặc các dòng giao dịch theo thời gian. Có hỗ trợ tên cũ/tiền tố/spacing, không fuzzy matching hoặc tự đổi DB.
+- Verify đạt exit 0: 73 unit, 63 UI không retry, Electron smoke, TypeScript/build, production audit 0 lỗ hổng; .local/report-order-verify-20261112.log/.exit. Người dùng đã yêu cầu phát hành: package 0.1.7, tag v0.1.7, xem docs/releases/0.1.7.md. Phải xác nhận CI thành công, feed/chữ ký và tải đầy đủ trước báo hoàn tất. Không ghi đè bản cũ hoặc gộp sửa đổi server/deployment có trước.
+
 ## Cập nhật 09/11/2026 — client 0.1.6, ảnh đơn hàng một PNG
 
 - Người dùng duyệt mẫu bảng gọn và yêu cầu phát hành bản mới. Đọc `docs/releases/0.1.6.md` và `docs/LONG-INVOICE-IMAGES-2026-11-09.md`. Ảnh gốc rộng 2400 px, giữ một file, không chia trang. Bản mẫu đơn 954: 34 mã, 470 tấm, 3.525.000đ, 2400 × 3792 px.

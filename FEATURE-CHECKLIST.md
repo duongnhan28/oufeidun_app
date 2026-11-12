@@ -152,6 +152,14 @@ Mỗi lần làm xong một tính năng, người thực hiện phải tạo m�
 
 ## Nhật ký xác minh
 
+### 2026-11-12 — Thứ tự xuất báo cáo theo Book1.xlsx
+
+- ID ảnh hưởng: REPORT-03/04/07; bảo toàn REPORT-01/02/05/06/08, AUTH-03, IMAGE-03 và ORDER-07. Hai sheet Báo cáo bán hàng/Nhập xuất tồn theo 84 dòng mẫu; mã ngoài mẫu xuống cuối, không đổi thứ tự chứng từ đơn hoặc sổ giao dịch theo thời gian.
+- Đối chiếu workbook tham chiếu nguyên gốc Sheet1!A1:A84, giữ fixture checksum trùng file khách. Sắp xếp bản sao, không chèn dòng rỗng/gộp dòng giá/đổi số liệu; hỗ trợ tiền tố/spacing/privacy và alias tên cũ, phân biệt biến thể HQT/330/380 và BLACK/WHITE. Màu đi cùng mã sau sắp xếp; staff không có vốn/lợi nhuận.
+- npm.cmd run verify đạt exit 0: 73 unit, 63 UI (không retry), Electron demo smoke, TypeScript/build và production audit 0 lỗ hổng. Log .local/report-order-verify-20261112.log/.exit. Ca UI mới nhập danh mục, xác nhận đơn, xuất và đọc lại workbook bốn sheet bằng Admin và staff; thứ tự/mã mới/màu/tổng 150.000đ đạt.
+- Lượt UI riêng đầu phát hiện assertion mẫu test bỏ quên SAM-A12 có sẵn trong demo ở đúng vị trí trước Không viền; sửa kỳ vọng để bảo toàn cả hàng có sẵn, không xóa/lọc dữ liệu. Sau đó chạy lại toàn bộ verify ở trên đạt. Test dữ liệu kiểm đủ 84 vị trí, mã mới, rỗng, nhiều mức giá, tên cũ và snapshot không bị sửa.
+- Chỉ sửa client/xuất Excel; không kết nối hoặc thay DB cửa hàng/API/config. Giữ mọi thay đổi server/deployment có sẵn của người dùng. Chưa tăng version, chưa build installer/commit/tag/publish; lần phát hành tiếp theo phải cao hơn 0.1.6. Chi tiết docs/REPORT-PRODUCT-ORDER-2026-11-12.md.
+
 ### 2026-11-03 — Bàn giao ZIP tồn dự kiến và phiên12h
 
 - Đọc/đối chiếu checklist STOCK-01/05, ORDER-01/02/03/07, AUTH-01/02/03, USER-01/02, PRODUCT-01/02/03, REPORT-01..08, EXCEL-01, UI-01, DB-03/04. Tồn dự kiến đã duyệt; cập nhậtweb hoãn. Không thay công thức tiền/tồn thực tế hoặc đơn cũ.

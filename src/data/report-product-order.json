@@ -1,0 +1,356 @@
+[
+  {
+    "sku": "IP X/ 11 Pro/XS",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP Xr / 11",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP Xsmax/ 11 Promax",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 12/12 Pro",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 12PROMAX",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 13/13PRO/14",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 13PROMAX/14PLUS",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 14PRO",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 14PROMAX",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 15/16",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 15PRO(330)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 15PLUS/16PLUS",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 15PROMAX (HQT)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 15PROMAX(330)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 16PRO/17(380)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 16PROMAX(380)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 6P/7P/8P（BLACK)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 6G/7G/8G（BLACK)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 6P/7P/8P（WHITE)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 6G/7G/8G（WHITE)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 17PROMAX(380)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 17PRO(380)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 17AIR(380)",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP 18 DUO",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "IP XR/ 11(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP X/ 11 Pro(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP Xsmax/ 11 Promax (prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP 12/12 Pro (prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP 12PROMAX(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP13/13PRO/14(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP13PROMAX/14PLUS(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP14PRO(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP14PROMAX(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP15/16(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP15PRO(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP15PLUS/16PLUS(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP15PROMAX(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP16PRO/17(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP16PROMAX(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP17PROMAX(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP17PRO(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP17AIR(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "IP 18 PROMAX(prlvacy)",
+    "glass_type": "privacy"
+  },
+  {
+    "sku": "SAM A16",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A15",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A70",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A14 5G",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A71",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A51",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A35",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A36",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A05",
+    "glass_type": "clear",
+    "aliases": [
+      "SAM A05/A06/A07"
+    ]
+  },
+  {
+    "sku": "SAM A50",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A10",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "SAM A12",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "RM 14C",
+    "glass_type": "clear",
+    "aliases": [
+      "RM 14C (REDMI 14C)"
+    ]
+  },
+  {
+    "sku": "XIAOMI POCO C55",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "RM 15",
+    "glass_type": "clear",
+    "aliases": [
+      "RM 15 (REDMI 15)"
+    ]
+  },
+  {
+    "sku": "OP F11",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "OP F11PRO",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "RM 13",
+    "glass_type": "clear",
+    "aliases": [
+      "RM 13 (REDMI 13)"
+    ]
+  },
+  {
+    "sku": "OP RENO5",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "OP RENO 13",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "realme C85/15X/OPA6/A6T/A6X/A6S",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "realme C55/RM Note12/OP A58/A60/A79 5G/A98",
+    "glass_type": "clear",
+    "aliases": [
+      "REALME C55"
+    ]
+  },
+  {
+    "sku": "oppo A53 4G/OP A54/OP A76/SAM A21S",
+    "glass_type": "clear",
+    "aliases": [
+      "OPPO A53 4G"
+    ]
+  },
+  {
+    "sku": "redmi 15C",
+    "glass_type": "clear"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP X/XS/11PRO",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP XR/11",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP XSMAX/11PROMAX",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 12/12PRO",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 12 PROMAX",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 13/13PRO/14/16E",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 13 PROMAX/ 14PLUS",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 14 PRO",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP14 PROMAX",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 15/15PRO/ 16",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 15 PLUS/ 15 PROMAX/ 16 PLUS",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 16PRO/17",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 16 PROMAX",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "IP 17 PRO/ 18PRO",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 17 PROMAX/ 18 PROMAX",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 18DUO",
+    "glass_type": "premium_borderless"
+  },
+  {
+    "sku": "KHÔNG VIỀN IP 17 AIR",
+    "glass_type": "premium_borderless"
+  }
+]

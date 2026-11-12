@@ -1,7 +1,7 @@
 {
   "name": "kinh-ban-hang",
   "productName": "Oufeidun",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Ứng dụng desktop quản lý kho và bán kính cường lực",
   "author": "Oufeidun",
   "private": true,

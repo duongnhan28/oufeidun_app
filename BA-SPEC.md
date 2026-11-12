@@ -1,5 +1,10 @@
 ﻿# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
 
+## Thứ tự xuất Excel báo cáo — 12/11/2026
+
+- Hai sheet Báo cáo bán hàng và Nhập xuất tồn theo 84 dòng Book1.xlsx khách gửi; mã ngoài mẫu nằm cuối và giữ thứ tự tương đối. Mã đã đổi tên có thể nhận diện qua alias, không đổi nhãn xuất.
+- Chỉ đổi thứ tự dòng và màu đi cùng mã; giữ số liệu, dòng theo mức giá, quyền ẩn vốn của staff, tổng quan và sổ giao dịch theo thời gian. Không thêm dữ liệu rỗng hoặc migration/API/config. Chi tiết docs/REPORT-PRODUCT-ORDER-2026-11-12.md; source chưa phát hành.
+
 ## Cảnh báo hết tồn dự kiến — 04/11/2026
 
 - Tồn thực tế bằng 0 có nhãn Hết hàng. Tồn thực tế còn nhưng nháp dùng hết/vượt có nhãn đỏ Hết tồn dự kiến/Thiếu tồn dự kiến ngay trên thẻ bán hàng.
