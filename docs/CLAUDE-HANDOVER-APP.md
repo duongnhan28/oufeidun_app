@@ -17,7 +17,7 @@ Trình tự tiếp quản thực tế
 1. Chạy `git status --short`, `git log -5 --oneline` và kiểm tra version trong `package.json`.
 2. Đọc `AGENTS.md`, `BA-SPEC.md`, `FEATURE-CHECKLIST.md` cùng tài liệu tính năng sắp sửa.
 3. Đối chiếu feed có chữ ký để biết khách đang nhận bản nào. Một tag tồn tại chưa đủ để kết luận đã phát hành.
-4. Đọc danh sách thay đổi chưa commit ở phần 3 trước khi sửa hoặc stage.
+4. Đọc mốc đồng bộ ở phần 3 và diff hiện tại trước khi sửa hoặc stage.
 5. Làm công việc người dùng đang yêu cầu. Tài liệu handover không phải yêu cầu tự deploy, khởi động server hoặc chạy migration.
 
 ## 2. Kiến trúc và các kết nối
@@ -36,30 +36,13 @@ Oufeidun.exe — Electron main/preload + React/Vite renderer
 
 Máy chủ bán hàng là Windows tại cửa hàng. Website/hosting lưu dữ liệu web, tra cứu và các file installer. Các DB có vòng đời và cấu hình riêng. Khi không có Internet, đường LAN vẫn là đường nghiệp vụ chính nếu máy chủ nội bộ và mạng đang hoạt động. Tra cứu web và tải cập nhật phụ thuộc Internet.
 
-## 3. Working tree phải giữ khi tiếp quản
+## 3. Trạng thái Git và source server
 
-Tại thời điểm bàn giao, các mục sau đã có trước yêu cầu tạo hai file này và còn ngoài commit `94adaf7`.
+Sau đợt đồng bộ ngày 12/11/2026, main đã push tới commit `71398cccf00fedfd9a8c7c2597f841293664910d`. Working tree sạch và HEAD đồng bộ origin/main tại mốc kiểm. Commit này chứa gói server-update 0.1.4, capability tồn dự kiến, script staging/kiểm tra, kiểm thử và tài liệu handover.
 
-Danh sách bên dưới ghi trạng thái trước đợt đồng bộ Git ngày 12/11. Người dùng đã yêu cầu commit/push phần server-update và tài liệu này. Khi tiếp quản sau đợt đồng bộ, dùng `git status` để đọc thay đổi mới, thay vì suy ra các file dưới đây vẫn chưa được lưu vào Git.
+CI main `43225979658` đã thành công cả build và bước ký manifest thử. Feed khách vẫn công bố desktop 0.1.7 từ tag ở phần 1. Khi tiếp quản, chạy lại Git status/log để xác định thay đổi mới. [Workflow đồng bộ source](https://github.com/duongnhan28/oufeidun_app/actions/runs/43225979658).
 
-```text
- M BA-SPEC.md
- M FEATURE-CHECKLIST.md
- M docs/RELEASE-0.1.4-2026-11-04.md
- M docs/STOCK-WARNINGS-2026-11-04.md
- M server/package-lock.json
- M server/package.json
- M server/src/index.cjs
-?? deployment/customer/SERVER-UPDATE-0.1.4.txt
-?? deployment/customer/server/KIEM-TRA-TON-DU-KIEN.bat
-?? deployment/customer/server/scripts/check-stock-forecast.ps1
-?? docs/SERVER-UPDATE-0.1.4-2026-11-04.md
-?? scripts/stage-customer-server.ps1
-?? tests/server-update.integration.cjs
-?? tests/server-update.ps1
-```
-
-Các mục này liên quan gói nâng server 0.1.4 và capability tồn dự kiến. Đọc diff để xác định phạm vi trước khi dùng. Stage danh sách file cụ thể hoặc từng hunk khi một tài liệu có nhiều công việc. Bản phát hành 0.1.7 đã chỉ lấy các hunk báo cáo trong BA-SPEC/checklist.
+Những file server/deployment từng nằm ngoài commit phát hành desktop đã được lưu trong commit đồng bộ trên. Đọc diff `94adaf7..71398cc` để xem phạm vi bổ sung. Những thay đổi mới trên máy tiếp quản cần được kiểm tra theo trạng thái thực tế.
 
 Máy phát triển có `E:\OufeidunServerData\app\package.json` ghi 0.1.4 khi kiểm tra ngày 12/11. GET `http://127.0.0.1:8787/health` trả ECONNREFUSED tại thời điểm kiểm tra. Chưa xác nhận server đó đang chạy, migration nào đã áp dụng hoặc trạng thái máy chủ thật ở cửa hàng. Một số tài liệu 04/11 mô tả API 0.2.17 là ghi nhận lịch sử.
 
@@ -189,37 +172,53 @@ Fixture được commit ở `tests/fixtures/report-product-order.xlsx`, SHA256 `
 
 Lượt local trước phát hành 0.1.7 đã chạy `npm.cmd run verify`, đạt 73 unit và 63 UI ngay lượt đầu, Electron smoke, TypeScript/build, production audit 0 lỗ hổng. Log `.local/report-order-verify-20261112.log`, file `.exit` bằng 0.
 
-CI của tag 0.1.7 đã kiểm 7 test phát hành, 73 unit, 63 UI. Có 2 UI qua ở retry một lần. Packaged app audit và smoke production login đạt. Các số liệu này xác nhận source của commit phát hành. Các sửa server ngoài commit cần được nghiệm thu riêng khi đưa vào gói mới.
+CI của tag 0.1.7 đã kiểm 7 test phát hành, 73 unit, 63 UI. Có 2 UI qua ở retry một lần. Packaged app audit và smoke production login đạt. Các số liệu này xác nhận source của commit phát hành. Source server-update trong commit đồng bộ 71398cc đã qua 7 unit test liên quan, kiểm thử PowerShell gồm nhánh backup thất bại và integration nâng schema 007 lên mới nhất hai lần với dữ liệu được giữ. Máy chủ khách cần được nghiệm thu tại chỗ khi cài gói server.
 
 Lệnh tái lập theo môi trường demo cô lập
 
 ```powershell
 cd E:\AppBanHang
-$env:CI='true'
-$env:VITE_DEMO_MODE='true'
-$env:VITE_SERVER_ENV='test'
-$env:VITE_GLASS_LOOKUP_API_URL='https://oufeidun.vn/api/glass-lookup'
-$env:MYSQL_USER='ci-unused'
-$env:MYSQL_PASSWORD='ci-no-database-connection'
-$env:OUFEIDUN_SERVER_ENV=Join-Path $env:TEMP 'oufeidun-qa-no-server.env'
-$env:OUFEIDUN_DATA_DIR=Join-Path $env:TEMP 'oufeidun-qa-no-server-data'
-npm.cmd run verify
-node --test scripts/release/release.test.cjs
+powershell.exe -NoProfile -Command {
+    $env:CI='true'
+    $env:VITE_DEMO_MODE='true'
+    $env:VITE_SERVER_ENV='test'
+    $env:VITE_GLASS_LOOKUP_API_URL='https://oufeidun.vn/api/glass-lookup'
+    $env:MYSQL_USER='ci-unused'
+    $env:MYSQL_PASSWORD='ci-no-database-connection'
+    $env:OUFEIDUN_SERVER_ENV=Join-Path $env:TEMP 'oufeidun-qa-no-server.env'
+    $env:OUFEIDUN_DATA_DIR=Join-Path $env:TEMP 'oufeidun-qa-no-server-data'
+    npm.cmd run verify
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    node --test scripts/release/release.test.cjs
+    exit $LASTEXITCODE
+}
 ```
 
-Giá trị MYSQL ở ví dụ là fixture cho unit test. Test MySQL integration thực cần `server/.env.test.local`, DB/dataDir thử riêng và server dependencies. Xem đầu các file `tests/local-api.integration.cjs`, `tests/local-report.electron.cjs`, `tests/staff-permissions.integration.cjs` trước khi chạy. Kiểm UI dùng Edge, config tại `playwright.config.ts` có 2 workers trên CI và một retry. `APP_TEST_DATA` dành cho các thử nghiệm Electron cô lập.
+Các biến QA ở ví dụ chỉ tồn tại trong PowerShell con và tự hết hiệu lực khi tiến trình kết thúc. Giá trị MYSQL ở ví dụ là fixture cho unit test. Test MySQL integration thực cần `server/.env.test.local`, DB/dataDir thử riêng và server dependencies. Xem đầu các file `tests/local-api.integration.cjs`, `tests/local-report.electron.cjs`, `tests/staff-permissions.integration.cjs` trước khi chạy. Kiểm UI dùng Edge, config tại `playwright.config.ts` có 2 workers trên CI và một retry. `APP_TEST_DATA` dành cho các thử nghiệm Electron cô lập.
 
 ## 12. Build installer thủ công khi cần
 
 ```powershell
 cd E:\AppBanHang
-node scripts/release/ci.cjs local-env
-npm.cmd run make:local
-node scripts/audit-local-package.cjs
-node scripts/smoke-electron.cjs --packaged --production
+powershell.exe -NoProfile -Command {
+    # Dùng profile public do local-env sinh, xóa override Vite trong tiến trình con.
+    Get-ChildItem Env: | Where-Object Name -Like 'VITE_*' | ForEach-Object {
+        [Environment]::SetEnvironmentVariable($_.Name, $null, 'Process')
+    }
+    node scripts/release/ci.cjs local-env
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    npm.cmd run make:local
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    node scripts/audit-local-package.cjs
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    node scripts/smoke-electron.cjs --packaged --production
+    exit $LASTEXITCODE
+}
 ```
 
-Lệnh `local-env` ghi file profile public `.env.local-mysql.local`, phù hợp bộ cài dùng chung. Kiểm các biến process đang set từ QA trước build thực vì chúng có thể override env file.
+Lệnh `local-env` ghi file profile public `.env.local-mysql.local`, phù hợp bộ cài dùng chung. Khối lệnh trên dùng tiến trình con và xóa override VITE_* kế thừa trước khi sinh profile. Mỗi bước dừng khi lệnh trước thất bại.
+
+Thư mục local còn giữ sau cleanup ngày 12/11 là baseline 0.1.3 tại `out/Oufeidun-win32-x64/resources/app.asar`. Muốn gửi bộ cài mới, chạy build và audit theo khối trên. Audit kiểm version trong ASAR khớp package.json và profile LOCAL. Mốc feed 0.1.7 được xác minh độc lập ở phần 15.
 
 Output chính là `out/Oufeidun-win32-x64/` và `out/make/squirrel.windows/x64/Oufeidun-Setup.exe`. `forge.config.cjs` dùng ASAR và Squirrel, loại thư mục source/server/tests/docs/env/private data. Windows native dependencies được đóng gói trên Windows.
 
@@ -419,11 +418,32 @@ Phát hiện liên quan website cần chuyển cho Claude phụ trách web là r
 
 ## 23. Nhật ký review tài liệu
 
-1. Rà nguồn và trạng thái phát hành, sửa mốc phiên bản theo feed 0.1.7 và SHA thực. Bổ sung khác biệt desktop/server cùng danh sách pending ngoài commit.
+1. Rà nguồn và trạng thái phát hành, sửa mốc phiên bản theo feed 0.1.7 và SHA thực. Bổ sung khác biệt desktop/server cùng lịch sử source server được đồng bộ sau phát hành.
 2. Đối chiếu các đường build/CI/SSH/Secrets với file workflow và GitHub API. Bổ sung vị trí environment khác web, timeout upload, profile và phương pháp verify file.
 3. Rà luồng nghiệp vụ, LAN, migration, backup, dữ liệu kiểm thử, giới hạn mẫu PNG và Excel. Bổ sung cảnh báo script staging lịch sử còn guard 0.2.16 và trạng thái API dev thực tế.
 4. Rà liên kết/path, lệnh minh họa, thông tin nhạy cảm và tính tự chứa. Các hướng dẫn hiện trạng có mốc kiểm tra để Claude đối chiếu lại trước hành động.
 
+5. Review sau commit và cleanup ngày 12/11 đã cập nhật main/CI, bỏ trạng thái pending cũ, cô lập biến QA/build và ghi rõ baseline đóng gói local 0.1.3.
+
+### Tái kiểm feed có chữ ký trên máy clone mới
+
+Chạy từ repository app bằng Node 22 trở lên. Lệnh đọc cấu hình public và dùng chính bộ kiểm chữ ký/schema của updater. Kết quả in metadata bản phát hành, thao tác tải installer được mô tả ở phần cập nhật.
+
+```powershell
+cd E:\AppBanHang
+@'
+const { validateEnvelope } = require('./electron/app-updates.cjs');
+const config = require('./electron/update-config.json');
+(async () => {
+    const url = new URL('local-mysql-win32-x64.json', config.feedBaseUrl).href;
+    const response = await fetch(url, { redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw Error('Feed HTTP ' + response.status);
+    const release = validateEnvelope(await response.json(), config.publicKey, url, 'x64', 'local-mysql');
+    console.log(JSON.stringify(release, null, 2));
+})().catch(error => { console.error(error.message); process.exitCode = 1; });
+'@ | node
+```
+
 ## 24. Prompt khởi động cho Claude
 
-> Bạn đang tiếp quản Oufeidun Desktop tại E:\AppBanHang. Đọc toàn bộ docs/CLAUDE-HANDOVER-APP.md, AGENTS.md và yêu cầu mới của người dùng. Kiểm tra git status, HEAD và feed phát hành trước khi kết luận phiên bản. Giữ các sửa đổi server/deployment ngoài commit theo đúng phạm vi của chúng. Dùng source/workflow hiện tại để xác minh các ghi chú lịch sử. Khi thay đổi app, kiểm tra theo entry point thật, chạy kiểm thử phù hợp và hoàn tất công việc đã được người dùng giao. Khi được giao phát hành, theo dõi xuyên suốt tới feed có chữ ký và lượt tải xác minh thành công.
+> Bạn đang tiếp quản Oufeidun Desktop tại E:\AppBanHang. Đọc toàn bộ docs/CLAUDE-HANDOVER-APP.md, AGENTS.md và yêu cầu mới của người dùng. Kiểm tra git status, HEAD và feed phát hành trước khi kết luận phiên bản. Source server/deployment đã đồng bộ trong 71398cc, hãy đọc diff hiện tại để giữ đúng phạm vi công việc mới. Dùng source/workflow hiện tại để xác minh các ghi chú lịch sử. Khi thay đổi app, kiểm tra theo entry point thật, chạy kiểm thử phù hợp và hoàn tất công việc đã được người dùng giao. Khi được giao phát hành, theo dõi xuyên suốt tới feed có chữ ký và lượt tải xác minh thành công.
