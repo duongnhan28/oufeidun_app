@@ -1,6 +1,6 @@
 # Phân quyền từng nhân viên và báo cáo chi tiết sản phẩm — 29/10/2026
 
-Triển khai theo phương án khách đã duyệt. Phạm vi LOCAL API/MySQL và demo; không đổi Supabase online hoặc dữ liệu/config cửa hàng. **Đã đóng gói/thay bộ 0.1.1 ngày 29/10**, bộ 24/10 giữ trong backup. File/hash/kiểm thử EXE và hướng dẫn tại [RELEASE-0.1.1-2026-10-29.md](RELEASE-0.1.1-2026-10-29.md). Kết quả nghiệm thu source bên dưới được hoàn tất trước đóng gói.
+Triển khai theo phương án khách đã duyệt. Phạm vi LOCAL API/MySQL và demo; không đổi Supabase online hoặc dữ liệu/config cửa hàng. **Đã đóng gói/thay bộ 0.1.1 ngày 29/10**, bộ 24/10 giữ trong backup. File/hash/kiểm thử EXE và hướng dẫn tại [RELEASE-0.1.1-2026-10-29.md](archive/RELEASE-0.1.1-2026-10-29.md). Kết quả nghiệm thu source bên dưới được hoàn tất trước đóng gói.
 
 ## Quyền sử dụng
 

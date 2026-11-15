@@ -1,5 +1,7 @@
 # LOCAL 0.1.1 — đóng gói lại ngày 23/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ## Nội dung
 
 Giữ version 0.1.1, bổ sung toàn bộ sửa doanh thu/ngày đặt/nháp/phí và tính nhất quán khi nhiều máy bán/giao/thu tiền đồng thời. Giữ các chức năng, quyền và sửa lỗi khách hàng/mã báo cáo/màu/backup trước đó.

@@ -20,4 +20,4 @@ Phản hồi khách: còn 19, đã lưu nháp 19, tạo đơn mới cùng mã v�
 
 Đã đọc .github/workflows/app-release.yml, scripts/release/ci.cjs và docs/APP-RELEASE-CICD.md. Main/PR chạy test và build LOCAL; main ký kiểm chứng nhưng không upload hosting. Tag vX.Y.Z trùng package version, thuộc main, mới xuất bản qua environment app-production. Bản mới phải tăng hơn feed hiện hành, không tái dùng 0.1.3. Workflow này chỉ cập nhật client; không migration hoặc cập nhật API tại cửa hàng.
 
-Đã phát hành tag v0.1.4 bằng CI/CD hiện có, giữ nguyên khóa ký. Feed và tải bằng AppUpdates đã xác minh; chi tiết tại docs/RELEASE-0.1.4-2026-11-04.md. Đã trình diễn case 19 trên executable 0.1.4 đã cài trong cửa sổ/profile/DB test riêng và giữ hộp thoại cho người dùng xem.
+Đã phát hành tag v0.1.4 bằng CI/CD hiện có, giữ nguyên khóa ký. Feed và tải bằng AppUpdates đã xác minh; chi tiết tại docs/archive/RELEASE-0.1.4-2026-11-04.md. Đã trình diễn case 19 trên executable 0.1.4 đã cài trong cửa sổ/profile/DB test riêng và giữ hộp thoại cho người dùng xem.

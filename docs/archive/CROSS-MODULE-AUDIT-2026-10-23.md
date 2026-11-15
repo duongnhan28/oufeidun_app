@@ -1,5 +1,7 @@
 # Rà soát các phần liên quan đến ngày và tổng tiền — 23/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ## Phạm vi
 
 Source LOCAL/MySQL và client hiện tại, cùng demo dùng trong kiểm thử UI. Rà các luồng nháp, bán, ngày đặt, giao bổ sung, tiền thu/công nợ, hủy/trả, lịch sử kho, tổng quan/bảng chi tiết báo cáo và Excel/PNG/PDF. Không truy cập DB khách hoặc thay bản phát hành đã gửi.

@@ -1,5 +1,7 @@
 # LOCAL 0.1.1 — build và bàn giao ZIP 29/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 Đã thay folder/ZIP 0.1.1 bằng bản có đổi mã sau bán, phân quyền tài khoản và báo cáo chi tiết sản phẩm. Giữ đầy đủ chức năng/sửa lỗi trước đó. Bộ 24/10 được chuyển nguyên vẹn vào backup trước khi đặt bộ mới vào vị trí bàn giao.
 
 ## File bàn giao
@@ -19,7 +21,7 @@
 4. Báo cáo từng sản phẩm theo ID, từng đơn/khách/Sales/bán-tặng-mẫu/đặt-giao-trả-net/giá/thành tiền. 200 dòng/trang, Excel đủ kỳ, không lộ vốn staff; số liệu khớp tổng hợp và không phụ thuộc thu tiền. Sửa race xuất Excel khi workspace polling quyền, popup rộng.
 5. Giữ bán/tặng/mẫu đúng thứ tự, direct-confirm nháp, ngày/ghi chú/phí, thiếu/giao bổ sung/thu/trả/đổi/hủy, khách số 0/An-Ân, mã đơn thật/màu, kho kính/phụ kiện, backup local/Drive và discovery Wi-Fi/LAN.
 
-Chi tiết nghiệp vụ và nghiệm thu hai lượt: [STAFF-PERMISSIONS-AND-PRODUCT-REPORT-2026-10-29.md](STAFF-PERMISSIONS-AND-PRODUCT-REPORT-2026-10-29.md).
+Chi tiết nghiệp vụ và nghiệm thu hai lượt: [STAFF-PERMISSIONS-AND-PRODUCT-REPORT-2026-10-29.md](../STAFF-PERMISSIONS-AND-PRODUCT-REPORT-2026-10-29.md).
 
 ## Kiểm tra bản bàn giao
 

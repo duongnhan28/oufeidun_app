@@ -1,5 +1,7 @@
 # Dọn dữ liệu thử trước khi nhập production
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 - Chỉ tạo công cụ, không chạy xóa database thật của người dùng.
 - Giữ toàn bộ app_users và schema_migrations; giữ cấu hình, CA/discovery, backup cũ.
 - Preview theo đúng cấu hình server đang cài, hiển thị tên DB/folder/số dòng.

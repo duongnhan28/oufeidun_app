@@ -1,5 +1,7 @@
 # Đổi mã sau bán — triển khai và kiểm thử 28/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 Đã áp dụng phương án A theo yêu cầu: danh mục/dòng mới dùng mã mới, nháp đã chọn và đơn cũ giữ nhãn cũ. Source LOCAL/demo đã kiểm thử; đã build LOCAL và chạy trực tiếp Electron với MySQL thật cô lập. Chưa đóng gói/thay EXE hoặc ZIP 0.1.1 đã bàn giao ngày 24/10.
 
 ## Hành vi

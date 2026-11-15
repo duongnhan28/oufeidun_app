@@ -1,4 +1,0 @@
-Oufeidun LOCAL 0.1.3 — chỉnh vị trí nút cập nhật.
-Đưa nút Cập nhật ứng dụng xuống cuối màn hình đăng nhập và dưới nút Đăng xuất ở cuối thanh bên.
-Giữ nguyên version 0.1.3 theo yêu cầu. Máy đã dùng 0.1.3 cần tải và cài lại bộ cài mới; máy 0.1.2 vẫn nhận thông báo cập nhật.
-Không thay đổi database, server hay cấu hình kết nối.

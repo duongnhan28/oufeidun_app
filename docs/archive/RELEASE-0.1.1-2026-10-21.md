@@ -1,5 +1,7 @@
 # Bàn giao Oufeidun LOCAL 0.1.1 — 21/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 Đổi số phiên bản thành 0.1.1 đúng yêu cầu người dùng, giữ toàn bộ tính năng và sửa lỗi mới nhất của 0.2.18. Không dùng lại source cũ hoặc reset dữ liệu. App/API và hai lockfile cùng 0.1.1; giữ Application ID và vị trí cấu hình hiện có.
 
 ## Kiểm thử và tương thích bản đã cài

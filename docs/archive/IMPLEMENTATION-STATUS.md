@@ -1,5 +1,7 @@
 # Trạng thái triển khai — 22/09/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ## Backend
 
 - Source hỗ trợ `VITE_DATA_BACKEND=supabase` để phát triển tạm thời trên Supabase.
@@ -35,4 +37,4 @@
 3. Khi chuyển sang PHP/MySQL, bổ sung endpoint mới tương ứng rồi kiểm thử migration dữ liệu trước khi đổi `VITE_DATA_BACKEND=api`.
 4. Sao lưu/phục hồi thử, kiểm tra thao tác đồng thời và nghiệm thu trên máy khách sạch.
 
-Chi tiết cấu hình nằm trong [README.md](../README.md); nguồn yêu cầu nghiệp vụ gốc là [BA-SPEC.md](../BA-SPEC.md).
+Chi tiết cấu hình nằm trong [README.md](../../README.md); nguồn yêu cầu nghiệp vụ gốc là [BA-SPEC.md](../../BA-SPEC.md).

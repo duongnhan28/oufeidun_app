@@ -1,5 +1,7 @@
 # Sửa phản hồi khách ngày 07/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 - [x] Hãng điện thoại: combobox có thể chọn hoặc nhập hãng mới, lưu vào sản phẩm; khi sửa không ép về Apple. Hãng đã dùng được gợi ý lại. UI xác minh lưu Tecno rồi tải lại và mở sửa vẫn giữ hãng.
 - [x] Excel nhập kho: tái hiện bằng UI, đọc đúng cột theo tiêu đề, hỗ trợ số nguyên dạng text có phân nhóm và kết quả công thức đã lưu. Báo đúng dòng/cột khi dữ liệu sai; không ghi kho khi file lỗi. Chặn thông báo lỗi bị lớp friendly che đi. UI nhập thật 2 miếng, tồn từ 48 lên 50 và giữ sau reload.
 - [x] Đơn thiếu: xác nhận không tự xóa ghi chú thiếu khi các dòng trong đơn giao đủ. Hiển thị ghi chú trong chi tiết. Cho xác nhận hoàn tất ghi chú khi không còn dòng hàng chờ giao; chặn nếu vẫn còn số lượng thiếu. Đơn thiếu thực tế vẫn tự hoàn tất sau giao đủ. Demo/MySQL/Supabase cô lập xác minh ghi chú giống ví dụ A12; Excel tải lại vẫn ghi Còn thiếu hàng.

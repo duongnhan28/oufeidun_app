@@ -2,6 +2,8 @@
 
 Mốc đối chiếu ngày 12/11/2026, múi giờ Asia/Saigon. Tài liệu dành cho AI tiếp quản cùng workspace Windows hoặc clone repository sang máy mới. Đọc trạng thái thực tế ở phần đầu trước khi dùng các README và nhật ký cũ.
 
+> Cập nhật bố cục source ngày 15/11/2026. README và docs/README.md là điểm bắt đầu cho bên nhận source. Các số đo Git/hosting ngày 12/11 bên dưới là lịch sử kiểm tra, cần tái xác minh khi tiếp quản.
+
 ## 1. Bắt đầu từ đây
 
 - Repository đang làm việc là `E:\AppBanHang`, remote `https://github.com/duongnhan28/oufeidun_app.git`, branch `main`.

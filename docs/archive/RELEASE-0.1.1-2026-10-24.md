@@ -1,5 +1,7 @@
 # LOCAL 0.1.1 — điều chỉnh tồn có lý do, build lại 24/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ## Chức năng và ảnh hưởng
 
 - Kho hàng có Điều chỉnh tồn ở đầu trang và Chỉnh tồn tại từng mã. Chọn giảm/tăng theo lượng hoặc nhập tồn thực tế, xem tồn trước/sau, lý do bắt buộc. Không sửa tồn trực tiếp trong form thông tin sản phẩm.

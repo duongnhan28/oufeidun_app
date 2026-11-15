@@ -1,6 +1,6 @@
 # Đổi mã/tên kính sau khi bán — điều tra và phản biện 28/10/2026
 
-Trạng thái cập nhật 28/10: người dùng đã duyệt phương án A; đã triển khai LOCAL/demo và kiểm thử. Các mục hiện trạng bên dưới giữ làm hồ sơ trước thay đổi. Kết quả triển khai tại [PRODUCT-RENAME-TEST-2026-10-28.md](PRODUCT-RENAME-TEST-2026-10-28.md). Không truy cập DB thật của cửa hàng, chưa thay EXE/ZIP đã bàn giao. Tính năng mật khẩu bảo vệ là yêu cầu riêng, chưa triển khai.
+Trạng thái cập nhật 28/10: người dùng đã duyệt phương án A; đã triển khai LOCAL/demo và kiểm thử. Các mục hiện trạng bên dưới giữ làm hồ sơ trước thay đổi. Kết quả triển khai tại [PRODUCT-RENAME-TEST-2026-10-28.md](archive/PRODUCT-RENAME-TEST-2026-10-28.md). Không truy cập DB thật của cửa hàng, chưa thay EXE/ZIP đã bàn giao. Tính năng mật khẩu bảo vệ là yêu cầu riêng, chưa triển khai.
 
 ## 1. Yêu cầu thực tế trong ảnh
 

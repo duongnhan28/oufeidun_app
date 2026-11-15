@@ -10,21 +10,21 @@ Repository: `duongnhan28/oufeidun_app`. Workflow: `.github/workflows/app-release
 
 ## Phát hành bản tiếp theo
 
-Bản đang dùng là 0.1.3. Khi thật sự có thay đổi cần giao khách:
+Source desktop hiện ghi 0.1.7. Khi phát hành, kiểm lại feed có chữ ký để xác định bản đang phân phối. Khi thật sự có thay đổi cần giao khách:
 
 ```powershell
-npm version 0.1.4 --no-git-tag-version
-# Viết docs/releases/0.1.4.md, tối đa 4000 ký tự.
-git add package.json package-lock.json docs/releases/0.1.4.md
+npm version 0.1.8 --no-git-tag-version
+# Viết docs/releases/0.1.8.md, tối đa 4000 ký tự.
+git add package.json package-lock.json docs/releases/0.1.8.md
 # Thêm các file source đã sửa cần phát hành vào commit.
-git commit -m "Release LOCAL 0.1.4"
+git commit -m "Release LOCAL 0.1.8"
 git push origin main
 # Đợi CI main thành công, sau đó:
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.8
+git push origin v0.1.8
 ```
 
-Xem Actions → AppBanHang CI and LOCAL release. Khi job `sign-and-publish` thành công, app khách kiểm tra feed sẽ thấy phiên bản mới; khách chọn tải rồi cài. App đang ở 0.1.4 sẽ không nhận lại 0.1.4. Khách dùng bản cũ chưa có updater cần cài bộ cài hỗ trợ cập nhật một lần.
+Xem Actions → AppBanHang CI and LOCAL release. Khi job `sign-and-publish` thành công, app khách kiểm tra feed sẽ thấy phiên bản mới; khách chọn tải rồi cài. App đang ở 0.1.8 sẽ không nhận lại 0.1.8. Khách dùng bản cũ chưa có updater cần cài bộ cài hỗ trợ cập nhật một lần.
 
 ## Dữ liệu và cấu hình
 
@@ -53,4 +53,4 @@ Khóa ký Ed25519 phải khớp `electron/update-config.json` và các app đã 
 
 Build chạy trên Windows runner của GitHub, không dùng RAM hosting để build app. Bộ cài artifact chỉ giữ 1 ngày; manifest nhỏ giữ 7 ngày. Runner và artifact vẫn tính vào hạn mức GitHub của tài khoản; workflow không mua thêm dịch vụ. Hosting dùng streaming để hash file, không nạp toàn bộ bộ cài vào RAM.
 
-Kiểm chứng an toàn: push main hoặc Run workflow; xác nhận build/ký thành công và hash feed công khai không đổi. Không tạo tag 0.1.3 để thử vì phiên bản đó đã phát hành. Các test release dùng thư mục và khóa giả, kiểm tra chặn downgrade, sai hash/chữ ký, quota, lock, công bố và rollback.
+Kiểm chứng an toàn: push main hoặc Run workflow; xác nhận build/ký thành công và hash feed công khai không đổi. Chọn phiên bản thử cao hơn feed hiện tại khi được giao phát hành thật. Các test release dùng thư mục và khóa giả, kiểm tra chặn downgrade, sai hash/chữ ký, quota, lock, công bố và rollback.

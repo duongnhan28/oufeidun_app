@@ -1,9 +1,9 @@
-﻿# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
+# ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
 
 ## Thứ tự xuất Excel báo cáo — 12/11/2026
 
 - Hai sheet Báo cáo bán hàng và Nhập xuất tồn theo 84 dòng Book1.xlsx khách gửi; mã ngoài mẫu nằm cuối và giữ thứ tự tương đối. Mã đã đổi tên có thể nhận diện qua alias, không đổi nhãn xuất.
-- Chỉ đổi thứ tự dòng và màu đi cùng mã; giữ số liệu, dòng theo mức giá, quyền ẩn vốn của staff, tổng quan và sổ giao dịch theo thời gian. Không thêm dữ liệu rỗng hoặc migration/API/config. Chi tiết docs/REPORT-PRODUCT-ORDER-2026-11-12.md; source chưa phát hành.
+- Chỉ đổi thứ tự dòng và màu đi cùng mã; giữ số liệu, dòng theo mức giá, quyền ẩn vốn của staff, tổng quan và sổ giao dịch theo thời gian. Không thêm dữ liệu rỗng hoặc migration/API/config. Chi tiết docs/REPORT-PRODUCT-ORDER-2026-11-12.md; đã phát hành trong desktop 0.1.7.
 
 ## Gói nâng API máy chủ cho app 0.1.4 — 04/11/2026
 
@@ -50,7 +50,7 @@
 - Nhân viên được nhập chỉ gửi số lượng/lý do và SKU/ID; không có giá nhập/vốn, không nhận Excel danh mục chín cột. Mẫu riêng hai cột Mã kính/Số lượng; chặn file chứa thêm cột, Admin vẫn dùng mẫu cũ. Hàng cũ giữ vốn/giá; hàng mới chờ Admin thiết lập vốn, không coi vốn 0 mặc định là đã hoàn tất. Chặn chốt bán mã chưa thiết lập vốn; Admin có thể xác nhận vốn 0 hợp lệ. Báo cáo Admin cảnh báo giá trị tồn chưa đầy đủ khi còn mã chưa thiết lập vốn.
 - Báo cáo tổng hợp có nút Chi tiết theo ID sản phẩm, kể cả sản phẩm đã đổi mã/xóa mềm. Chi tiết ngày VN/mã đơn khách nhập/khách/Sales/mã trên đơn/loại bán-tặng-mẫu/lượng đặt-giao-trả-net/đơn giá/thành tiền. Cùng kỳ/trạng thái/cách trừ trả với báo cáo tổng hợp; loại nháp/xóa/hủy, không phụ thuộc thu tiền, không phân bổ phí toàn đơn vào sản phẩm.
 - Chi tiết hiển thị 200 dòng/trang; xuất Excel toàn bộ kỳ, không âm thầm cắt; trên 100.000 dòng yêu cầu thu hẹp kỳ. Đọc summary/rows cùng snapshot read-only. Staff có quyền báo cáo vẫn không nhận vốn/lợi nhuận ở API hoặc Excel.
-- Migration MySQL 012 thêm permissions/permissions_version và cost_configured, không đổi role, tiền/tồn/đơn hoặc config. LOCAL/demo, không triển khai Supabase online. Đã đóng lại bộ EXE/ZIP 0.1.1 ngày 29/10 sau hai lượt nghiệm thu source và kiểm thử package/installer/audit 1.167 file; bộ cũ giữ backup. Cập nhật API/migration và mọi app, xem docs/RELEASE-0.1.1-2026-10-29.md. Mật khẩu dùng chung bảo vệ màn hình không nằm trong thay đổi đã duyệt.
+- Migration MySQL 012 thêm permissions/permissions_version và cost_configured, không đổi role, tiền/tồn/đơn hoặc config. LOCAL/demo, không triển khai Supabase online. Đã đóng lại bộ EXE/ZIP 0.1.1 ngày 29/10 sau hai lượt nghiệm thu source và kiểm thử package/installer/audit 1.167 file; bộ cũ giữ backup. Cập nhật API/migration và mọi app, xem docs/archive/RELEASE-0.1.1-2026-10-29.md. Mật khẩu dùng chung bảo vệ màn hình không nằm trong thay đổi đã duyệt.
 
 ## Đổi mã sản phẩm đã bán — quyết định mới 28/10/2026
 
@@ -66,14 +66,14 @@
 - Dùng nghiệp vụ inventory adjustment hiện có: client tính tồn đích từ snapshot đang xem, API khóa sản phẩm/kiểm stock_version, ghi chênh lệch và lý do cùng transaction. Retry cùng key không áp dụng hai lần; máy khác đổi tồn thì báo xung đột.
 - Admin/nhân viên được điều chỉnh như quyền đã chốt, nhân viên vẫn không nhập hàng/tồn đầu kỳ/import hoặc xem/sửa vốn. Giá bán/vốn/snapshot đơn/doanh thu không đổi; nháp giữ nguyên lượng, lúc bán kiểm lại tồn hiện tại.
 - Lý do/người thực hiện hiện ở lịch sử từng mã; điều chỉnh xuất hiện trong Lịch sử thao tác và báo cáo kho/Excel có cột lý do cuối cùng. Không thay vị trí cột mã đơn cũ, không migration MySQL hoặc reset/config lại dữ liệu.
-- Đã đóng gói lại folder/ZIP 0.1.1 ngày 24/10 sau verify 50 data/53 UI, MySQL, native Admin/staff, installer và audit 1.162 file. Bản 23/10 giữ làm dự phòng; cần cập nhật API trước rồi app mọi máy. Hash/path/giới hạn tại docs/RELEASE-0.1.1-2026-10-24.md.
+- Đã đóng gói lại folder/ZIP 0.1.1 ngày 24/10 sau verify 50 data/53 UI, MySQL, native Admin/staff, installer và audit 1.162 file. Bản 23/10 giữ làm dự phòng; cần cập nhật API trước rồi app mọi máy. Hash/path/giới hạn tại docs/archive/RELEASE-0.1.1-2026-10-24.md.
 
 ## Báo cáo theo ngày đặt đơn, không theo thu tiền — 23/10/2026
 
 - LOCAL và demo lọc cùng ngày đặt `ordered_at` như danh sách đơn, dự phòng ngày xác nhận/tạo cho dữ liệu cũ. Chỉ đơn đã xác nhận bán, gồm trả một phần/đã trả; loại nháp, nháp đã xóa và đơn hủy.
 - Doanh thu thuần = giá trị sản phẩm đã giao sau trả hàng + chi phí khác của các đơn trong kỳ. Không phụ thuộc chưa thanh toán/thanh toán một phần/đủ; không lấy tiền thực nhận. Giá trị hàng chưa giao tiếp tục chưa được tính, đồng nhất `total_amount` hiện có.
 - Doanh thu chính và tổng gồm phí trên app/Excel thống nhất, phí cộng đúng một lần. Có `product_revenue` riêng để đối chiếu từng mã; client tương thích API cũ. Ngày sổ kho/giao/thu/hoàn thực tế giữ nguyên và có thể khác ngày đặt.
-- Không schema/migration MySQL mới, không sửa config hoặc dữ liệu khách. Đã đóng gói lại 0.1.1 ngày 23/10 sau verify, EXE Admin/staff, installer và audit 1.162 file folder/ZIP. Cần cập nhật API trước rồi app mọi máy; hash/bản dự phòng tại docs/RELEASE-0.1.1-2026-10-23.md.
+- Không schema/migration MySQL mới, không sửa config hoặc dữ liệu khách. Đã đóng gói lại 0.1.1 ngày 23/10 sau verify, EXE Admin/staff, installer và audit 1.162 file folder/ZIP. Cần cập nhật API trước rồi app mọi máy; hash/bản dự phòng tại docs/archive/RELEASE-0.1.1-2026-10-23.md.
 - Rà soát bổ sung: một yêu cầu báo cáo đọc cùng snapshot MySQL chỉ đọc, tránh lệch giữa doanh thu/số đơn/phí/tồn khi máy khác xác nhận đơn đồng thời. Ngày không tồn tại bị từ chối; giới hạn 366 ngày tính cả ngày đầu/cuối.
 - Workspace dùng cùng snapshot chỉ đọc cho danh mục/đơn/dòng hàng/giao/thu/trả, tránh ghép tổng cũ với tiền thu mới khi máy khác giao bổ sung. Không thay cơ chế ghi, tồn, quyền hoặc version.
 
@@ -81,7 +81,7 @@
 
 - Người dùng yêu cầu build số 0.1.1, giữ toàn bộ chức năng/sửa lỗi mới nhất, không quay lại source cũ. App/API và lockfiles cùng phiên bản; bundle riêng Oufeidun-Local-0.1.1, giữ nguyên 0.2.18.
 - Đã verify 46 dữ liệu/50 UI, MySQL, EXE Admin/staff và cài đè 0.2.18; đường mở app mặc định chạy đúng 0.1.1. Readiness không bỏ qua version/discovery vì số thấp; legacy thật sự giữ tương thích. Không schema mới riêng cho đổi phiên bản, vẫn migrations đến 010 và giữ config/data.
-- Chi tiết/hash: docs/RELEASE-0.1.1-2026-10-21.md và FEATURE-CHECKLIST.md.
+- Chi tiết/hash: docs/archive/RELEASE-0.1.1-2026-10-21.md và FEATURE-CHECKLIST.md.
 
 ## Không ghi đè khách dùng số 0 — 21/10/2026
 

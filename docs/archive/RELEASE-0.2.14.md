@@ -1,5 +1,7 @@
 # Phát hành LOCAL 0.2.14
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 - [x] Đọc đặc tả/checklist; xác định cần cập nhật cả Local API và client.
 - [x] Tăng version app/API, chuẩn bị hướng dẫn nhận lại cấu hình cũ.
 - [x] Verify: dữ liệu 22/22, UI 29/29, Electron/build/audit; Local API unit 6/6, MySQL integration 1/1, dependency app/server 0 lỗ hổng.

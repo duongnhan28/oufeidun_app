@@ -1,5 +1,7 @@
 # Gom thư mục máy chủ LOCAL
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 Đã được người dùng duyệt: copy bộ bàn giao và dữ liệu vào thư mục mới, chuyển
 đường dẫn vận hành, kiểm tra rồi giữ bản cũ để đối chiếu. Không tự xóa bản cũ.
 

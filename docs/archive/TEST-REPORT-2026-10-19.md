@@ -1,5 +1,7 @@
 # Kết quả kiểm thử hồi quy — 19/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 **Cập nhật sau đóng gói:** đã bàn giao LOCAL 0.2.18 trong `E:\outputt\Oufeidun-Local-0.2.18` và ZIP cùng tên. Chạy lại verify version mới 43/43 dữ liệu, 48/48 UI và MySQL integration đạt; build/package, packaged Admin/Nhân viên HTTPS/MySQL, installer nâng version/hash và audit 1.154 file folder/ZIP đều đạt. Chi tiết release/hash tại FEATURE-CHECKLIST.md. Nội dung dưới đây là báo cáo source trước đóng gói; trạng thái chưa tạo EXE ở cuối là mốc trước đó.
 
 Phạm vi: source Oufeidun LOCAL 0.2.17 sau sửa khóa SKU chưa bán và mã nháp đã xóa. Kiểm thử trên demo/database MySQL test riêng; không sửa dữ liệu, cấu hình hoặc dịch vụ khách. Đây không phải kết quả kiểm thử bộ EXE/ZIP mới.

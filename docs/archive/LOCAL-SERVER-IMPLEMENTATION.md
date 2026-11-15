@@ -1,5 +1,7 @@
 # Kế hoạch triển khai Oufeidun Local Server
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 > Trạng thái: đang triển khai. Đây là checklist bắt buộc cho chế độ MySQL local.
 >
 > Quy tắc: sau mỗi bước phải đọc lại toàn bộ file này, ghi bằng chứng vào **Nhật ký review**, rồi mới chuyển bước. Không build bản giao khách khi bước 1–8 và `npm.cmd run verify` chưa hoàn tất.

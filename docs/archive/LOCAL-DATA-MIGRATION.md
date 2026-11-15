@@ -1,5 +1,7 @@
 # Kế hoạch chuyển dữ liệu Supabase sang MySQL local
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 > Quy tắc: chỉ ghi MySQL sau khi snapshot nguồn, backup local và báo cáo dry-run đã hoàn thành. Không xóa dữ liệu Supabase. Không đưa URL, khóa hoặc mật khẩu vào snapshot/log/Git.
 
 ## Phạm vi

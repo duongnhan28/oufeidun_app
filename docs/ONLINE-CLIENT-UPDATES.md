@@ -24,7 +24,7 @@ Lệnh từ chối ghi đè nếu key đã có. Private key mặc định nằm 
 
 Đây là chữ ký metadata của hệ thống cập nhật, KHÔNG thay thế chứng chỉ Windows Authenticode. Bộ cài chưa ký Authenticode vẫn có thể bị Windows cảnh báo. Không hướng dẫn tắt antivirus/SmartScreen.
 
-Trước khi xuất gói, chốt số version đang chạy ở khách. Source từng có lịch sử 0.2.17 nhưng hiện package.json ghi 0.1.1; không phát hành bằng cách đoán version. Chốt profile khách, đặt version mới lớn hơn bản đã phân phối, chạy verify và build đúng profile.
+Trước khi xuất gói, chốt số version đang chạy ở khách. Source từng có lịch sử 0.2.17, hiện desktop package.json ghi 0.1.7 và server/package.json ghi 0.1.4; không phát hành bằng cách đoán version. Chốt profile khách, đặt version mới lớn hơn bản đã phân phối, chạy verify và build đúng profile.
 
 ```powershell
 # Ví dụ thao tác, không chạy nguyên văn các placeholder:
@@ -47,7 +47,7 @@ APP_UPDATES_DIR=/home/hwqrwrir/app-updates
 
 Đây là thư mục riêng ngoài `.releases`, không đặt private key hoặc file cấu hình DB vào đó. Route chỉ đọc 2 feed cho phép và EXE tên SHA256, từ chối đường dẫn tùy ý/symlink ra ngoài. Không có API upload công khai. Installer được stream; không nạp cả file vào heap. V1 không hỗ trợ resume, tải lỗi phải tải lại.
 
-Quy trình phát hành: backup manifest cũ → upload EXE trước qua SSH/SCP → kiểm tra SHA256 và size trên host → upload manifest thành tên tạm → rename atomically thành tên feed CUỐI CÙNG. Chỉ đổi manifest sau khi đã tải được file qua HTTPS. Không ghi đè EXE cùng tên hash. Manifest cache no-store; EXE immutable. Giữ bản trước phục vụ rollback/chẩn đoán, không tự xóa để giải phóng quota.
+Quy trình phát hành: backup manifest cũ → upload EXE trước qua SSH/SCP → kiểm tra SHA256 và size trên host → upload manifest thành tên tạm → rename atomically thành tên feed CUỐI CÙNG. Chỉ đổi manifest sau khi đã tải được file qua HTTPS. Không ghi đè EXE cùng tên hash. Manifest cache no-store; EXE immutable. Cleanup hosting giữ bộ cài đang được feed hiện tại và lịch sử gần nhất tham chiếu, với thời gian chờ cho file hết tham chiếu. Đối chiếu chính sách retention trong tài liệu web trước khi dọn dung lượng.
 
 Không công bố feed nếu chưa chốt version/profile, verify app, kiểm tra installer sạch và sao lưu khóa. Push website main chỉ triển khai route, KHÔNG tự phát hành installer app. Khi chưa cấu hình thư mục/feed, route trả 404 và app báo chưa có bản công bố.
 

@@ -1,5 +1,7 @@
 # LOCAL 0.1.4 — cảnh báo tồn dự kiến
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ## Đã phát hành và kiểm chứng online
 
 - Commit phát hành/tag v0.1.4: e78499f98b6658d7d397aafc8c2395ded00b7120. Main CI 41816522678 đạt; tag CI 41818322494 đạt sau retry riêng job ký/publish chưa khởi động runner. Job Windows/test/build thành công từ lượt đầu của tag, giữ nguyên artifact và tag.

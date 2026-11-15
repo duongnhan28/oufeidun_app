@@ -1,5 +1,7 @@
 # Oufeidun LOCAL 0.1.2 — 04/11/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 Người dùng xác nhận khách hiện dùng 0.1.1 mới nhất. Bản này nâng lên 0.1.2, chỉ cập nhật client; không thay API server/schema/migration, không cài lại MySQL hoặc reset dữ liệu.
 
 ## File và kênh phát hành

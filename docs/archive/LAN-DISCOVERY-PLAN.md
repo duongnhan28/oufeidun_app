@@ -1,5 +1,7 @@
 # Tự tìm máy chủ qua mạng dây/Wi-Fi
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 1. Server tạo nhận diện Ed25519 riêng, lưu private key trong config hiện có; chỉ export public key và CA công khai vào bộ client.
 2. UDP trả lời nonce, ký server ID/hostname/port. Client chỉ nhận đúng public key đã đóng trong bộ cửa hàng; IP lấy từ gói trả lời, không lấy từ chuỗi do người khác nhập.
 3. Client thử IP cũ/hostname trước, rồi tìm qua broadcast trên từng card IPv4. Kiểm tra HTTPS bằng CA của cửa hàng và hostname, không bỏ xác minh TLS.

@@ -1,5 +1,7 @@
 # LOCAL 0.1.3 — bản thử cập nhật 04/11/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ## Bản đang phát hành: chỉnh nút xuống dưới cùng
 
 Theo yêu cầu sau đợt thử, giữ version 0.1.3 và chuyển Cập nhật ứng dụng thành phần tử cuối của login-card (sau login-foot), cuối sidebar-bottom (sau Đăng xuất). Bỏ margin dưới, dùng margin trên 14px. Ghi chú thử 0.1.3 vẫn giữ nguyên; không đổi logic cập nhật/DB/server.

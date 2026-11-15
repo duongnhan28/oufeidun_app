@@ -33,3 +33,7 @@ connection.json
 rclone.conf
 drive-settings.json
 upload-state.json
+
+# Commercial documents and personal editor workspaces stay outside customer source.
+docs/bao-gia/
+*.code-workspace

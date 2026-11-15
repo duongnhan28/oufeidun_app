@@ -1,5 +1,7 @@
 # Excel danh mục theo mẫu khách — 08/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 - [x] Đối chiếu mẫu: 8 cột, bỏ tên sản phẩm, dòng máy phân cách bằng dấu phẩy; không đưa dòng ghi chú trong ảnh vào dữ liệu.
 - [x] Theo đúng ảnh: mẫu tám cột không có số lượng, giữ tồn kho. Đã thông báo giả định này; không tự thêm cột ngoài mẫu.
 - [x] Parser kiểm tra toàn bộ file, tiêu đề, giá, loại kính, SKU trùng; giữ dấu / trong tên máy.

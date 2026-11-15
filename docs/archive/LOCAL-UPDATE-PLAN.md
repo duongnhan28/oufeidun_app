@@ -1,5 +1,7 @@
 # Bộ cập nhật LOCAL cho máy đã cài
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 1. Nhận lại thư mục dữ liệu từ server-info.json hoặc Scheduled Task hiện có; chỉ hỏi nếu không tìm thấy. Không tạo database khi cập nhật.
 2. Gom khởi động, kiểm tra, sửa cấu hình, sao lưu vào menu BAT. BAT gọi scripts qua thư mục của chính nó.
 3. Sửa cấu hình: giữ giá trị cũ khi để trống, kiểm tra DB trước khi áp dụng, sao lưu file cấu hình và giữ chứng chỉ/hostname hiện có.

@@ -1,5 +1,7 @@
 # Kế hoạch 4 phản hồi đơn hàng — 10/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 - [x] Ngày giờ đặt đơn: nhập theo giờ Việt Nam; lưu riêng ordered_at, không thay thời điểm thao tác/giao/hoàn thực tế. Nháp sửa trong form; đơn đã bán sửa riêng ngày đặt với version/quyền/audit, không đổi kho/giá/thu tiền.
 - [x] Chứng từ: lưu snapshot máy dùng chung khi xác nhận, giữ ghi chú từng dòng và ghi chú đơn trên PNG/Excel/PDF; xuống dòng đầy đủ, không cắt nội dung.
 - [x] Chi phí khác: tiền nguyên đồng không âm và ghi chú lý do, lưu trên nháp; cộng một lần khi xác nhận vào tiền hàng thực giao, giao bổ sung không cộng lại. Tổng/công nợ/thu tiền/chứng từ thống nhất; hủy loại toàn đơn, trả hàng chỉ hoàn tiền sản phẩm. Báo cáo tách khoản thu khác khỏi doanh thu sản phẩm.

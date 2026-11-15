@@ -1,134 +1,200 @@
-# Oufeidun — ứng dụng bán hàng
+# Oufeidun · Phần mềm quản lý bán hàng
 
-> Quy trình phát triển và checklist nghiệm thu bắt buộc: [`FEATURE-CHECKLIST.md`](FEATURE-CHECKLIST.md). Sau mỗi thay đổi phải đọc lại file này, chạy toàn bộ kiểm thử và cập nhật nhật ký xác minh trước khi bàn giao.
+Ứng dụng desktop dành cho cửa hàng và hệ thống phân phối kính cường lực. Oufeidun quản lý mã kính, khách hàng, đơn bán, hàng tặng và hàng mẫu, kho, công nợ và báo cáo trong cùng một hệ thống.
 
-Ứng dụng desktop Electron/React quản lý bán hàng, kho kính, công nợ và tra cứu mã kính dùng chung. Source hỗ trợ hai backend để phát triển trên Supabase trước và chuyển sang PHP/MySQL khi khách hàng chốt hosting, không cần thay đổi UI.
+| Thành phần | Phiên bản trong source | Nền tảng |
+| --- | --- | --- |
+| Ứng dụng máy nhân viên | **0.1.7** | Windows x64 · Electron · React · TypeScript |
+| API máy chủ cửa hàng | **0.1.4** | Windows · Node.js · MySQL |
+| Tra cứu và phân phối cập nhật | Website Oufeidun | HTTPS · hosting riêng |
 
-Bản LOCAL 0.2.14 cập nhật 08/10/2026 dùng mã kính thay tên sản phẩm trên UI/chứng từ. Excel nhập kho tự tạo mã chưa có cùng transaction (chỉ Admin); giá vốn mã mới bằng giá nhập, giá bán/sỉ bằng 0 cần thiết lập, mã đã có giữ nguyên giá. Cần cập nhật cả API máy chủ và app máy con dù version vẫn là 0.2.14 theo yêu cầu. Không cài lại MySQL hoặc xóa dữ liệu. Supabase migration tương ứng là `027_excel_create_sku.sql`, chưa áp dụng lên hệ thống Supabase đang vận hành trong lần phát hành LOCAL này.
+[Hướng dẫn tài liệu](docs/README.md) · [Cài đặt máy chủ](docs/CAI-DAT-LOCAL-SERVER.md) · [Mạng LAN/Wi-Fi](docs/HUONG-DAN-TRIEN-KHAI-LAN-WIFI.md) · [Phát hành ứng dụng](docs/APP-RELEASE-CICD.md)
 
-## Chạy source
+## Chức năng
 
-Yêu cầu Node.js và npm tương thích với `package-lock.json`.
+- **Bán hàng** — đơn nháp, xác nhận, giao bổ sung, hủy, trả hàng và nhiều hình thức thanh toán.
+- **Khách hàng và công nợ** — khách sỉ/lẻ, giá theo dòng đơn, lịch sử mua và thu tiền nhiều đợt.
+- **Kho và danh mục** — mã kính, tên cũ, ảnh, nhập Excel, điều chỉnh tồn có lý do và tồn dự kiến từ đơn nháp.
+- **Nhân viên** — tài khoản Admin/nhân viên, quyền theo từng tài khoản và nhật ký thao tác.
+- **Chứng từ và báo cáo** — một ảnh PNG đơn hàng rõ nét, in/PDF, báo cáo bán hàng và nhập–xuất–tồn dạng Excel.
+- **Tra cứu và cập nhật** — mã kính dùng chung từ website, kiểm tra bản mới, tải bộ cài và xác minh chữ ký/hash.
+
+Đặc tả nghiệp vụ nằm trong [BA-SPEC.md](BA-SPEC.md). Danh sách chức năng và bằng chứng nghiệm thu nằm trong [FEATURE-CHECKLIST.md](FEATURE-CHECKLIST.md).
+
+## Kiến trúc vận hành
+
+```text
+Ứng dụng Windows tại cửa hàng
+    ├─ HTTPS LAN → Caddy → API Node.js → MySQL
+    │                         Máy chủ Windows của cửa hàng
+    ├─ HTTPS → oufeidun.vn/api/glass-lookup
+    │                         Tra cứu mã kính và ảnh
+    └─ HTTPS → oufeidun.vn/app-updates/
+                              Feed có chữ ký và bộ cài
+```
+
+Dữ liệu bán hàng được lưu tại máy chủ của cửa hàng. Các máy nhân viên gọi API qua HTTPS LAN. MySQL cổng 3306 và API cổng 8787 nghe trên loopback. Caddy phục vụ HTTPS cổng 443 cho mạng nội bộ. Khám phá máy chủ dùng UDP 47631 và nhận diện có chữ ký.
+
+Máy nhân viên cần cấu hình nhận diện công khai của đúng cửa hàng. Máy chủ xuất bộ máy nhân viên sau cài đặt. Các bước kết nối, chứng chỉ và giới hạn mạng được mô tả trong [hướng dẫn LAN/Wi-Fi](docs/HUONG-DAN-TRIEN-KHAI-LAN-WIFI.md).
+
+## Chạy source trên máy phát triển
+
+### Yêu cầu
+
+- Windows 10/11 x64 để chạy và đóng gói Electron Windows.
+- Node.js **22** và npm. CI hiện dùng Node.js 22 trên Windows.
+- Git và quyền truy cập repository.
+- Microsoft Edge để chạy kiểm thử giao diện Playwright hiện tại.
+- MySQL khi phát triển/kiểm thử API LOCAL. Chế độ demo dùng dữ liệu thử PGlite.
+
+Từ PowerShell, clone và cài dependency đúng lockfile.
 
 ```powershell
-cd E:\AppBanHang
+git clone https://github.com/duongnhan28/oufeidun_app.git
+cd oufeidun_app
 npm.cmd ci
-npm.cmd run dev       # giao diện tại http://127.0.0.1:5178
-npm.cmd test          # kiểm thử nghiệp vụ bằng PostgreSQL WASM
-npm.cmd run test:ui   # kiểm thử giao diện responsive
-npm.cmd run build     # kiểm tra TypeScript và build web, không tạo .exe
+npm.cmd ci --prefix server
 ```
 
-Không chạy `npm run package` hoặc `npm run make` khi chưa cần phát hành `.exe`.
+### Mở giao diện với dữ liệu demo
 
-## Backend tạm thời: Supabase
-
-Tạo `.env.local` (file này bị Git ignore và không được commit):
-
-```dotenv
-VITE_DEMO_MODE=false
-VITE_DATA_BACKEND=supabase
-VITE_SUPABASE_URL=https://PROJECT.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
-VITE_GLASS_LOOKUP_API_URL=https://outfeidun.vercel.app/api/glass-lookup
-```
-
-Project Supabase phải có các migration nền hiện tại và chạy tuần tự `supabase/migrations/017_app_order_sales_feedback.sql` đến `supabase/migrations/022_manual_order_code.sql`.
-
-Migration 018 bổ sung danh mục khách sỉ/lẻ, giá sỉ mặc định, trạng thái đơn đủ/thiếu và báo cáo bán hàng/kho chi tiết. Ứng dụng có thể nhập phiếu nhập kho từ `.xlsx` (cột Mã kính, Số lượng, Giá nhập) và xuất đơn/báo cáo thành `.xlsx`.
-
-Migration 019 bổ sung nhân viên Sales độc lập với người thao tác đơn, nhóm kính full viền/không viền cao cấp và cập nhật giá đồng loạt theo nhóm. File theo dõi đơn hàng được xuất trên một sheet; đơn thiếu hàng có thể xuất Excel khi vẫn là bản nháp.
-
-Migration 020 khóa giá bán tại server: dòng hàng bán luôn lấy giá lẻ hoặc giá sỉ đã thiết lập theo loại khách; hàng tặng/hàng mẫu có giá 0. Nhân viên không thể thay giá bằng UI hoặc request chỉnh sửa thủ công.
-
-Migration 021 cho phép lưu giá bán thực tế theo từng dòng đơn nhưng vẫn giữ snapshot giá của đơn đã xác nhận. Migration 022 bổ sung mã đơn do người bán tự nhập, bắt buộc duy nhất không phân biệt chữ hoa/thường. Ở màn Bán hàng, tài liệu xác nhận gửi khách được tải dưới dạng PNG; Excel vẫn dùng tại màn Đơn hàng, Báo cáo và nhập kho.
-
-### Hai profile máy chủ
-
-Không dùng chung một lệnh build cho TEST và PRODUCTION:
-
-| Profile | File cấu hình local | Backend | Lệnh kiểm tra/build |
-| --- | --- | --- | --- |
-| TEST | `.env.test-supabase.local` | Supabase test | `npm.cmd run build:test` |
-| PRODUCTION | `.env.production-mysql.local` | PHP API kết nối MySQL | `npm.cmd run build:production` |
-
-Đóng gói Windows tương ứng bằng `npm.cmd run make:test` hoặc `npm.cmd run make:production`. Profile production bị chặn nếu hai URL HTTPS chưa hợp lệ, không cùng origin hoặc sai path API; nhờ đó không thể vô tình tạo bản production vẫn gọi Supabase/Vercel. Hai file `.local` bị Git ignore; dùng `.env.test-supabase.example` và `.env.production-mysql.example` làm mẫu. Mỗi build cũng sinh `dist/server-config.json` để tiến trình Electron và giao diện dùng đúng cùng API tra cứu.
-
-Migration 017 bổ sung địa chỉ/loại khách, giá bán riêng theo dòng, hàng tặng–hàng mẫu, ghi chú dòng hàng và thanh toán nhiều đợt. Publishable key được phép nằm ở client; bảo mật dữ liệu dựa trên Auth, RPC `security definer`, kiểm tra quyền và RLS. Không đưa service-role key hoặc mật khẩu database vào ứng dụng.
-
-## Chuyển sang PHP API khi khách chốt
-
-Đổi duy nhất cấu hình build:
-
-```dotenv
-VITE_DEMO_MODE=false
-VITE_DATA_BACKEND=api
-VITE_API_BASE_URL=https://ten-mien-cua-ban.vn/api/app/v1
-VITE_GLASS_LOOKUP_API_URL=https://ten-mien-cua-ban.vn/api/glass-lookup
-```
-
-App không kết nối MySQL trực tiếp. PHP API giữ mật khẩu MySQL ở server, xác thực người dùng, phân quyền, transaction và trả dữ liệu cần thiết cho app. Backend PHP đã có endpoint `/orders/features` và migration MySQL cho các chức năng trong migration Supabase 017; trước ngày chuyển chính thức chỉ còn nhập dữ liệu và chạy kiểm thử trên URL hosting thật.
-
-## Phạm vi chức năng
-
-- Admin/nhân viên, khóa tài khoản, lịch sử thao tác và một phiên hoạt động cho mỗi tài khoản.
-- Danh mục kính, hãng kính, ảnh sản phẩm, giá bán/giá vốn và quản lý tồn kho.
-- Đơn nháp, đơn bán, hủy, trả/đổi hàng; snapshot tên, giá và giá vốn tại thời điểm bán.
-- Giá bán linh hoạt cho khách sỉ theo từng dòng sản phẩm.
-- Địa chỉ giao hàng, tên hiển thị khác và ghi chú máy dùng chung trên từng dòng.
-- Hàng bán, hàng tặng, hàng mẫu; hàng tặng/mẫu vẫn trừ kho và có thành tiền 0đ.
-- Tiền mặt, chuyển khoản, COD, COD + chuyển khoản, tiền mặt + chuyển khoản.
-- Thu tiền nhiều đợt, trạng thái chưa thanh toán/thanh toán một phần/đã thanh toán.
-- Bill đầy đủ danh sách sản phẩm, tự ngắt trang khi in hoặc lưu PDF.
-- Tra cứu mã kính dùng chung từ API của website Oufeidun.
-- Báo cáo doanh thu, vốn, lãi gộp, hoàn/hủy và nhập–xuất–tồn.
-
-## Kiểm thử trước bàn giao
-
-- `npm.cmd test`: kiểm tra quyền, kho, snapshot, idempotency, trả hàng, giá sỉ, quà/mẫu, địa chỉ và thanh toán nhiều đợt.
-- `npm.cmd run test:ui`: kiểm tra các luồng UI và không tràn ngang trên desktop/mobile.
-- `npm.cmd run build`: kiểm tra TypeScript, CSP và production bundle.
-- Trước khi dùng dữ liệu thật cần thử migration trên project Supabase test, sao lưu database và kiểm tra ít nhất hai tài khoản thao tác đồng thời.
-
-## Tệp cấu hình
-
-- `.env.example`: danh sách biến môi trường mẫu, được commit.
-- `.env.local`: cấu hình thật, bị Git ignore.
-- `supabase/migrations/`: schema/RPC cho backend Supabase.
-- `BA-SPEC.md`: đặc tả nghiệp vụ gốc.
-## Backend LOCAL trên máy chủ Windows
-
-Bộ bàn giao LOCAL 0.2.13: máy chủ đã cài chạy `01-MAY-CHU/CAP-NHAT.bat`, kiểm tra rồi chạy `TAO-BO-MAY-NHAN-VIEN.bat`. Copy cả `02-MAY-CLIENT` đã được xuất từ máy chủ cửa hàng sang máy nhân viên và chạy `MO-APP.bat`. App portable tự tìm đúng máy chủ qua mạng dây hoặc Wi-Fi bằng UDP 47631 có chữ ký, kết nối dữ liệu qua HTTPS 443 bằng CA riêng. Không cần MySQL/Node, nhập IP hoặc sửa hosts ở máy con trong chế độ này. Bộ chưa có public profile giữ cách kết nối cũ; `CAP-NHAT.bat` vẫn cập nhật app đã cài.
-
-`server-profile.json` là nhận diện công khai của cửa hàng, được cache trong AppData/Oufeidun. `discovery-identity.json` chứa khóa riêng, chỉ nằm trong config máy chủ và không được gửi cùng bộ client. Thử lại IP cũ trước khi broadcast; không tự replay giao dịch bán/thu tiền sau lỗi mạng. Mạng Guest/Client Isolation hoặc khác VLAN chưa định tuyến vẫn cần cấu hình mạng. Chi tiết triển khai và giới hạn kiểm thử nằm tại `LAN-DISCOVERY-PLAN.md` và `FEATURE-CHECKLIST.md`.
-
-Profile `local-mysql` dùng Node API và MySQL trên một máy Windows trong mạng LAN. Bán hàng, kho, đơn, khách và tài khoản gọi HTTPS `https://oufeidun.home.arpa`; riêng màn **Mã dùng chung** gọi `https://oufeidun.vn/api/glass-lookup` để đọc dữ liệu và ảnh trên hosting mới. MySQL và API nội bộ chỉ nghe tại loopback nên không mở trực tiếp cho máy con.
-
-Client LOCAL 0.2.16 chỉ đổi endpoint tra cứu/ảnh sang hosting `oufeidun.vn`. Không cập nhật backend máy chủ, migration, dữ liệu, account hay cấu hình LAN/CA/discovery; máy chủ đang ở 0.2.15 được giữ nguyên. Profile TEST/Supabase và PRODUCTION hosting không thay đổi. Khi cập nhật máy đã cài, dùng installer client mới và giữ cấu hình AppData; với portable, dùng toàn bộ folder App mới và giữ public profile cửa hàng. Không chạy cài lại máy chủ hoặc clean-data vì thay URL tra cứu.
-
-Quy trình cài đặt và vận hành chi tiết nằm tại [`docs/CAI-DAT-LOCAL-SERVER.md`](docs/CAI-DAT-LOCAL-SERVER.md). Trên máy chủ, nhấp đúp `CAI-MAY-CHU-LOCAL.cmd`, nhập mật khẩu root MySQL và tạo mật khẩu admin. Sau khi dịch vụ hoạt động, dùng các lệnh sau để đóng gói client và tạo bộ cài cho máy con:
+Chạy trong một PowerShell riêng cho demo.
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File scripts\build-local-client.ps1
-powershell.exe -ExecutionPolicy Bypass -File scripts\export-local-client-kit.ps1 -ServerIp 192.168.1.10
+$env:VITE_DEMO_MODE='true'
+$env:VITE_SERVER_ENV='test'
+$env:VITE_GLASS_LOOKUP_API_URL='https://oufeidun.vn/api/glass-lookup'
+npm.cmd run dev
 ```
 
-Không sao chép `server/.env.local`, file backup hoặc mật khẩu vào bộ cài client. TEST Supabase, LOCAL MySQL và PRODUCTION hosting là ba profile độc lập.
+Mở `http://127.0.0.1:5178`. Cấu hình demo được đặt trong tiến trình PowerShell hiện tại. Đóng cửa sổ này sau khi thử, rồi dùng cửa sổ mới cho build LOCAL.
 
-# Ký số bản Windows phát hành
+### Kết nối API LOCAL khi phát triển
 
-Windows App Control có thể chặn hoàn toàn file EXE chưa ký. Bản giao cho khách hàng phải được ký bằng chứng thư Authenticode được Windows tin cậy.
-
-Thiết lập biến môi trường trong PowerShell rồi chạy quy trình build có kiểm tra bắt buộc:
+Tạo file public profile từ mẫu và điền URL máy chủ thử nghiệm.
 
 ```powershell
-$env:WINDOWS_CERTIFICATE_FILE = 'C:\duong-dan\oufeidun-code-signing.pfx'
-$env:WINDOWS_CERTIFICATE_PASSWORD = 'mat-khau-chung-thu'
-npm.cmd run make:signed
+Copy-Item .env.local-mysql.example .env.local-mysql.local
+npm.cmd run build:local
 ```
 
-Quy trình ký cả `Oufeidun.exe` và `Oufeidun-Setup.exe`, đồng thời đóng dấu thời gian. Không chép chứng thư hoặc mật khẩu vào `.env`, source hay Git. Nếu nhà cung cấp lưu khóa trong USB token/cloud HSM, cấu hình hook ký tương ứng theo hướng dẫn của nhà cung cấp thay cho file `.pfx`.
+Mẫu LOCAL dùng `http://127.0.0.1:8787/api/app/v1` để thử ngay tại máy phát triển. Bộ cài dùng chung cho cửa hàng sử dụng HTTPS LAN theo phần build bên dưới.
 
-Mẫu Excel danh mục 0.2.14 cập nhật 08/10: tám cột theo ảnh khách, máy cách bằng dấu phẩy. Nhập giá/loại/hãng/model, giữ tồn kho; tương thích file nhập kho ba cột cũ. Cập nhật cả API máy chủ và app các máy.
+Để chạy API từ source, tạo `server/.env.local` theo mẫu, cấu hình MySQL và thư mục dữ liệu dành cho phát triển rồi khởi động API.
 
-Cập nhật mới nhất 0.2.14: mẫu Excel chín cột có Số lượng nhập thêm; 0 chỉ sửa danh mục. Tự tạo phiếu và sổ kho, giữ đọc mẫu tám/ba cột cũ. Kho kính hiển thị Số lượng tồn cạnh mã kính. Retry cùng key được chống lặp; lần nhập file mới cộng tiếp số lượng.
+```powershell
+Copy-Item server/.env.example server/.env.local
+# Điền thông tin MySQL, mật khẩu admin và thư mục dữ liệu thử trong server/.env.local.
+npm.cmd run server:start
+```
+
+API áp dụng migration khi khởi động. Dùng database thử riêng khi phát triển. Quy trình cài máy chủ cửa hàng nằm trong [hướng dẫn cài đặt](docs/CAI-DAT-LOCAL-SERVER.md) và `deployment/customer/server/`. Mật khẩu, dữ liệu và cấu hình cửa hàng được chuyển giao qua kênh riêng.
+
+## Kiểm thử
+
+`npm.cmd run verify` chạy unit, UI, Electron smoke, TypeScript/build và audit dependency production. Khối dưới dùng PowerShell con để cấu hình QA tự hết hiệu lực sau kiểm thử.
+
+```powershell
+powershell.exe -NoProfile -Command {
+    $env:CI='true'
+    $env:VITE_DEMO_MODE='true'
+    $env:VITE_SERVER_ENV='test'
+    $env:VITE_GLASS_LOOKUP_API_URL='https://oufeidun.vn/api/glass-lookup'
+    $env:MYSQL_USER='ci-unused'
+    $env:MYSQL_PASSWORD='ci-no-database-connection'
+    $env:OUFEIDUN_SERVER_ENV=Join-Path $env:TEMP 'oufeidun-qa-no-server.env'
+    $env:OUFEIDUN_DATA_DIR=Join-Path $env:TEMP 'oufeidun-qa-no-server-data'
+    npm.cmd run verify
+    exit $LASTEXITCODE
+}
+```
+
+Thông tin MYSQL trong ví dụ là fixture của unit test. Kiểm thử MySQL integration cần database và thư mục dữ liệu thử riêng. Đọc cấu hình ở đầu các file `tests/*.integration.cjs` trước khi chạy.
+
+| Lệnh | Mục đích |
+| --- | --- |
+| `npm.cmd test` | Kiểm thử nghiệp vụ và helper |
+| `npm.cmd run test:ui` | Luồng giao diện trên Edge |
+| `npm.cmd run test:electron` | Build test và smoke Electron |
+| `npm.cmd run server:test` | Unit test API LOCAL |
+| `npm.cmd run server:test:integration` | Integration MySQL với cấu hình QA |
+| `node --test scripts/release/release.test.cjs` | Quy tắc phát hành, chữ ký và upload |
+
+## Build bộ cài Windows LOCAL
+
+Chạy từ thư mục repository. Lệnh sinh profile public chuẩn, build bộ cài, kiểm gói và chạy smoke trên app đã đóng gói.
+
+```powershell
+powershell.exe -NoProfile -Command {
+    Get-ChildItem Env: | Where-Object Name -Like 'VITE_*' | ForEach-Object {
+        [Environment]::SetEnvironmentVariable($_.Name, $null, 'Process')
+    }
+    node scripts/release/ci.cjs local-env
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    npm.cmd run make:local
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    node scripts/audit-local-package.cjs
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    node scripts/smoke-electron.cjs --packaged --production
+    exit $LASTEXITCODE
+}
+```
+
+| Kết quả | Đường dẫn |
+| --- | --- |
+| Ứng dụng đã đóng gói | `out/Oufeidun-win32-x64/` |
+| Bộ cài Windows | `out/make/squirrel.windows/x64/Oufeidun-Setup.exe` |
+| Cấu hình public thực tế của bundle | `dist/server-config.json` |
+
+`npm.cmd run build` tạo bundle web để kiểm tra source. `npm.cmd run make:local` tạo bộ cài Windows theo profile LOCAL. Kiểm version/profile bằng audit trước khi gửi khách, vì thư mục output có thể chứa lần build cũ.
+
+Source còn hỗ trợ hai profile tương thích lịch sử. Chọn theo môi trường cần duy trì.
+
+| Profile | File cấu hình riêng | Build / đóng gói |
+| --- | --- | --- |
+| **LOCAL đang triển khai** | `.env.local-mysql.local` | `build:local` / `make:local` |
+| TEST Supabase | `.env.test-supabase.local` | `build:test` / `make:test` |
+| PRODUCTION API hosting | `.env.production-mysql.local` | `build:production` / `make:production` |
+
+Các biến `VITE_*` được đưa vào client và phải là thông tin công khai. Biến môi trường của process có thể ghi đè file profile.
+
+## Phát hành và cập nhật
+
+Workflow [app-release.yml](.github/workflows/app-release.yml) kiểm thử và build khi push `main`, mở pull request hoặc chạy thủ công. Main có thêm bước kiểm ký manifest. Push tag `vX.Y.Z` trùng `package.json` sẽ công bố bản mới lên hosting sau khi kiểm thử thành công.
+
+Mỗi bản phát hành cần version cao hơn feed hiện tại, release notes trong `docs/releases/`, CI đạt và tag đúng commit trên main. Quy trình chi tiết, GitHub Secrets và xác minh sau upload nằm trong [hướng dẫn CI/CD](docs/APP-RELEASE-CICD.md).
+
+Ứng dụng kiểm tra feed sau khi mở và theo lịch, người dùng bấm tải rồi cài bản mới. Updater xác minh chữ ký Ed25519, kích thước và SHA256. Khóa ký cập nhật cần được bàn giao cùng quyền quản lý phát hành. Chứng chỉ Windows Authenticode có quy trình và khóa riêng. [Cơ chế cập nhật ứng dụng](docs/ONLINE-CLIENT-UPDATES.md).
+
+API máy chủ có version riêng. Khi thay schema hoặc API, chuẩn bị gói server, backup, cập nhật máy chủ và kiểm tra tương thích trước khi phát hành client phụ thuộc thay đổi đó. Hướng dẫn hiện tại nằm tại [gói cập nhật server 0.1.4](docs/SERVER-UPDATE-0.1.4-2026-11-04.md).
+
+## Cấu trúc source
+
+| Thư mục / file | Nội dung |
+| --- | --- |
+| `src/` | React UI, data adapter, nghiệp vụ client và xuất chứng từ |
+| `electron/` | Main/preload, kết nối LAN, IPC và updater |
+| `server/src/` | API, xác thực, phân quyền và transaction MySQL |
+| `server/mysql/` | Migration schema LOCAL, chạy theo thứ tự |
+| `deployment/customer/` | Mẫu cài đặt, cập nhật, backup và quản trị cửa hàng |
+| `deployment/relocate/` | Công cụ chuyển máy chủ |
+| `scripts/` | Build, kiểm gói, vận hành và phát hành |
+| `tests/` | Unit, UI, integration và fixture |
+| `supabase/` | Migration và adapter backend tương thích lịch sử |
+| `docs/` | Hướng dẫn vận hành và tài liệu kỹ thuật |
+| `docs/archive/` | Kế hoạch, ghi nhận và báo cáo phát hành lịch sử |
+| `docs/releases/` | Nội dung thông báo theo version dùng khi phát hành |
+| `BA-SPEC.md` | Đặc tả nghiệp vụ |
+| `FEATURE-CHECKLIST.md` | Danh sách chức năng và nhật ký nghiệm thu |
+
+## Nhận bàn giao source
+
+1. Clone repository, kiểm tra branch/commit và cài dependency bằng lockfile.
+2. Chạy demo và `verify` trên máy phát triển.
+3. Nhận cấu hình cửa hàng, dữ liệu/backup và quyền truy cập cần thiết qua kênh riêng. Kiểm tra phục hồi trên môi trường thử trước khi vận hành.
+4. Nhận quyền repository/CI, hosting phục vụ cập nhật, khóa ký Ed25519 và chứng chỉ ký Windows nếu có. Đối chiếu public key đang đóng gói trước khi phát hành tiếp.
+5. Cài thử mô hình máy chủ/máy nhân viên, kiểm tra login, đơn, kho, Excel/PNG, backup và tải cập nhật.
+
+Repository chứa source và cấu hình mẫu. Các file `.env.local`, `server.env`, khóa riêng, dữ liệu MySQL, backup, `node_modules`, `dist`, `out` và bộ cài được quản lý bên ngoài Git theo `.gitignore`.
+
+Bản ghi kỹ thuật chi tiết có mốc kiểm tra và các vấn đề cần theo dõi nằm trong [tài liệu bàn giao kỹ thuật](docs/CLAUDE-HANDOVER-APP.md). Tài liệu trong `docs/archive/` giữ ngữ cảnh tại ngày viết. Dùng source, package, workflow và hướng dẫn hiện tại để xác định cách chạy/phát hành.

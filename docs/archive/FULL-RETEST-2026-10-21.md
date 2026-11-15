@@ -1,5 +1,7 @@
 # Kiểm thử lại toàn bộ Oufeidun LOCAL 0.2.18 — 21/10/2026
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 Thực hiện sau yêu cầu kiểm tra lại toàn bộ app và yêu cầu tiếp tục. Tất cả các lượt cuối của các kiểm thử dưới đây đạt. Không sửa logic ứng dụng hoặc phát hành ZIP khác trong lượt này.
 
 ## Kết quả

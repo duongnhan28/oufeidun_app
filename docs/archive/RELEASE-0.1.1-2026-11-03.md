@@ -1,5 +1,7 @@
 # LOCAL0.1.1 — build03/11/2026 đã đóng gói
 
+> Tài liệu lịch sử được lưu theo mốc phát triển ban đầu. Hướng dẫn hiện tại nằm trong [README của dự án](../../README.md).
+
 ZIP E:\outputt\Oufeidun-Local-0.1.1.zip — 374.526.066byte.
 SHA256 A0F14CF1FB72740A2EFCDAC9E30B883E1DB20C8F1A49BB689A0534449B37930F.
 Setup trong02-MAY-CLIENT\Oufeidun-Setup.exe —175.265.792byte, SHA256 F4A861EAA5CC40C43BDB7A33793E45D63530F4581118FFF5677DB57CEE9ABE54.
