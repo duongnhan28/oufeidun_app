@@ -162,6 +162,13 @@ Mỗi lần làm xong một tính năng, người thực hiện phải tạo m�
 
 ## Nhật ký xác minh
 
+### 2026-11-16 — Đóng gói công cụ Tailscale và hướng dẫn test hai máy
+
+- Bổ sung hướng dẫn đầy đủ từ chuẩn bị app/public profile, đăng nhập Tailscale, lấy hai IP, Run unattended, cấu hình firewall máy chủ, cấu hình laptop tới test mạng ngoài, Excel, reboot và quay lại LAN.
+- ZIP local BAN-GIAO/Oufeidun-Tailscale-Test-20261116.zip có thư mục 01-MAY-CHU và 02-LAPTOP-CHU, mỗi thư mục gồm BAT/PowerShell và hướng dẫn riêng. Có hướng dẫn chung, phiếu nghiệm thu và SHA256SUMS. Chín file trong ZIP đã được mở, đối chiếu checksum và giải nén để chạy menu BAT của cả hai thư mục thành công.
+- Sửa lỗi môi trường kiểm thử CI của commit 9ac8f61. Windows PowerShell con kế thừa PSModulePath từ PowerShell 7 nên thiếu Get-FileHash. Test hiện để Windows PowerShell tự xác định module path. Ba kiểm thử remote-access đạt khi mô phỏng môi trường module path PowerShell 7, gồm probe TLS thực.
+- Kết nối Tailscale giữa laptop và máy chủ cửa hàng cùng số liệu báo cáo cần nghiệm thu trên hai máy thực theo PHIEU-KIEM-TRA.txt trong ZIP.
+
 ### 2026-11-16 — Bộ BAT truy cập laptop từ xa qua Tailscale
 
 - Đối chiếu REMOTE-01, DB-03 và AUTH-01/02. Thêm menu BAT cùng PowerShell cho cài/mở Tailscale, xem IP, giới hạn firewall máy chủ, cấu hình laptop, kiểm tra/mở app và phục hồi LAN. Quyền đăng nhập và phiên dùng luồng app hiện có.
