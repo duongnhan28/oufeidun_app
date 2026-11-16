@@ -37,6 +37,8 @@ Dữ liệu bán hàng được lưu tại máy chủ của cửa hàng. Các m�
 
 Máy nhân viên cần cấu hình nhận diện công khai của đúng cửa hàng. Máy chủ xuất bộ máy nhân viên sau cài đặt. Các bước kết nối, chứng chỉ và giới hạn mạng được mô tả trong [hướng dẫn LAN/Wi-Fi](docs/HUONG-DAN-TRIEN-KHAI-LAN-WIFI.md).
 
+Chủ cửa hàng có thể truy cập bằng laptop qua Tailscale. Bộ menu BAT nằm trong `deployment/customer/remote/`, cùng [hướng dẫn cấu hình và sử dụng từ xa](docs/REMOTE-ACCESS-TAILSCALE.md).
+
 ## Chạy source trên máy phát triển
 
 ### Yêu cầu

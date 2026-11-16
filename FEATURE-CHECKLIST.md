@@ -144,6 +144,7 @@ File này là nguồn đối chiếu bắt buộc sau mỗi lần phát triển 
 | DB-02 | Backend PRODUCTION | Build production chỉ gọi PHP API kết nối MySQL; phải chặn build nếu URL chưa hợp lệ | Chờ thông tin hosting thật |
 | DB-03 | Backend LOCAL | Nghiệp vụ gọi Node API + MySQL qua HTTPS LAN; Mã dùng chung gọi API website/Supabase; không mở MySQL trực tiếp; có backup/restore | Đã cài máy chủ; chờ xác nhận máy LAN thứ hai |
 | DB-04 | Tự tải backup Google Drive | BAT tự tải rclone chính thức/kiểm SHA256, OAuth một lần, folder mặc định/link có sẵn; token ACL ngoài bundle/Git; copy/check backup hoàn tất, không xóa cloud, chạy SYSTEM sau backup/thử lại mỗi giờ, chống trùng, lỗi upload không hỏng local, trạng thái/log | Bổ sung 19/10/2026 |
+| REMOTE-01 | Laptop truy cập qua Tailscale | BAT kiểm IP/peer, firewall riêng cho laptop/HTTPS/interface VPN, xác minh CA/hostname/health trước lưu public profile, mở app và phục hồi LAN | Kiểm thử cô lập đạt; cần nghiệm thu hai máy thật |
 
 ## Kiểm tra sau thay đổi
 
@@ -160,6 +161,13 @@ Mỗi lần làm xong một tính năng, người thực hiện phải tạo m�
 - [ ] Nếu bàn giao: đã tăng phiên bản, build lại, kiểm tra file cài và tạo SHA256.
 
 ## Nhật ký xác minh
+
+### 2026-11-16 — Bộ BAT truy cập laptop từ xa qua Tailscale
+
+- Đối chiếu REMOTE-01, DB-03 và AUTH-01/02. Thêm menu BAT cùng PowerShell cho cài/mở Tailscale, xem IP, giới hạn firewall máy chủ, cấu hình laptop, kiểm tra/mở app và phục hồi LAN. Quyền đăng nhập và phiên dùng luồng app hiện có.
+- Ba kiểm thử mới đạt, gồm BAT chạy từ đường dẫn có khoảng trắng và ký tự &, lỗi HTTPS giữ cấu hình, cấu hình lặp lại giữ backup, từ chối profile cửa hàng khác, phục hồi LAN và firewall theo IP/interface/HTTPS. TLS thực tại fixture riêng chấp nhận CA/hostname đúng và từ chối CA/hostname sai.
+- npm.cmd run verify đạt exit 0 với 76 unit, 63 UI, Electron smoke, TypeScript/build và production audit 0 vulnerabilities. Log .local/source-handoff-verify-20261116.log. Firewall được mô phỏng trong test, dữ liệu và dịch vụ cửa hàng không được dùng làm fixture.
+- Bàn giao hai file trong deployment/customer/remote và hướng dẫn docs/REMOTE-ACCESS-TAILSCALE.md. Tailscale chưa được cài/đăng nhập trên hai thiết bị cửa hàng trong lượt này. Kết nối qua mạng ngoài, báo cáo, reboot và chuyển LAN cần được kiểm tra tại hai máy thật theo hướng dẫn.
 
 ### 2026-11-15 — Chuẩn bị repository bàn giao source cho khách
 

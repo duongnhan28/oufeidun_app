@@ -1,5 +1,11 @@
 # ĐẶC TẢ ỨNG DỤNG DESKTOP QUẢN LÝ KHO VÀ BÁN KÍNH CƯỜNG LỰC
 
+## Truy cập từ xa bằng laptop qua Tailscale — 16/11/2026
+
+- Bộ BAT tại deployment/customer/remote cấu hình riêng trên máy chủ và laptop. Hai thiết bị đăng nhập cùng mạng Tailscale, dùng IP VPN cố định để kết nối API cửa hàng qua HTTPS 443.
+- Máy chủ tạo quy tắc firewall giới hạn đúng IP laptop, IP máy chủ và interface Tailscale. Laptop dùng public profile của cửa hàng, kiểm hostname/CA/health trước khi lưu IP và mở app. Có bản sao profile LAN và mục phục hồi, từ chối nhận diện cửa hàng khác.
+- Quyền và chính sách phiên vẫn theo tài khoản app. Công cụ dùng cơ chế serverIp của app hiện có. Đăng nhập Tailscale và nghiệm thu hai máy thật được thực hiện tại cửa hàng. Chi tiết docs/REMOTE-ACCESS-TAILSCALE.md.
+
 ## Thứ tự xuất Excel báo cáo — 12/11/2026
 
 - Hai sheet Báo cáo bán hàng và Nhập xuất tồn theo 84 dòng Book1.xlsx khách gửi; mã ngoài mẫu nằm cuối và giữ thứ tự tương đối. Mã đã đổi tên có thể nhận diện qua alias, không đổi nhãn xuất.

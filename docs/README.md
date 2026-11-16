@@ -8,6 +8,7 @@ Source bàn giao gồm ứng dụng desktop, API LOCAL và công cụ cài đặ
 | --- | --- |
 | [Cài đặt máy chủ Windows](CAI-DAT-LOCAL-SERVER.md) | API, MySQL, HTTPS và vận hành cơ bản |
 | [Triển khai LAN/Wi-Fi](HUONG-DAN-TRIEN-KHAI-LAN-WIFI.md) | Kết nối máy chủ/máy nhân viên, discovery và chứng chỉ |
+| [Truy cập từ xa qua Tailscale](REMOTE-ACCESS-TAILSCALE.md) | Menu BAT cấu hình máy chủ và laptop, mở app và quay về LAN |
 | [Hướng dẫn máy con](HUONG-DAN-CAI-MAY-CON.txt) | Các bước cài máy nhân viên |
 | [Gói cập nhật máy chủ 0.1.4](SERVER-UPDATE-0.1.4-2026-11-04.md) | Backup, nâng API và kiểm tra tồn dự kiến |
 | [Backup Google Drive](BACKUP-DRIVE-AND-COLORS-2026-10-19.md) | Cấu hình và kiểm tra sao lưu |
