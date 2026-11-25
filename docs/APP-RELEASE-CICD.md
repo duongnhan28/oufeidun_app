@@ -10,7 +10,7 @@ Repository: `duongnhan28/oufeidun_app`. Workflow: `.github/workflows/app-release
 
 ## Phát hành bản tiếp theo
 
-Source desktop hiện ghi 0.1.9. Khi phát hành, kiểm lại feed có chữ ký để xác định bản đang phân phối. Khi thật sự có thay đổi cần giao khách:
+Source desktop hiện ghi 0.1.10. Khi phát hành, kiểm lại feed có chữ ký để xác định bản đang phân phối. Khi thật sự có thay đổi cần giao khách:
 
 ```powershell
 npm version 0.1.8 --no-git-tag-version

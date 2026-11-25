@@ -237,7 +237,7 @@ Workflow `.github/workflows/app-release.yml` có các hành vi đang hoạt đ�
 | `workflow_dispatch` | Kiểm thử/build/ký theo điều kiện workflow |
 | Push tag `vX.Y.Z` trùng package | Kiểm thử/build/ký và publish hosting |
 
-Job Windows `build` tối đa 35 phút. Job Ubuntu `sign-and-publish` tối đa 20 phút, environment `app-production`, concurrency `app-local-stable`, không hủy job đang chạy. `local-installer` lưu 1 ngày, `signed-local-manifest` 7 ngày, failed UI diagnostics 3 ngày.
+Job Windows `build` tối đa 35 phút. Job Ubuntu `sign-and-publish` tối đa 45 phút, environment `app-production`, concurrency `app-local-stable`, không hủy job đang chạy. `local-installer` lưu 1 ngày, `signed-local-manifest` 7 ngày, failed UI diagnostics 3 ngày.
 
 Environment `app-production` đã được kiểm qua GitHub API ngày 12/11. Branch policy cho `main`, tag policy cho `v*`. Sáu environment Secrets hiện có
 
@@ -346,7 +346,7 @@ Chứng chỉ Windows Authenticode có cấu hình riêng trong `forge.config.cj
 
 CI verify artifact proof, version, commit và profile. `publish-client-update.cjs prepare` ký metadata. `scripts/release/publish.cjs` dùng SSH key tạm trên runner để upload helper, public config, signed manifest và EXE staging. `scripts/release/remote.cjs` giữ lock chung, kiểm quota đủ bộ cài cộng 256 MiB, public key, size/hash và version tăng, sau đó đưa installer vào tên hash và đổi feed atomically cuối cùng. Public probe lỗi thì phục hồi feed trước.
 
-SSH/SCP mỗi thao tác có timeout 600 giây. Lượt 0.1.7 tải khoảng 165 MiB từ GitHub sang host mất gần 10 phút. Nếu upload bị ngắt, xem run, staging và lock trước retry vì script giữ staging khi chưa biết trạng thái remote. Khóa deploy thuộc job đang làm việc phải được xử lý theo trạng thái thực của tiến trình.
+SSH/SCP mỗi thao tác có timeout 600 giây, riêng upload installer 1800 giây. Lượt 0.1.7 tải khoảng 165 MiB mất gần 10 phút; 0.1.8 và 0.1.9 bị ngắt ở mốc 600 giây nên từ 0.1.10 nới timeout. Nếu upload bị ngắt, xem run, staging và lock trước retry vì script giữ staging khi chưa biết trạng thái remote. Khóa deploy thuộc job đang làm việc phải được xử lý theo trạng thái thực của tiến trình.
 
 Nếu chuẩn bị release thủ công, xem giao diện CLI thật trong `scripts/publish-client-update.cjs` và `docs/ONLINE-CLIENT-UPDATES.md`. Luồng đang vận hành mặc định là GitHub Actions.
 

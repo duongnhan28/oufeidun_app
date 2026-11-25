@@ -26,7 +26,8 @@ async function main() {
     }
     const options = ['-i', key, '-o', `UserKnownHostsFile=${known}`, '-o', 'StrictHostKeyChecking=yes', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=20', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=4'];
     const ssh = command => execFileSync('ssh', [...options, '-p', port, `${user}@${host}`, command], { stdio: 'inherit', timeout: 600000 });
-    const put = (local, name) => execFileSync('scp', [...options, '-P', port, local, `${user}@${host}:${stage}/${name}`], { stdio: 'inherit', timeout: 600000 });
+    // The ~170 MB installer upload to the shared host has taken just over 10 minutes; allow 30.
+    const put = (local, name, timeout = 600000) => execFileSync('scp', [...options, '-P', port, local, `${user}@${host}:${stage}/${name}`], { stdio: 'inherit', timeout });
     const envelopeFile = '.local/signed/stable/local-mysql-win32-x64.json';
     const config = require('../../electron/update-config.json');
     const release = validateEnvelope(JSON.parse(fs.readFileSync(envelopeFile)), config.publicKey, new URL('local-mysql-win32-x64.json', config.feedBaseUrl).href, 'x64', 'local-mysql');
@@ -38,7 +39,7 @@ async function main() {
       put('electron/update-config.json', 'update-config.json');
       put(envelopeFile, 'local-mysql-win32-x64.json');
       ssh(`${quote(NODE)} ${quote(stage + '/remote.cjs')} prepare ${quote(id)}`);
-      put(`.local/signed/files/${release.sha256}.exe`, 'installer.exe');
+      put(`.local/signed/files/${release.sha256}.exe`, 'installer.exe', 1800000);
       ssh(`${quote(NODE)} ${quote(stage + '/remote.cjs')} commit ${quote(id)}`);
       completed = true;
     } finally {

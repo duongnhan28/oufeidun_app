@@ -89,7 +89,7 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     environment: app-production
     concurrency:
       group: app-local-stable
