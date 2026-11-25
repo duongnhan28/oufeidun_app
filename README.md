@@ -4,7 +4,7 @@
 
 | Thành phần | Phiên bản trong source | Nền tảng |
 | --- | --- | --- |
-| Ứng dụng máy nhân viên | **0.1.8** | Windows x64 · Electron · React · TypeScript |
+| Ứng dụng máy nhân viên | **0.1.9** | Windows x64 · Electron · React · TypeScript |
 | API máy chủ cửa hàng | **0.1.4** | Windows · Node.js · MySQL |
 | Tra cứu và phân phối cập nhật | Website Oufeidun | HTTPS · hosting riêng |
 
