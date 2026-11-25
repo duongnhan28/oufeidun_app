@@ -162,6 +162,11 @@ Mỗi lần làm xong một tính năng, người thực hiện phải tạo m�
 
 ## Nhật ký xác minh
 
+### 2026-11-25 — Phát hành lại LOCAL 0.1.8 cho máy khách còn bản cũ
+
+- Khách báo mất tồn dự kiến và đang ở phiên bản cũ. Đã đọc lại checklist, đối chiếu STOCK-01/04/05, ORDER-01/02/07, UI-01. Source từ v0.1.7 tới HEAD không đổi code client/server tồn dự kiến (chỉ tài liệu, công cụ Tailscale, test). Tính năng cần client LOCAL (backend api) và API ≥0.1.4 có capabilities.stockForecast; API cũ thì client ẩn nhãn Trong nháp/Dự kiến mà không báo.
+- Chỉ tăng version 0.1.8 và release notes để updater có bản mới hơn feed 0.1.7. Không đổi công thức tiền/tồn, đơn cũ, migration, cấu hình hoặc server. Máy phát triển macOS không có Node nên không chạy được npm.cmd run verify tại chỗ; dùng CI Windows trên main (unit/UI/Electron/build/audit, make LOCAL, audit gói, smoke packaged) làm cổng kiểm tra trước khi push tag. Khách cần kiểm KIEM-TRA-TON-DU-KIEN.bat trên máy chủ; máy chưa có updater phải cài bộ cài một lần.
+
 ### 2026-11-16 — Đóng gói công cụ Tailscale và hướng dẫn test hai máy
 
 - Bổ sung hướng dẫn đầy đủ từ chuẩn bị app/public profile, đăng nhập Tailscale, lấy hai IP, Run unattended, cấu hình firewall máy chủ, cấu hình laptop tới test mạng ngoài, Excel, reboot và quay lại LAN.
